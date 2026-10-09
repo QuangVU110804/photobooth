@@ -1,0 +1,37 @@
+name: Test Pipeline
+
+on:
+  push:
+    branches:
+      - master
+      - dev-api
+      - dev-fe
+      - 'feature/**'
+      - 'fix/**'
+  pull_request:
+    branches:
+      - master
+      - dev-api
+      - dev-fe
+
+jobs:
+  php-tests:
+    name: PHP Lint & Test Pipeline (${{ matrix.php-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.3']
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, gd, json, curl, zip
+          coverage: none
+
+      - name: Run Automated Test Pipeline
+        run: php scripts/run-tests.php
