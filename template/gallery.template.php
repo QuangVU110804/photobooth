@@ -5,12 +5,12 @@
 <div id="gallery" class="gallery rotarygroup">
 	<div class="gallery__inner">
 		<div class="gallery__header">
-			<h1><span data-i18n="gallery"></span></h1>
-			<a href="#" class="<?php echo $btnClass; ?> gallery__close close_gal rotaryfocus"><i class="<?php echo $config['icons']['close']; ?>"></i></a>
+			<div class="hmu-gallery-heading"><h1>Thư viện ảnh</h1><p>Những khoảnh khắc đáng nhớ của bạn.</p></div>
+			<a href="#" aria-label="Đóng thư viện" title="Đóng thư viện" class="<?php echo $btnClass; ?> gallery__close close_gal rotaryfocus"><i class="<?php echo $config['icons']['close']; ?>" aria-hidden="true"></i></a>
 		</div>
 		<div class="gallery__body" id="galimages">
 			<?php if (empty($imagelist)): ?>
-			<h1 style="text-align:center" data-i18n="gallery_no_image"></h1>
+			<div class="hmu-gallery-empty"><span class="hmu-gallery-empty-icon" aria-hidden="true"><i class="fa fa-camera"></i></span><h2>Chưa có khoảnh khắc nào được lưu</h2><p>Hãy bắt đầu buổi chụp đầu tiên của bạn!</p><?php if ($config['picture']['enabled'] && !$config['button']['force_buzzer']): ?><a href="#" class="hmu-button hmu-button-primary takePic"><i class="<?php echo $config['icons']['take_picture']; ?>" aria-hidden="true"></i> Chụp ảnh ngay</a><?php endif; ?></div>
 			<?php else: ?>
 			<?php foreach ($imagelist as $image): ?>
 			<?php
