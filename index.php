@@ -41,11 +41,11 @@ if (
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0 user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="msapplication-TileColor" content="<?= $config['colors']['primary'] ?>">
     <meta name="theme-color" content="<?= $config['colors']['primary'] ?>">
 
@@ -85,123 +85,7 @@ if (
 
 
 
-<!-- KIOSK CLEAN STYLING & NATIVE FRAME CONTROLLER -->
-<style>
-  /* 1. CHỈ ÁP DỤNG HÌNH NỀN & LOGO CHO DUY NHẤT MÀN HÌNH CHỜ (START SCREEN) */
-  #wrapper.start, body.start-screen, .stages.start-screen {
-    background-color: #fbf9f5 !important;
-    background-image: 
-      url('resources/img/background/logohome.png'),
-      radial-gradient(circle at 10% 88%, rgba(0, 85, 165, 0.22) 0%, transparent 45%),
-      radial-gradient(circle at 12% 12%, rgba(184, 15, 72, 0.20) 0%, transparent 40%),
-      radial-gradient(circle at 50% 35%, #ffffff 0%, #f6f3eb 65%, #eee9de 100%) !important;
-    background-position: center 24%, center, center, center !important;
-    background-size: min(420px, 38vw) auto, cover, cover, cover !important;
-    background-repeat: no-repeat !important;
-  }
-
-  /* 2. TRẢ LẠI NỀN TRONG SUỐT CHO TOÀN BỘ CÁC LỚP LIVE PREVIEW & COUNTDOWN */
-  #video--view, .video--view, #video, video, .stages, #stage, #preview, .countdown {
-    background-color: transparent !important;
-  }
-
-  /* 3. THANH CHỌN FRAME GỌN GÀNG Ở CẠNH PHẢI */
-  .kiosk-frame-bar {
-    position: fixed;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 999999;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 10px;
-    border-radius: 14px;
-    backdrop-filter: blur(6px);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-  }
-  .kiosk-frame-btn {
-    width: 80px;
-    height: 50px;
-    border-radius: 8px;
-    border: 2px solid #ffffff;
-    cursor: pointer;
-    overflow: hidden;
-    background: #111;
-    transition: transform 0.2s, border-color 0.2s;
-  }
-  .kiosk-frame-btn.active {
-    border: 3px solid #ffcc00 !important;
-    box-shadow: 0 0 14px #ffcc00;
-    transform: scale(1.1);
-  }
-  .kiosk-frame-btn img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    pointer-events: none;
-    display: block;
-  }
-</style>
-
-<div id="kioskFrameSelector" class="kiosk-frame-bar"></div>
-
-<script>
-  function switchKioskFrame(frameFileName) {
-    const bust = Date.now();
-    const frameUrl = "resources/img/frames/" + frameFileName + "?v=" + bust;
-    const absUrl = "/photobooth/resources/img/frames/" + frameFileName + "?v=" + bust;
-
-    // Cập nhật biến CSS gốc của Photobooth
-    document.documentElement.style.setProperty("--picture-frame", 'url("' + absUrl + '")');
-    document.documentElement.style.setProperty("--collage-frame", 'url("' + absUrl + '")');
-
-    // Cập nhật các thẻ khung mặc định của hệ thống Photobooth
-    document.querySelectorAll("#frame, .frameImage, #preview-frame, .live-preview-frame, img[src*='frames/']").forEach(el => {
-      if (el.tagName.toLowerCase() === "img") {
-        el.src = frameUrl;
-      } else {
-        el.style.backgroundImage = 'url("' + frameUrl + '")';
-      }
-    });
-
-    // Gửi backend swap file phục vụ việc lưu ảnh chụp
-    const form = new FormData();
-    form.append("frame", frameFileName);
-    fetch("api/setFrame.php", { method: "POST", body: form });
-  }
-
-  document.addEventListener("DOMContentLoaded", function() {
-    fetch("api/getFrames.php")
-      .then(r => r.json())
-      .then(frames => {
-        const bar = document.getElementById("kioskFrameSelector");
-        if (!bar || !frames.length) return;
-        bar.innerHTML = "";
-
-        frames.forEach((f, idx) => {
-          const btn = document.createElement("div");
-          btn.className = "kiosk-frame-btn" + (idx === 0 ? " active" : "");
-          btn.title = f;
-          btn.innerHTML = `<img src="resources/img/frames/${f}" alt="${f}">`;
-
-          btn.onclick = function(e) {
-            e.stopPropagation();
-            document.querySelectorAll(".kiosk-frame-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            switchKioskFrame(f);
-          };
-          bar.appendChild(btn);
-        });
-
-        if (frames.length > 0) {
-          switchKioskFrame(frames[0]);
-        }
-      });
-  });
-</script>
-<!-- END KIOSK CLEAN STYLING & NATIVE FRAME CONTROLLER -->
+<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=7"/>
 </head>
 
 <body class="deselect">
@@ -351,6 +235,7 @@ if (
 <script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
 <script src="node_modules/@andreasremdt/simple-translator/dist/umd/translator.min.js"></script>
 <script type="text/javascript" src="resources/js/i18n.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
+<script type="text/javascript" src="resources/js/hmu-frames.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
 
 <?php require_once('lib/services_start.php'); ?>
 </body>

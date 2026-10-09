@@ -27,11 +27,11 @@ $btnClass = 'btn btn--' . $config['ui']['button'];
 $GALLERY_FOOTER = false;
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 
 <head>
 	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0 user-scalable=no">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="msapplication-TileColor" content="<?=$config['colors']['primary']?>">
 	<meta name="theme-color" content="<?=$config['colors']['primary']?>">
 
@@ -61,6 +61,7 @@ $GALLERY_FOOTER = false;
 	<?php if (is_file("private/overrides.css")): ?>
 	<link rel="stylesheet" href="private/overrides.css?v=<?php echo $config['photobooth']['version']; ?>" />
 	<?php endif; ?>
+	<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=7" />
 </head>
 
 <body class="deselect">
