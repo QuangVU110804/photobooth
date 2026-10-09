@@ -30,7 +30,9 @@
     "pack:build": "npm-run-all --serial eslint build pack:zip",
     "pack:zip": "node scripts/pack-build.js",
     "test": "php scripts/run-tests.php",
-    "watch": "gulp watch"
+    "watch": "gulp watch",
+    "watch:pipe": "powershell -ExecutionPolicy Bypass -File ./scripts/watch-pipeline.ps1",
+    "watch:php": "php scripts/run-tests.php --watch --heal"
   },
   "author": "Andreas Blaesius <andi@unlegacy-android.org>",
   "license": "MIT",
