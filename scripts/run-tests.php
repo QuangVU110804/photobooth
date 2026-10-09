@@ -347,7 +347,9 @@ if ($isCoreAffected) {
             'api/checkVersion.php',
             'api/serverInfo.php',
             'api/admin.php',
-            'api/config.php'
+            'api/config.php',
+            'api/getFrames.php',
+            'api/setFrame.php'
         ];
 
         $hasFailures = false;
@@ -362,6 +364,56 @@ if ($isCoreAffected) {
             $content = file_get_contents($apiFile);
             if (str_contains($content, 'eval(') || str_contains($content, 'shell_exec($_GET')) {
                 $diag->recordFailure("SECURITY_VULN", $apiFile, 1, "Dangerous execution pattern detected in {$apiRel}", "SEV-1");
+                $hasFailures = true;
+            }
+        }
+
+        // Functional contract checks for Frame APIs using isolated cross-platform executor
+        $phpBinary = PHP_BINARY;
+        $runPhpIsolated = function(string $code) use ($phpBinary, $rootDir): array {
+            $fullCode = "chdir(" . var_export($rootDir, true) . "); " . $code;
+            $b64 = base64_encode($fullCode);
+            $evalCmd = "eval(base64_decode('{$b64}'));";
+            $cmd = "{$phpBinary} -r " . escapeshellarg($evalCmd);
+            $output = [];
+            $code = 0;
+            exec("{$cmd} 2>&1", $output, $code);
+            return ['code' => $code, 'output' => implode("\n", $output)];
+        };
+
+        // 1. Contract check: api/getFrames.php
+        $getFramesPath = $rootDir . DIRECTORY_SEPARATOR . 'api' . DIRECTORY_SEPARATOR . 'getFrames.php';
+        $resGet = $runPhpIsolated('require "api/getFrames.php";');
+        $framesList = json_decode($resGet['output'], true);
+
+        if ($resGet['code'] !== 0 || !is_array($framesList)) {
+            $diag->recordFailure("API_CONTRACT", $getFramesPath, 1, "api/getFrames.php failed to return valid JSON array", "SEV-1");
+            $hasFailures = true;
+        } else {
+            if (in_array('current_active_frame.png', $framesList)) {
+                $diag->recordFailure("API_CONTRACT", $getFramesPath, 1, "api/getFrames.php must exclude current_active_frame.png", "SEV-1");
+                $hasFailures = true;
+            }
+        }
+
+        // 2. Contract check: api/setFrame.php path traversal rejection
+        $setFramePath = $rootDir . DIRECTORY_SEPARATOR . 'api' . DIRECTORY_SEPARATOR . 'setFrame.php';
+        $resTrav = $runPhpIsolated('$_POST["frame"] = "../../config/config.php"; require "api/setFrame.php";');
+        $travResult = json_decode($resTrav['output'], true);
+
+        if (!is_array($travResult) || ($travResult['status'] ?? '') !== 'error') {
+            $diag->recordFailure("SECURITY_VULN", $setFramePath, 1, "api/setFrame.php failed to reject path traversal / invalid frame", "SEV-1");
+            $hasFailures = true;
+        }
+
+        // 3. Contract check: api/setFrame.php valid frame selection
+        if (!empty($framesList) && is_array($framesList)) {
+            $firstFrame = $framesList[0];
+            $resValid = $runPhpIsolated('$_POST["frame"] = ' . var_export($firstFrame, true) . '; require "api/setFrame.php";');
+            $validResult = json_decode($resValid['output'], true);
+
+            if (!is_array($validResult) || ($validResult['status'] ?? '') !== 'success' || ($validResult['active'] ?? '') !== $firstFrame) {
+                $diag->recordFailure("API_CONTRACT", $setFramePath, 1, "api/setFrame.php failed to activate frame {$firstFrame}", "SEV-1");
                 $hasFailures = true;
             }
         }

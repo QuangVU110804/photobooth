@@ -54,7 +54,7 @@
 						<div class="hmu-preview-badge"><span class="hmu-preview-check" aria-hidden="true"><i class="fa fa-check"></i></span><span>Khung đang chọn</span></div>
 						<div class="hmu-hero-frame-card">
 							<div class="hmu-frame-card-top"><span>HMU STUDIO</span><span class="hmu-frame-id">MEMORIES</span></div>
-							<div class="hmu-hero-frame-window"><img id="hmuHeroFrame" src="resources/img/frames/kiosk_frame_1.png" alt="Bản xem trước khung ảnh đang chọn" /></div>
+							<div class="hmu-hero-frame-window"><img id="hmuHeroFrame" src="resources/img/frames/a.png" alt="Bản xem trước khung ảnh đang chọn" /></div>
 							<div class="hmu-frame-card-bottom"><span>HMU MEMORIES</span><span>Hà Nội, Việt Nam</span></div>
 						</div>
 						<div class="hmu-preview-caption"><i class="fa fa-picture-o" aria-hidden="true"></i> Xem trước khung ảnh</div>
