@@ -28,3 +28,7 @@ config/*.local.php
 vendor/phpqrcode/lib/full/cache/
 vendor/phpqrcode/lib/full/*-errors.txt
 vendor/phpqrcode/lib/full/errors.txt
+
+# Automated test pipeline diagnostics & telemetry
+reports/
+*.bak

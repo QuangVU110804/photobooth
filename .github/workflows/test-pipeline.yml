@@ -1,4 +1,4 @@
-name: Test Pipeline
+name: Production CI & AI Diagnostic Pipeline
 
 on:
   push:
@@ -15,23 +15,46 @@ on:
       - dev-fe
 
 jobs:
-  php-tests:
-    name: PHP Lint & Test Pipeline (${{ matrix.php-version }})
+  test-and-diagnose:
+    name: Quality Gates & Diagnostic (${{ matrix.php-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         php-version: ['8.2', '8.3']
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Setup PHP
+      - name: Setup PHP Environment
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
           extensions: mbstring, gd, json, curl, zip
           coverage: none
 
-      - name: Run Automated Test Pipeline
-        run: php scripts/run-tests.php
+      - name: Run Quality Gates & Telemetry Extraction
+        id: run_tests
+        continue-on-error: true
+        run: |
+          php scripts/run-tests.php
+
+      - name: Publish AI Action Guide to GitHub Step Summary
+        if: always()
+        run: |
+          if [ -f "reports/ai-fix-prompt.md" ]; then
+            cat reports/ai-fix-prompt.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Diagnostic Telemetry Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-report-php${{ matrix.php-version }}
+          path: reports/
+          retention-days: 7
+
+      - name: Enforce Pipeline Exit Code
+        run: |
+          php scripts/run-tests.php

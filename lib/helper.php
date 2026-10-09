@@ -2,10 +2,11 @@
 require_once __DIR__ . '/log.php';
 
 function getPhotoboothPath() {
-    if (SERVER_OS == 'linux') {
-        $server_path = $_SERVER['DOCUMENT_ROOT'];
+    $docRoot = !empty($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : realpath(__DIR__ . '/../..');
+    if (defined('SERVER_OS') && SERVER_OS == 'linux') {
+        $server_path = $docRoot;
     } else {
-        $server_path = str_replace('/', '\\', $_SERVER['DOCUMENT_ROOT']);
+        $server_path = str_replace('/', '\\', $docRoot);
     }
 
     return $server_path;
@@ -36,16 +37,12 @@ function fixSeperator($fix_path) {
 }
 
 function getPhotoboothIp() {
-    if (SERVER_OS == 'linux') {
-        $get_ip = shell_exec('hostname -I | cut -d " " -f 1');
-
-        if (!$get_ip) {
-            $ip = $_SERVER['HTTP_HOST'];
-        } else {
-            $ip = $get_ip;
-        }
+    $host = $_SERVER['HTTP_HOST'] ?? '127.0.0.1';
+    if (defined('SERVER_OS') && SERVER_OS == 'linux') {
+        $get_ip = @shell_exec('hostname -I | cut -d " " -f 1');
+        $ip = $get_ip ? trim($get_ip) : $host;
     } else {
-        $ip = $_SERVER['HTTP_HOST'];
+        $ip = $host;
     }
 
     return $ip;
