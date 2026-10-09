@@ -1,0 +1,98 @@
+:root {
+  --primary-color: transparent;
+  --secondary-color: transparent;
+  --highlight-color: transparent;
+  --font-color: transparent;
+  --button-font-color: transparent;
+  --start-font-color: transparent;
+  --countdown-color: transparent;
+  --background-countdown-color: transparent;
+  --cheese-color: transparent;
+  --panel-color: transparent;
+  --hover-panel-color: transparent;
+  --border-color: transparent;
+  --box-color: transparent;
+  --gallery-button-color: transparent;
+  --background-default: none;
+  --background-admin: none;
+  --background-chroma: none;
+  --background-url: none;
+  --fontSize: 16px;
+  --preview-rotation: 0deg;
+  --picture-frame: none;
+  --collage-frame: none;
+}
+
+.pswp__button--qrcode,
+.pswp__button--print,
+.pswp__button--print-chroma-keying,
+.pswp__button--download,
+.pswp__button--custom-download,
+.pswp__button--mail,
+.pswp__button--playpause,
+.pswp__button--share,
+.pswp__button--zoom,
+.pswp__button--fs,
+.pswp__button--delete {
+  left: 40%;
+}
+
+.pswp__button--close {
+  top: 13px;
+  right: 30px;
+  left: auto;
+  position: fixed;
+}
+
+.pswp__top-bar {
+  height: 8em;
+  top: auto;
+  bottom: 0;
+}
+
+.pswp__button {
+  float: left;
+}
+
+.pswp__counter {
+  left: 20%;
+  height: 4.375em;
+  font-size: 1.5em;
+  line-height: 5em;
+  padding: 0;
+}
+
+@media screen and (max-width: 1024px) {
+  .pswp__counter {
+    left: 5%;
+    height: 2em;
+    font-size: 1.2em;
+    line-height: 3em;
+    padding: 0 5px;
+  }
+  .pswp__button {
+    left: 15%;
+    margin: auto;
+  }
+  .pswp__button--qrcode,
+  .pswp__button--print,
+  .pswp__button--print-chroma-keying,
+  .pswp__button--download,
+  .pswp__button--custom-download,
+  .pswp__button--mail,
+  .pswp__button--playpause,
+  .pswp__button--share,
+  .pswp__button--zoom,
+  .pswp__button--fs,
+  .pswp__button--delete {
+    width: 2em;
+    height: 2em;
+    line-height: 2em;
+  }
+  .pswp__button--close {
+    left: auto;
+  }
+  .pswp__top-bar {
+    height: 3em;
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "curly": true,
+  "eqeqeq": true,
+  "immed": true,
+  "latedef": false,
+  "newcap": true,
+  "noarg": true,
+  "sub": true,
+  "undef": false,
+  "unused": true,
+  "boss": true,
+  "eqnull": true,
+  "browser": true,
+  "expr": true,
+  "onevar": true,
+  "trailing": true,
+  "undef": true,
+  "unused": true,
+  "node": true,
+
+  "predef": [
+    "define",
+    "module",
+    "Element"
+  ]
+}

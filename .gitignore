@@ -1,0 +1,30 @@
+# Local dependencies and generated build/runtime files
+node_modules/
+archives/*
+HEAD
+.skip_welcome
+
+# Runtime data: photos, thumbnails, QR codes, logs, database and mail lists
+data/*
+
+# Local/private Photobooth configuration
+config/my.config.inc.php
+config/*.local.php
+
+# Local environment/editor files
+.env
+.env.*
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs, caches and generated archives
+*.log
+*.cache
+*.zip
+
+# Generated phpqrcode cache and diagnostic files
+vendor/phpqrcode/lib/full/cache/
+vendor/phpqrcode/lib/full/*-errors.txt
+vendor/phpqrcode/lib/full/errors.txt
