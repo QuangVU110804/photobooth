@@ -347,7 +347,9 @@ if ($isCoreAffected) {
             'api/checkVersion.php',
             'api/serverInfo.php',
             'api/admin.php',
-            'api/config.php'
+            'api/config.php',
+            'api/getFrames.php',
+            'api/setFrame.php'
         ];
 
         $hasFailures = false;
@@ -362,6 +364,106 @@ if ($isCoreAffected) {
             $content = file_get_contents($apiFile);
             if (str_contains($content, 'eval(') || str_contains($content, 'shell_exec($_GET')) {
                 $diag->recordFailure("SECURITY_VULN", $apiFile, 1, "Dangerous execution pattern detected in {$apiRel}", "SEV-1");
+                $hasFailures = true;
+            }
+        }
+
+        // Functional contract checks for Frame APIs using isolated cross-platform executor
+        $phpBinary = PHP_BINARY;
+        $runPhpIsolated = function(string $code) use ($phpBinary, $rootDir): array {
+            $fullCode = "chdir(" . var_export($rootDir, true) . "); " . $code;
+            $b64 = base64_encode($fullCode);
+            $evalCmd = "eval(base64_decode('{$b64}'));";
+            $cmd = "{$phpBinary} -r " . escapeshellarg($evalCmd);
+            $output = [];
+            $code = 0;
+            exec("{$cmd} 2>&1", $output, $code);
+            return ['code' => $code, 'output' => implode("\n", $output)];
+        };
+
+        // 1. Contract check: api/getFrames.php
+        $getFramesPath = $rootDir . DIRECTORY_SEPARATOR . 'api' . DIRECTORY_SEPARATOR . 'getFrames.php';
+        $resGet = $runPhpIsolated('require "api/getFrames.php";');
+        $framesList = json_decode($resGet['output'], true);
+
+        if ($resGet['code'] !== 0 || !is_array($framesList)) {
+            $diag->recordFailure("API_CONTRACT", $getFramesPath, 1, "api/getFrames.php failed to return valid JSON array", "SEV-1");
+            $hasFailures = true;
+        } else {
+            if (in_array('current_active_frame.png', $framesList)) {
+                $diag->recordFailure("API_CONTRACT", $getFramesPath, 1, "api/getFrames.php must exclude current_active_frame.png", "SEV-1");
+                $hasFailures = true;
+            }
+        }
+
+        // 2. Contract check: api/setFrame.php path traversal rejection
+        $setFramePath = $rootDir . DIRECTORY_SEPARATOR . 'api' . DIRECTORY_SEPARATOR . 'setFrame.php';
+        $resTrav = $runPhpIsolated('$_POST["frame"] = "../../config/config.php"; require "api/setFrame.php";');
+        $travResult = json_decode($resTrav['output'], true);
+
+        if (!is_array($travResult) || ($travResult['status'] ?? '') !== 'error') {
+            $diag->recordFailure("SECURITY_VULN", $setFramePath, 1, "api/setFrame.php failed to reject path traversal / invalid frame", "SEV-1");
+            $hasFailures = true;
+        }
+
+        // 3. Contract check: api/setFrame.php valid frame selection
+        if (!empty($framesList) && is_array($framesList)) {
+            $firstFrame = $framesList[0];
+            $resValid = $runPhpIsolated('$_POST["frame"] = ' . var_export($firstFrame, true) . '; require "api/setFrame.php";');
+            $validResult = json_decode($resValid['output'], true);
+
+            if (!is_array($validResult) || ($validResult['status'] ?? '') !== 'success' || ($validResult['active'] ?? '') !== $firstFrame) {
+                $diag->recordFailure("API_CONTRACT", $setFramePath, 1, "api/setFrame.php failed to activate frame {$firstFrame}", "SEV-1");
+                $hasFailures = true;
+            }
+        }
+
+        // 4. Asset check: required frame files in resources/img/frames
+        $requiredFrames = ['a.png', 'b.png', 'c.png', 'kiosk_frame_1.png', 'kiosk_frame_2.png'];
+        $framesDir = $rootDir . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'frames';
+        foreach ($requiredFrames as $reqFrame) {
+            $reqFramePath = $framesDir . DIRECTORY_SEPARATOR . $reqFrame;
+            if (!file_exists($reqFramePath) || filesize($reqFramePath) === 0) {
+                $diag->recordFailure("ASSET_INTEGRITY", $reqFramePath, 1, "Required frame asset {$reqFrame} is missing or empty", "SEV-1");
+                $hasFailures = true;
+            }
+        }
+
+        // 5. Asset check: current_active_frame.png exists and is valid PNG
+        $activeFramePath = $framesDir . DIRECTORY_SEPARATOR . 'current_active_frame.png';
+        if (!file_exists($activeFramePath) || filesize($activeFramePath) === 0) {
+            $diag->recordFailure("ASSET_INTEGRITY", $activeFramePath, 1, "current_active_frame.png is missing or empty", "SEV-1");
+            $hasFailures = true;
+        } else {
+            $imgInfo = @getimagesize($activeFramePath);
+            if (!$imgInfo || ($imgInfo[2] ?? 0) !== IMAGETYPE_PNG) {
+                $diag->recordFailure("ASSET_INTEGRITY", $activeFramePath, 1, "current_active_frame.png is not a valid PNG image", "SEV-1");
+                $hasFailures = true;
+            }
+        }
+
+        // 6. Template check: modern.template.php dynamic hero fallback
+        $modernTemplatePath = $rootDir . DIRECTORY_SEPARATOR . 'template' . DIRECTORY_SEPARATOR . 'modern.template.php';
+        $templateContent = file_get_contents($modernTemplatePath);
+        if (preg_match('/<img[^>]+id=["\']hmuHeroFrame["\'][^>]+src=["\']resources\/img\/frames\/(?:a|kiosk_frame_1)\.png["\']/i', $templateContent)) {
+            $diag->recordFailure("TEMPLATE_DEFECT", $modernTemplatePath, 57, "modern.template.php still has hardcoded hero frame preview src", "SEV-1");
+            $hasFailures = true;
+        }
+
+        $resRender = $runPhpIsolated('require "lib/config.php"; $btnClass = "btn"; ob_start(); include "template/modern.template.php"; $html = ob_get_clean(); echo $html;');
+        if ($resRender['code'] !== 0) {
+            $diag->recordFailure("TEMPLATE_EXECUTION", $modernTemplatePath, 1, "Failed to render modern.template.php: " . substr($resRender['output'], 0, 100), "SEV-1");
+            $hasFailures = true;
+        } else {
+            if (preg_match('/<img[^>]+id=["\']hmuHeroFrame["\'][^>]+src=["\']([^"\']+)["\']/i', $resRender['output'], $m)) {
+                $renderedHeroSrc = $m[1];
+                $expectedHeroSrc = !empty($framesList) ? 'resources/img/frames/' . $framesList[0] : 'resources/img/frames/current_active_frame.png';
+                if ($renderedHeroSrc !== $expectedHeroSrc) {
+                    $diag->recordFailure("HERO_FALLBACK", $modernTemplatePath, 57, "Hero frame src mismatch: expected \'{$expectedHeroSrc}\', got \'{$renderedHeroSrc}\'", "SEV-1");
+                    $hasFailures = true;
+                }
+            } else {
+                $diag->recordFailure("HERO_FALLBACK", $modernTemplatePath, 57, "Could not find img#hmuHeroFrame in rendered modern.template.php", "SEV-1");
                 $hasFailures = true;
             }
         }

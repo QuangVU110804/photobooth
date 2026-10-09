@@ -32,3 +32,4 @@ vendor/phpqrcode/lib/full/errors.txt
 # Automated test pipeline diagnostics & telemetry
 reports/
 *.bak
+backups/
