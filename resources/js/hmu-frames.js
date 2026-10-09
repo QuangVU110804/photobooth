@@ -145,4 +145,15 @@
       if (errorMessage) errorMessage.hidden = false;
     })
     .finally(function () { selector.setAttribute("aria-busy", "false"); });
+
+  var previewCaption = document.getElementById("hmuPreviewCaption") || document.querySelector(".hmu-preview-caption");
+  if (previewCaption) {
+    previewCaption.addEventListener("click", function (event) {
+      var target = document.getElementById("hmu-templates") || document.querySelector(".hmu-templates");
+      if (target) {
+        event.preventDefault();
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
 })();

@@ -296,7 +296,11 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .hmu-preview-badge,.hmu-preview-caption { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(226, 232, 240, 0.92); border-radius: 999px; background: rgba(255, 255, 255, 0.96); box-shadow: var(--hmu-shadow-md); color: var(--hmu-ink); font-weight: 700; white-space: nowrap; }
 .hmu-preview-badge { top: 4%; left: 0; padding: 9px 14px 9px 9px; font-size: 14px; }
 .hmu-preview-check { display: grid; width: 23px; height: 23px; place-items: center; border-radius: 50%; background: var(--hmu-magenta-soft); color: var(--hmu-magenta); }
-.hmu-preview-caption { right: 0; bottom: 7%; padding: 10px 15px; color: var(--hmu-blue); font-size: 13px; }
+.hmu-preview-caption { right: 0; bottom: 7%; padding: 10px 15px; color: var(--hmu-blue); font-size: 13px; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; user-select: none; }
+.hmu-preview-caption:hover { transform: translateY(-2px); box-shadow: var(--hmu-shadow-lg); background: #ffffff; }
+.hmu-preview-caption:active { transform: translateY(0); }
+.hmu-preview-scroll-btn { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font: inherit; cursor: pointer; }
+.hmu-preview-scroll-btn:focus-visible { outline: 2px solid var(--hmu-blue); outline-offset: 3px; border-radius: 999px; }
 
 .hmu-templates { padding: 22px clamp(4px, 1.6vw, 24px) 12px; scroll-margin-top: 24px; }
 .hmu-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }

@@ -418,6 +418,56 @@ if ($isCoreAffected) {
             }
         }
 
+        // 4. Asset check: required frame files in resources/img/frames
+        $requiredFrames = ['a.png', 'b.png', 'c.png', 'kiosk_frame_1.png', 'kiosk_frame_2.png'];
+        $framesDir = $rootDir . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'frames';
+        foreach ($requiredFrames as $reqFrame) {
+            $reqFramePath = $framesDir . DIRECTORY_SEPARATOR . $reqFrame;
+            if (!file_exists($reqFramePath) || filesize($reqFramePath) === 0) {
+                $diag->recordFailure("ASSET_INTEGRITY", $reqFramePath, 1, "Required frame asset {$reqFrame} is missing or empty", "SEV-1");
+                $hasFailures = true;
+            }
+        }
+
+        // 5. Asset check: current_active_frame.png exists and is valid PNG
+        $activeFramePath = $framesDir . DIRECTORY_SEPARATOR . 'current_active_frame.png';
+        if (!file_exists($activeFramePath) || filesize($activeFramePath) === 0) {
+            $diag->recordFailure("ASSET_INTEGRITY", $activeFramePath, 1, "current_active_frame.png is missing or empty", "SEV-1");
+            $hasFailures = true;
+        } else {
+            $imgInfo = @getimagesize($activeFramePath);
+            if (!$imgInfo || ($imgInfo[2] ?? 0) !== IMAGETYPE_PNG) {
+                $diag->recordFailure("ASSET_INTEGRITY", $activeFramePath, 1, "current_active_frame.png is not a valid PNG image", "SEV-1");
+                $hasFailures = true;
+            }
+        }
+
+        // 6. Template check: modern.template.php dynamic hero fallback
+        $modernTemplatePath = $rootDir . DIRECTORY_SEPARATOR . 'template' . DIRECTORY_SEPARATOR . 'modern.template.php';
+        $templateContent = file_get_contents($modernTemplatePath);
+        if (preg_match('/<img[^>]+id=["\']hmuHeroFrame["\'][^>]+src=["\']resources\/img\/frames\/(?:a|kiosk_frame_1)\.png["\']/i', $templateContent)) {
+            $diag->recordFailure("TEMPLATE_DEFECT", $modernTemplatePath, 57, "modern.template.php still has hardcoded hero frame preview src", "SEV-1");
+            $hasFailures = true;
+        }
+
+        $resRender = $runPhpIsolated('require "lib/config.php"; $btnClass = "btn"; ob_start(); include "template/modern.template.php"; $html = ob_get_clean(); echo $html;');
+        if ($resRender['code'] !== 0) {
+            $diag->recordFailure("TEMPLATE_EXECUTION", $modernTemplatePath, 1, "Failed to render modern.template.php: " . substr($resRender['output'], 0, 100), "SEV-1");
+            $hasFailures = true;
+        } else {
+            if (preg_match('/<img[^>]+id=["\']hmuHeroFrame["\'][^>]+src=["\']([^"\']+)["\']/i', $resRender['output'], $m)) {
+                $renderedHeroSrc = $m[1];
+                $expectedHeroSrc = !empty($framesList) ? 'resources/img/frames/' . $framesList[0] : 'resources/img/frames/current_active_frame.png';
+                if ($renderedHeroSrc !== $expectedHeroSrc) {
+                    $diag->recordFailure("HERO_FALLBACK", $modernTemplatePath, 57, "Hero frame src mismatch: expected \'{$expectedHeroSrc}\', got \'{$renderedHeroSrc}\'", "SEV-1");
+                    $hasFailures = true;
+                }
+            } else {
+                $diag->recordFailure("HERO_FALLBACK", $modernTemplatePath, 57, "Could not find img#hmuHeroFrame in rendered modern.template.php", "SEV-1");
+                $hasFailures = true;
+            }
+        }
+
         return !$hasFailures;
     }, $diagnostic);
 }

@@ -48,20 +48,44 @@
 							<span class="hmu-flow-step"><b>3</b> Lưu kỷ niệm</span>
 						</div>
 					</div>
+					<?php
+					$heroFrameSrc = 'resources/img/frames/current_active_frame.png';
+					$framesDir = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'frames';
+					$frameFiles = glob($framesDir . '/*.png') ?: [];
+					$availableFrames = [];
+					foreach ($frameFiles as $file) {
+						$frameName = basename($file);
+						if (strcasecmp($frameName, 'current_active_frame.png') !== 0 && is_file($file)) {
+							$availableFrames[] = $frameName;
+						}
+					}
+					sort($availableFrames);
+
+					$activeFrameFile = $framesDir . DIRECTORY_SEPARATOR . 'current_active_frame.png';
+					if ((!file_exists($activeFrameFile) || filesize($activeFrameFile) === 0) && !empty($availableFrames)) {
+						@copy($framesDir . DIRECTORY_SEPARATOR . $availableFrames[0], $activeFrameFile);
+					}
+
+					if (!empty($availableFrames)) {
+						$heroFrameSrc = 'resources/img/frames/' . $availableFrames[0];
+					} elseif (file_exists($activeFrameFile) && filesize($activeFrameFile) > 0) {
+						$heroFrameSrc = 'resources/img/frames/current_active_frame.png';
+					}
+					?>
 					<aside class="hmu-hero-art" aria-label="Khung ảnh HMU đang được chọn">
 						<div class="hmu-art-orbit hmu-art-orbit-one" aria-hidden="true"></div>
 						<div class="hmu-art-orbit hmu-art-orbit-two" aria-hidden="true"></div>
 						<div class="hmu-preview-badge"><span class="hmu-preview-check" aria-hidden="true"><i class="fa fa-check"></i></span><span>Khung đang chọn</span></div>
 						<div class="hmu-hero-frame-card">
 							<div class="hmu-frame-card-top"><span>HMU STUDIO</span><span class="hmu-frame-id">MEMORIES</span></div>
-							<div class="hmu-hero-frame-window"><img id="hmuHeroFrame" src="resources/img/frames/a.png" alt="Bản xem trước khung ảnh đang chọn" /></div>
+							<div class="hmu-hero-frame-window"><img id="hmuHeroFrame" src="<?php echo htmlspecialchars($heroFrameSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Bản xem trước khung ảnh đang chọn" /></div>
 							<div class="hmu-frame-card-bottom"><span>HMU MEMORIES</span><span>Hà Nội, Việt Nam</span></div>
 						</div>
-						<div class="hmu-preview-caption"><i class="fa fa-picture-o" aria-hidden="true"></i> Xem trước khung ảnh</div>
+						<div class="hmu-preview-caption" id="hmuPreviewCaption"><a href="#hmu-templates" class="hmu-preview-scroll-btn" role="button" aria-label="Cuộn xuống chọn mẫu khung ảnh"><i class="fa fa-picture-o" aria-hidden="true"></i> <span>Xem trước khung ảnh</span> <i class="fa fa-angle-down" aria-hidden="true"></i></a></div>
 					</aside>
 				</section>
 
-				<section class="hmu-templates" aria-labelledby="hmu-templates-title">
+				<section id="hmu-templates" class="hmu-templates" aria-labelledby="hmu-templates-title">
 					<div class="hmu-section-heading">
 						<div><p class="hmu-section-kicker"><i class="fa fa-clone" aria-hidden="true"></i> BƯỚC 1 / 3: CHỌN MẪU KHUNG</p>
 						<h2 id="hmu-templates-title">Chọn khung ảnh bạn yêu thích</h2>
