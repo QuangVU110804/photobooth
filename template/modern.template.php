@@ -97,11 +97,9 @@
 					<p id="hmuFrameError" class="hmu-frame-error" role="status" hidden>Không tải được danh sách khung ảnh. Bạn vẫn có thể bắt đầu chụp.</p>
 				</section>
 
-				<aside class="hmu-tip"><span class="hmu-tip-icon" aria-hidden="true"><i class="fa fa-lightbulb-o"></i></span><div><strong>Mẹo để có bức ảnh đẹp</strong><p>Đứng thẳng trước ống kính và chọn dáng thật tự nhiên. Photobooth sẽ đếm ngược trước khi chụp.</p></div><span class="hmu-tip-mark" aria-hidden="true"><i class="fa fa-camera"></i></span></aside>
 			</main>
 			<footer class="hmu-footer"><span>© 2025 HMU Photobooth. Nền tảng ghi lại kỷ niệm sự kiện.</span><span>Thiết kế cho trải nghiệm chụp ảnh cảm ứng</span></footer>
 			<?php if ($config['button']['show_cups']): ?>
 			<a id="cups-button" class="<?php echo $btnClass; ?> cups-button rotaryfocus" href="#" target="newwin"><i class="<?php echo $config['icons']['cups']; ?>" aria-hidden="true"></i> <span>CUPS</span></a>
 			<?php endif; ?>
-			<?php if ($config['ui']['show_fork']): ?><a href="https://github.com/<?=$config['ui']['github']?>/photobooth" class="github-fork-ribbon" data-ribbon="Fork me on GitHub">Fork me on GitHub</a><?php endif; ?>
 		</section>

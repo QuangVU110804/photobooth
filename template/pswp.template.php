@@ -27,7 +27,7 @@
                 <button class="<?php echo $btnClass; ?> pswp__button pswp__button--close <?php echo $config['icons']['close']; ?> rotaryfocus" title="Close (Esc)"></button>
                 <button class="pswp__button pswp__button--share rotaryfocus" title="Share"><i class="<?php echo $config['icons']['share']; ?>"></i></button>
                 <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"><i class="<?php echo $config['icons']['fullscreen']; ?>"></i></button>
-                <button class="pswp__button pswp__button--zoom rotaryfocus" title="Zoom in/out"><i class="<?php echo $config['icons']['zoop']; ?>"></i></button>
+                <button class="pswp__button pswp__button--zoom rotaryfocus" title="Zoom in/out"><i class="<?php echo $config['icons']['zoom']; ?>"></i></button>
 
                 <!-- custom buttons: -->
                 <?php if ($config['mail']['enabled']): ?>
