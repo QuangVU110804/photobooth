@@ -91,27 +91,6 @@ Changed options are stored inside <code>config/my.config.inc.php</code> to preve
 <h3>How can I test my current photo settings?</h3>
 <p>Open <a href="http://localhost/test/photo.php">http://localhost/test/photo.php</a> in your Webbrowser and a you can find a photo that is created with your current settings.</p>
 <hr>
-<h3>How can I test my current collage settings?</h3>
-<p>Open <a href="http://localhost/test/collage.php">http://localhost/test/collage.php</a> in your Webbrowser and a you can find a collage that is created with your current settings.</p>
-<hr>
-<h3>How can setup a custom collage design?</h3>
-<p>In the collage settings you can select the layout <code>private/collage.json</code>. This references a file with the given name in the photobooth&#39;s <code>private</code> folder. This file has to be created manually.</p>
-<p>Photobooth config <strong>must</strong> be saved again via Admin panel after <code>private/collage.json</code> was modified!</p>
-<p>Content of the file is an array of arrays. The outer array defines the number of images, the inner array defines the horizontal position, vertical position, width, height and rotation (in that order) of one image.
-For calculation of the values the variables x and y get converted to the width and height of the collage respectively, additionally math operations +, -, *, / and () can be used to calculate values.
-The following example should look exactly like the 1+2 layout (this layout looks more complicated than it is due to the decimal places).</p>
-<pre><code>[
-[ &quot;0&quot;,                     &quot;y * 0.055&quot;,           &quot;1.5 * y * 0.55546&quot;,   &quot;y * 0.55546&quot;,   &quot;10&quot;       ],
-[ &quot;x * 0.555&quot;,             &quot;y * 0.055&quot;,           &quot;1.5 * y * 0.40812&quot;,   &quot;y * 0.40812&quot;,   &quot;0&quot;        ],
-[ &quot;x * 0.555&quot;,             &quot;y * 0.5368&quot;,          &quot;1.5 * y * 0.40812&quot;,   &quot;y * 0.40812&quot;,   &quot;0&quot;        ]
-]
-</code></pre>
-<pre><code>[ &quot;horizontal position&quot;,   &quot;vertical position&quot;,   &quot;width&quot;,               &quot;height&quot;,        &quot;rotation&quot; ]
-</code></pre>
-<p>Please note that if the number of images in a collage design was changed the admin page has to be saved again to calculate the correct number of photos to be used for a collage.
-Other value changes can be checked on the collage test page immediatly with a simple reload - so it&#39;s quite easy to configure a layout with the help of <a href="http://localhost/test/collage.php">http://localhost/test/collage.php</a>.
-The file <code>collage.json</code> needs to be a well-formed json array and something like a missing quotation or a trailing comma can be enough to make a design fail.</p>
-<hr>
 <h3>How to change the look of my Photobooth?</h3>
 <p>Photobooth can be easylie styled for your personal needs via admin panel, open <a href="http://localhost/admin">localhost/admin</a> in your browser and take a look at the <code>User Interface</code> options.</p>
 <p>To use a private custom index you need to create the following files:</p>
@@ -173,10 +152,6 @@ Choice: 1 Memory card
 <p><strong>PICTURE section</strong>:</p>
 <ul>
 <li>Key code which triggers a picture: <strong>define</strong></li>
-</ul>
-<p><strong>COLLAGE section</strong>:</p>
-<ul>
-<li>Key code which triggers a collage: <strong>define</strong></li>
 </ul>
 <p><strong>PRINT section</strong>:</p>
 <ul>
@@ -374,34 +349,15 @@ EOF
 </ul>
 <p>As of Photobooth v3, hardware button support is fully integrated into Photobooth. Therefore the <code>button.py</code> script has been removed from the distribution. In case you are using this script and for continued backward compatibility please do not activate the Remote Buzzer Hardware Button feature in the admin GUI. Please note that continued backward compatibility is not guaranteed and in case of issues please switch to the integrated functionality.</p>
 <h5>Button Support</h5>
-<p>The server supports up to four connected hardware buttons for the following functionalities:</p>
+<p>The server supports up to three connected hardware buttons for the following functionalities:</p>
 <ol>
 <li><strong>Picture Button</strong></li>
 </ol>
 <ul>
 <li>Defaults to GPIO21</li>
-<li>Short button press (default &lt;= 2 sec) will trigger a single picture in Photobooth</li>
-<li>Long button press (default &gt; 2 sec) will trigger a collage in Photobooth</li>
-</ul>
-<p><strong>Note:</strong></p>
-<ul>
-<li>If collage is configured with interruption, next button presses will trigger the next collage pictures. </li>
-<li>If collage is disabled in the admin settings, long button press also triggers a single picture</li>
-<li>If the collage button is activated (see next), the picture button will never trigger a collage, regardless</li>
+<li>Button press opens single-photo capture in Photobooth</li>
 </ul>
 <ol start="2">
-<li><strong>Collage Button</strong></li>
-</ol>
-<ul>
-<li>Defaults to GPIO20</li>
-<li>Button press will trigger a collage in Photobooth.</li>
-</ul>
-<p><strong>Note:</strong></p>
-<ul>
-<li>If collage is configured with interruption, next button presses will trigger the next collage pictures. </li>
-<li>If collage is disabled in the admin settings (Collage section), this button will do nothing.</li>
-</ul>
-<ol start="3">
 <li><strong>Shutdown Button</strong></li>
 </ol>
 <ul>
@@ -411,7 +367,7 @@ EOF
 <p><strong>Note:</strong></p>
 <ul>
 <li>Hold the button for a defined time to initiate the shut down (defaults to 5 seconds). This can be adjusted in the admin settings.</li>
-<li>The shutdown button will only trigger if there is currently no action in progress in Photobooth (picture, collage).</li>
+<li>The shutdown button will only trigger if there is currently no action in progress in Photobooth (picture).</li>
 </ul>
 <ol start="4">
 <li><strong>Print Button</strong></li>
@@ -427,12 +383,11 @@ EOF
 <li>Defaults to GPIO23</li>
 <li>This button will initate a safe system shutdown and halt (<code>shutdown -r now</code>).</li>
 </ul>
-<p>After any button is triggered, all hardware button remain disabled until the action (picture / collage) completed. Once completed, the hardware buttons re-arms / are active again.</p>
+<p>After any button is triggered, all hardware button remain disabled until the action (picture) completed. Once completed, the hardware buttons re-arms / are active again.</p>
 <p>The wiring layout is</p>
 <pre><code>Button            Raspberry
 
 Picture     ---   GPIO 21
-Collage     ---   GPIO 20
 Shutdown    ---   GPIO 16
 Print       ---   GPIO 26
 Reboot      ---   GPIO 23
@@ -463,12 +418,12 @@ GND  ---   GND
 <p>The trigger server controls and coordinates sending commands via socket.io to the photobooth client. Next to a hardware button, any socket.io client can connect to the trigger server over the network, and send a trigger command. This gives full flexibility to integrate other backend systems for trigger signals.</p>
 <ul>
 <li>Channel:  <code>photobooth-socket</code></li>
-<li>Commands: <code>start-picture</code>, <code>start-collage</code>, <code>collage-next</code>, <code>print</code>, <code>rotary-cw</code>, <code>rotary-ccw</code>, <code>rotary-btn-press</code></li>
+<li>Commands: <code>start-picture</code>, <code>print</code>, <code>rotary-cw</code>, <code>rotary-ccw</code>, <code>rotary-btn-press</code></li>
 <li>Response: <code>completed</code> will be emitted to the client, once photobooth finished the task</li>
 </ul>
 <h4>Remote trigger using simple web requests</h4>
 <p><em>Note: This feature depends on the experimental Socket.io implementation and needs option <code>Hardware Button</code> - <code>Enable Hardware Buttons</code> to be active.</em></p>
-<p>Simple <code>GET</code> requests can be used to trigger single pictures or collages. Those endpoints can be found under <code>http://[Photobooth IP]:[Hardware Button Server Port]</code> where:</p>
+<p>Simple <code>GET</code> requests can be used to trigger single pictures. Those endpoints can be found under <code>http://[Photobooth IP]:[Hardware Button Server Port]</code> where:</p>
 <ul>
 <li><code>[Photobooth IP]</code> needs to match the configured value under <code>General</code> - <code>IP address of the Photobooth web server</code> and</li>
 <li><code>[Hardware Button Server Port]</code> the value from <code>Hardware Button</code> - <code>Enable Hardware Buttons</code></li>
@@ -477,7 +432,6 @@ GND  ---   GND
 <ul>
 <li><code>[Base Url]/</code> - Simple help page with all available endpoints</li>
 <li><code>[Base Url]/commands/start-picture</code> - Triggers a single picture</li>
-<li><code>[Base Url]/commands/start-collage</code> - Triggers a collage</li>
 <li><code>[Base Url]/commands/start-print</code> - Triggers print</li>
 <li><code>[Base Url]/commands/reboot-now</code> - Triggers reboot command</li>
 <li><code>[Base Url]/commands/shutdown-now</code> - Triggers shutdown command</li>
@@ -493,7 +447,6 @@ GND  ---   GND
 <li><p>The button can be configured using the following commands</p>
 <pre><code class="language-sh">curl --location -g --request POST http://[Button IP]/api/v1/action/single --data-raw get://[Photobooth IP]:[Hardware Button Server Port]/commands/start-picture
 
-curl --location -g --request POST http://[Button IP]/api/v1/action/long --data-raw get://[Photobooth IP]:[Hardware Button Server Port]/commands/start-collage
 </code></pre>
 </li>
 </ul>
@@ -580,7 +533,7 @@ sudo bash install-gphoto-python.sh
 <p>Change your Photobooth configuration:</p>
 <ul>
 <li><em>&quot;Live Preview</em>&quot;: <em>&quot;Preview Mode&quot;</em>: <em>&quot;from device cam&quot;</em></li>
-<li><em>&quot;Commands</em>&quot;: <em>&quot;Execute start command for preview on take picture/collage&quot;</em>:<ul>
+<li><em>&quot;Commands</em>&quot;: <em>&quot;Execute start command for preview on take picture&quot;</em>:<ul>
 <li>if <strong>enabled</strong>:
 <em>&quot;Commands&quot;</em>: <em>&quot;Command to generate a live preview&quot;</em>: <code>python3 cameracontrol.py --bsm</code></li>
 <li>if <strong>disabled</strong>:
@@ -592,11 +545,11 @@ sudo bash install-gphoto-python.sh
 <p><strong>Further information</strong>:</p>
 <p>The <em>&quot;Command to generate a live preview&quot;</em> is only executed if the <em>&quot;Preview Mode&quot;</em> is set to <em>&quot;from device cam&quot;</em>.</p>
 <p>There&#39;s no need to define the <em>&quot;Command to kill live preview&quot;</em> while using the <em>cameracontrol.py</em>, so just empty that field. The <em>&quot;Command to kill live preview&quot;</em> is only executed if defined.</p>
-<p>If you want to use the DSLR view as background video, enable <em>&quot;Use stream for live preview as background&quot;</em> and disable the <em>&quot;Execute start command for preview on take picture/collage&quot;</em> setting of Photobooth, which is enabled by default.</p>
-<p>If you don&#39;t want to use the DSLR view as background video enable the <em>Execute start command for preview on take picture/collage</em> setting of Photobooth and make sure <code>--bsm</code> was added to the preview command.</p>
+<p>If you want to use the DSLR view as background video, enable <em>&quot;Use stream for live preview as background&quot;</em> and disable the <em>&quot;Execute start command for preview on take picture&quot;</em> setting of Photobooth, which is enabled by default.</p>
+<p>If you don&#39;t want to use the DSLR view as background video enable the <em>Execute start command for preview on take picture</em> setting of Photobooth and make sure <code>--bsm</code> was added to the preview command.</p>
 <pre><code class="language-sh">python3 cameracontrol.py --bsm
 </code></pre>
-<p>If <em>Execute start command for preview on take picture/collage</em> is enabled, the preview video is activated when the countdown for a photo starts and after taking a picture the video is deactivated while waiting for the next photo.</p>
+<p>If <em>Execute start command for preview on take picture</em> is enabled, the preview video is activated when the countdown for a photo starts and after taking a picture the video is deactivated.</p>
 <p>As you possibly noticed the params of the script are designed to be similar to the ones of <code>gphoto2 CLI</code> but with some shortcuts like <code>-c</code> for <code>--capture-image-and-download</code>. If you want to know more check out the help of the script by running:</p>
 <pre><code class="language-sh">python3 /var/www/html/api/cameracontrol.py --help
 </code></pre>
@@ -615,7 +568,7 @@ sudo bash install-gphoto-python.sh
 <li>Give permissions to /dev/video*: <code>sudo gpasswd -a www-data video</code> (this was done automatically if you used the installation script) and reboot once.</li>
 <li>Requires Photobooth v4.1.0 or later! (Instructions for older versions have been removed from the FAQ, but an FAQ with instructions matching your installed Photobooth version can always be found at <a href="http://localhost/faq">http://localhost/faq</a>).</li>
 <li>You need to access Photobooth directly via <a href="http://localhost">http://localhost</a>, you won&#39;t be able to see the preview on a different device (e.g. Tablet).</li>
-<li>There&#39;s a delay of about 3 seconds until the preview starts, to avoid that disable the <code>Execute start command for preview on take picture/collage</code> option to generate a preview in background. <strong>This results in a high battery usage and also a general slowdown.</strong></li>
+<li>There&#39;s a delay of about 3 seconds until the preview starts, to avoid that disable the <code>Execute start command for preview on take picture</code> option to generate a preview in background. <strong>This results in a high battery usage and also a general slowdown.</strong></li>
 <li>Chromium sometimes has trouble, if there is another webcam like <code>bcm2835-isp</code>, it will take it by default instead. Disable other webcams, e.g. <code>sudo rmmod bcm2835-isp</code>.</li>
 <li>Make sure the countdown is long enough to start the preview, for best user experience the countdown should be set at least to 8 seconds.</li>
 </ul>

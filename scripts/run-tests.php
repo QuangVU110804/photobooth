@@ -409,7 +409,10 @@ if ($isCoreAffected) {
         // 3. Contract check: api/setFrame.php valid frame selection
         if (!empty($framesList) && is_array($framesList)) {
             $firstFrame = $framesList[0];
+            $activePath = $rootDir . '/resources/img/frames/current_active_frame.png';
+            $activeBytes = is_file($activePath) ? file_get_contents($activePath) : null;
             $resValid = $runPhpIsolated('$_POST["frame"] = ' . var_export($firstFrame, true) . '; require "api/setFrame.php";');
+            if ($activeBytes !== null) file_put_contents($activePath, $activeBytes);
             $validResult = json_decode($resValid['output'], true);
 
             if (!is_array($validResult) || ($validResult['status'] ?? '') !== 'success' || ($validResult['active'] ?? '') !== $firstFrame) {
@@ -418,13 +421,17 @@ if ($isCoreAffected) {
             }
         }
 
-        // 4. Asset check: required frame files in resources/img/frames
-        $requiredFrames = ['a.png', 'b.png', 'c.png', 'kiosk_frame_1.png', 'kiosk_frame_2.png'];
+        // 4. Validate the frames actually advertised by the API.
+        $requiredFrames = is_array($framesList) ? $framesList : [];
+        if (!$requiredFrames) {
+            $diag->recordFailure("ASSET_INTEGRITY", $getFramesPath, 1, "No selectable PNG frames available", "SEV-1");
+            $hasFailures = true;
+        }
         $framesDir = $rootDir . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'frames';
         foreach ($requiredFrames as $reqFrame) {
             $reqFramePath = $framesDir . DIRECTORY_SEPARATOR . $reqFrame;
-            if (!file_exists($reqFramePath) || filesize($reqFramePath) === 0) {
-                $diag->recordFailure("ASSET_INTEGRITY", $reqFramePath, 1, "Required frame asset {$reqFrame} is missing or empty", "SEV-1");
+            if (!is_file($reqFramePath) || filesize($reqFramePath) === 0 || (@getimagesize($reqFramePath)[2] ?? 0) !== IMAGETYPE_PNG) {
+                $diag->recordFailure("ASSET_INTEGRITY", $reqFramePath, 1, "Required frame asset {$reqFrame} is missing, empty or not a PNG", "SEV-1");
                 $hasFailures = true;
             }
         }
@@ -498,15 +505,18 @@ if (!$jsonOnly) {
         if ($autoHealRequested) {
             echo "⚡ Triggering AI Self-Healing Engine...\n";
             $phpExe = PHP_BINARY;
-            passthru("{$phpExe} scripts/ai-self-heal.php");
-            exit(0);
+            passthru(escapeshellarg($phpExe) . " scripts/ai-self-heal.php", $healCode);
+            if ($healCode !== 0) exit($healCode);
+            // Healing must not turn a still-failing gate into exit status zero.
+            passthru(escapeshellarg($phpExe) . " scripts/run-tests.php", $verifyCode);
+            exit($verifyCode);
         } else {
             echo "💡 Tip: Run with --heal to attempt automatic remediation:\n";
             echo "   php scripts/run-tests.php --heal\n\n";
         }
         exit(1);
     } else {
-        echo "🎉 Quality gates PASSED cleanly ({$durationMs}ms)! Code is safe.\n\n";
+        echo "Quality gates passed ({$durationMs}ms). Run npm test for the regression suites.\n\n";
         exit(0);
     }
 } else {

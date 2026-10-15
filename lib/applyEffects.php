@@ -1,26 +1,18 @@
 <?php
 
-function getCollageFiles($collage, $filename_tmp, $file, array $srcImages) {
-    $collageBasename = substr($filename_tmp, 0, -4);
-    $singleImageBase = substr($file, 0, -4);
+require_once __DIR__ . '/face-effects.php';
 
-    $collageSrcImagePaths = [];
-
-    for ($i = 0; $i < $collage['limit']; $i++) {
-        $collageSrcImagePaths[] = $collageBasename . '-' . $i . '.jpg';
-        if ($collage['keep_single_images']) {
-            $srcImages[] = $singleImageBase . '-' . $i . '.jpg';
-        }
-    }
-    return [$collageSrcImagePaths, $srcImages];
-}
-
-function editSingleImage($config, $imageResource, $image_filter, $editSingleCollage, $picture_frame, $isCollage) {
+function editSingleImage($config, $imageResource, $image_filter, array $polygons = []) {
     $imageModified = false;
     // Only jpg/jpeg are supported
     if (!$imageResource) {
         $errormsg = basename($_SERVER['PHP_SELF']) . ': Could not read jpeg file. Are you taking raws?';
         logErrorAndDie($errormsg);
+    }
+
+    if ($polygons) {
+        applyFaceEffects($imageResource, $polygons);
+        $imageModified = true;
     }
 
     if ($config['picture']['flip'] !== 'off') {
@@ -40,17 +32,14 @@ function editSingleImage($config, $imageResource, $image_filter, $editSingleColl
         $imageModified = true;
     }
 
-    if ($config['picture']['polaroid_effect'] && !$isCollage) {
+    if ($config['picture']['polaroid_effect']) {
         $polaroid_rotation = $config['picture']['polaroid_rotation'];
         $imageResource = effectPolaroid($imageResource, $polaroid_rotation, 200, 200, 200);
         $imageModified = true;
     }
 
-    if (
-        ($config['picture']['take_frame'] && !$isCollage && testFile($config['picture']['frame'])) ||
-        ($editSingleCollage && $config['collage']['take_frame'] === 'always' && testFile($config['collage']['frame']))
-    ) {
-        $imageResource = applyFrame($imageResource, $picture_frame);
+    if ($config['picture']['take_frame'] && testFile($config['picture']['frame'])) {
+        $imageResource = applyFrame($imageResource, $config['picture']['frame']);
         $imageModified = true;
     }
 
@@ -61,9 +50,9 @@ function editSingleImage($config, $imageResource, $image_filter, $editSingleColl
     return [$imageResource, $imageModified];
 }
 
-function addTextToImage($configText, $imageResource, $imageModified, $isCollage) {
+function addTextToImage($configText, $imageResource, $imageModified) {
     $fontpath = $configText['font'];
-    if ($configText['enabled'] && testFile($fontpath) && !$isCollage) {
+    if ($configText['enabled'] && testFile($fontpath)) {
         $fontcolor = $configText['font_color'];
         $fontsize = $configText['font_size'];
         $fontlocx = $configText['locationx'];
@@ -81,10 +70,12 @@ function addTextToImage($configText, $imageResource, $imageModified, $isCollage)
 
 function compressImage($config, $imageModified, $imageResource, $filename_tmp, $filename_photo) {
     if ($imageModified || ($config['jpeg_quality']['image'] >= 0 && $config['jpeg_quality']['image'] < 100)) {
-        imagejpeg($imageResource, $filename_photo, $config['jpeg_quality']['image']);
+        if (!@imagejpeg($imageResource, $filename_photo, $config['jpeg_quality']['image'])) {
+            throw new RuntimeException('Could not save processed photo');
+        }
         // preserve jpeg meta data
         if ($config['picture']['preserve_exif_data'] && $config['exiftool']['cmd']) {
-            $cmd = sprintf($config['exiftool']['cmd'], $filename_tmp, $filename_photo);
+            $cmd = sprintf($config['exiftool']['cmd'], escapeshellarg($filename_tmp), escapeshellarg($filename_photo));
             $cmd .= ' 2>&1'; //Redirect stderr to stdout, otherwise error messages get lost.
 
             exec($cmd, $output, $returnValue);
@@ -102,6 +93,6 @@ function compressImage($config, $imageModified, $imageResource, $filename_tmp, $
             }
         }
     } else {
-        copy($filename_tmp, $filename_photo);
+        if (!@copy($filename_tmp, $filename_photo)) throw new RuntimeException('Could not save processed photo');
     }
 }

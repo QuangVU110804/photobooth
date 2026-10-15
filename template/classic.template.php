@@ -59,10 +59,6 @@
 					<a href="#" class="<?php echo $btnClass; ?> takePic rotaryfocus"><i class="<?php echo $config['icons']['take_picture']; ?>"></i> <span data-i18n="takePhoto"></span></a>
 					<?php endif; ?>
 
-					<?php if ($config['collage']['enabled']): ?>
-					<a href="#" class="<?php echo $btnClass; ?> takeCollage rotaryfocus"><i class="<?php echo $config['icons']['take_collage']; ?>"></i> <span
-							data-i18n="takeCollage"></span></a>
-					<?php endif; ?>
 				<?php endif; ?>
 			</div>
 

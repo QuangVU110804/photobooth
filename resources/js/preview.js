@@ -23,7 +23,8 @@ var photoboothPreview = function () {
       }
     },
     api = {};
-  var pid, video, loader, wrapper, url, pictureFrame, collageFrame;
+  var pid, video, loader, wrapper, url, pictureFrame;
+  var mediaRequest = null, mediaGeneration = 0;
   api.changeVideoMode = function (mode) {
     photoboothTools.console.logDev('Preview: Changing video mode: ' + mode);
     if (mode === CameraDisplayMode.BACKGROUND) {
@@ -41,30 +42,43 @@ var photoboothPreview = function () {
     var cb = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : function () {};
     var retry = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
     photoboothTools.console.logDev('Preview: Trying to initialize media...');
-    if (!navigator.mediaDevices || config.preview.mode === PreviewMode.NONE.valueOf() || config.preview.mode === PreviewMode.URL.valueOf()) {
+    var forFilterStage = arguments.length > 2 && arguments[2] === true;
+    if (!navigator.mediaDevices || (!forFilterStage && (config.preview.mode === PreviewMode.NONE.valueOf() || config.preview.mode === PreviewMode.URL.valueOf()))) {
       photoboothTools.console.logDev('Preview: No preview from device cam or no webcam available!');
-      return;
+      return forFilterStage ? Promise.reject(new Error('Camera preview is unavailable')) : Promise.resolve(null);
     }
     var getMedia = navigator.mediaDevices.getUserMedia || navigator.mediaDevices.webkitGetUserMedia || navigator.mediaDevices.mozGetUserMedia || false;
     if (!getMedia) {
       photoboothTools.console.logDev('Preview: Could not get media!');
-      return;
+      return forFilterStage ? Promise.reject(new Error('Camera preview is unavailable')) : Promise.resolve(null);
     }
-    getMedia.call(navigator.mediaDevices, webcamConstraints).then(function (stream) {
+    if (api.stream && api.stream.getVideoTracks().some(function (track) { return track.readyState === 'live'; })) {
+      cb();
+      return Promise.resolve(api.stream);
+    }
+    if (mediaRequest) return mediaRequest.then(function (stream) { cb(); return stream; });
+    var generation = mediaGeneration;
+    mediaRequest = getMedia.call(navigator.mediaDevices, webcamConstraints).then(function (stream) {
+      if (generation !== mediaGeneration) { stream.getTracks().forEach(function (track) { track.stop(); }); throw new Error('Camera preview was cancelled'); }
       photoboothTools.console.logDev('Preview: getMedia done!');
       api.stream = stream;
       video.get(0).srcObject = stream;
-      cb();
-    })["catch"](function (error) {
+      return stream;
+    });
+    var request = mediaRequest;
+    request.then(function () { if (mediaRequest === request) mediaRequest = null; }, function () { if (mediaRequest === request) mediaRequest = null; });
+    return request.then(function (stream) { cb(); return stream; })["catch"](function (error) {
       photoboothTools.console.log('ERROR: Preview: Could not get user media: ', error);
-      if (retry < 3) {
+      if (!forFilterStage && generation === mediaGeneration && retry < 3) {
         photoboothTools.console.logDev('Preview: Retrying to get user media. Retry ' + retry + ' / 3');
         retry += 1;
-        setTimeout(function () {
-          api.initializeMedia(cb, retry);
-        }, 1000);
+        return new Promise(function (resolve) { setTimeout(resolve, 1000); }).then(function () {
+          if (generation !== mediaGeneration) return;
+          return api.initializeMedia(cb, retry);
+        });
       } else {
         photoboothTools.console.logDev('ERROR: Preview: Unable to get user media. Failed retries: ' + retry);
+        if (forFilterStage) throw error;
       }
     });
   };
@@ -82,7 +96,7 @@ var photoboothPreview = function () {
       play: mode,
       pid: pid
     };
-    jQuery.post('api/previewCamera.php', dataVideo).done(function (result) {
+    return jQuery.post('api/previewCamera.php', dataVideo).done(function (result) {
       photoboothTools.console.log('Preview: ' + dataVideo.play + ' webcam successfully.');
       pid = result.pid;
     })
@@ -113,7 +127,7 @@ var photoboothPreview = function () {
         break;
       case CameraDisplayMode.COUNTDOWN:
         if (config.preview.cmd) {
-          if (config.preview.bsm || !config.preview.bsm && retry > 0 || typeof photoBooth !== 'undefined' && photoBooth.nextCollageNumber > 0) {
+          if (config.preview.bsm || !config.preview.bsm && retry > 0) {
             photoboothTools.console.logDev('Preview: Running preview cmd (COUNTDOWN).');
             api.runCmd('start');
           }
@@ -162,16 +176,27 @@ var photoboothPreview = function () {
     }
   };
   api.stopVideo = function () {
+    mediaGeneration += 1;
+    mediaRequest = null;
     wrapper.css('background-color', config.colors.panel);
     loader.css('background', config.colors.panel);
     loader.css('background-color', config.colors.panel);
     if (api.stream) {
-      api.stream.getTracks()[0].stop();
+      api.stream.getTracks().forEach(function (track) { track.stop(); });
       api.stream = null;
     }
+    if (video.get(0)) video.get(0).srcObject = null;
     video.hide();
     pictureFrame.hide();
-    collageFrame.hide();
+  };
+  api.prepareFilterPreview = function () {
+    var generation = mediaGeneration;
+    var command = config.preview.cmd ? Promise.resolve(api.runCmd('start')) : Promise.resolve();
+    return command.then(function () {
+      if (generation !== mediaGeneration) throw new Error('Camera preview was cancelled');
+      if (config.preview.mode === PreviewMode.URL.valueOf()) return null;
+      return api.initializeMedia(function () {}, 0, true);
+    });
   };
   api.setElements = function () {
     var videoSelector = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '#video--view';
@@ -179,13 +204,11 @@ var photoboothPreview = function () {
     var wrapperSelector = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '#wrapper';
     var urlSelector = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '#ipcam--view';
     var pictureFrameSelector = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : '#picture--frame';
-    var collageFrameSelector = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : '#collage--frame';
     video = $(videoSelector);
     loader = $(loaderSelector);
     wrapper = $(wrapperSelector);
     url = $(urlSelector);
     pictureFrame = $(pictureFrameSelector);
-    collageFrame = $(collageFrameSelector);
   };
   api.init = function () {
     api.setElements();

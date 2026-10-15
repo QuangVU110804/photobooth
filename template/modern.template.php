@@ -2,7 +2,7 @@
 		<section class="stages hmu-start" id="start" aria-labelledby="hmu-hero-title">
 			<header class="hmu-header">
 				<a class="hmu-brand" href="#start" aria-label="HMU Photobooth - Trang chủ">
-					<img src="resources/img/favicon-96x96.png" width="40" height="40" alt="" />
+					<img src="resources/img/background/logohome.png" width="40" height="40" alt="" />
 					<span>HMU <strong>Photobooth</strong></span>
 				</a>
 				<nav class="hmu-nav" aria-label="Điều hướng chính">
@@ -28,10 +28,7 @@
 								<div id="useBuzzer" class="hmu-buzzer-prompt"><span data-i18n="use_button"></span></div>
 							<?php else: ?>
 								<?php if ($config['picture']['enabled']): ?>
-								<a href="#" class="hmu-button hmu-button-primary <?php echo $btnClass; ?> takePic rotaryfocus"><i class="<?php echo $config['icons']['take_picture']; ?>" aria-hidden="true"></i><span>Bắt đầu chụp ảnh</span></a>
-								<?php endif; ?>
-								<?php if ($config['collage']['enabled']): ?>
-								<a href="#" class="hmu-button hmu-button-secondary <?php echo $btnClass; ?> takeCollage rotaryfocus"><i class="<?php echo $config['icons']['take_collage']; ?>" aria-hidden="true"></i><span>Chụp bộ ảnh</span></a>
+								<a href="#" class="hmu-button hmu-button-primary <?php echo $btnClass; ?> takePic rotaryfocus"><i class="<?php echo $config['icons']['take_picture']; ?>" aria-hidden="true"></i><span>Chọn hiệu ứng và chụp</span></a>
 								<?php endif; ?>
 							<?php endif; ?>
 							<?php if ($config['gallery']['enabled']): ?>
@@ -42,10 +39,10 @@
 							<?php endif; ?>
 						</div>
 						<div class="hmu-flow" aria-label="Quy trình chụp ảnh gồm ba bước">
-							<span class="hmu-flow-lead"><i class="fa fa-bolt" aria-hidden="true"></i> 3 bước tức thì</span>
+							<span class="hmu-flow-lead"><i class="fa fa-bolt" aria-hidden="true"></i> Từng bước tạo kỷ niệm</span>
 							<span class="hmu-flow-step"><b>1</b> Chọn khung ảnh</span><span class="hmu-flow-arrow" aria-hidden="true">→</span>
-							<span class="hmu-flow-step"><b>2</b> Tạo dáng chụp ảnh</span><span class="hmu-flow-arrow" aria-hidden="true">→</span>
-							<span class="hmu-flow-step"><b>3</b> Lưu kỷ niệm</span>
+							<span class="hmu-flow-step"><b>2</b> Chọn hiệu ứng</span><span class="hmu-flow-arrow" aria-hidden="true">→</span>
+							<span class="hmu-flow-step"><b>3</b> Chụp và lưu ảnh</span>
 						</div>
 					</div>
 					<?php
@@ -94,7 +91,7 @@
 					</div>
 					<div class="hmu-template-tools"><div class="hmu-filter-chips" aria-label="Bộ lọc khung ảnh"><span class="hmu-filter-chip is-active">Tất cả khung <b id="hmuFrameCount">0</b></span><span class="hmu-filter-chip">HMU Collection</span></div><span class="hmu-template-hint">Chạm vào khung để chọn</span></div>
 					<div id="kioskFrameSelector" class="hmu-frame-grid" aria-live="polite" aria-busy="true"></div>
-					<p id="hmuFrameError" class="hmu-frame-error" role="status" hidden>Không tải được danh sách khung ảnh. Bạn vẫn có thể bắt đầu chụp.</p>
+					<p id="hmuFrameError" class="hmu-frame-error" role="status" hidden>Không tải được danh sách khung ảnh. Hãy thử tải lại trang.</p>
 				</section>
 
 			</main>

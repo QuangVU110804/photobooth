@@ -1,0 +1,25 @@
+const assert = require('node:assert/strict');
+const Session = require('../resources/js/filter-session.js');
+let checks = 0;
+function check(value, message) { assert.ok(value, message); checks++; }
+const session = new Session('plain');
+check(!session.request('photo', true) && session.phase === 'selecting', 'An idle retry cannot bypass selection');
+session.cancel();
+check(!session.request('collage') && session.phase === 'idle', 'Removed capture mode never opens a session');
+check(!session.request('photo'), 'A new photo opens selection without starting countdown');
+session.select('cssgram-inkwell', 'glasses');
+check(!session.request('collage'), 'Hardware/duplicate requests cannot bypass selection');
+check(session.style === 'photo', 'Duplicate requests preserve the pending capture type');
+session.confirm();
+check(session.request('photo'), 'An explicit confirmation admits exactly one new capture');
+check(!session.request('photo'), 'Repeated confirmation/click cannot start another capture');
+check(!session.request('collage', true), 'Removed capture mode cannot bypass confirmation as a continuation');
+check(session.request('photo', true), 'Retry preserves the confirmed photo session');
+check(session.color === 'cssgram-inkwell' && session.face === 'glasses', 'Choice persists through processing and retry');
+session.finish();
+check(!session.request('photo'), 'Next session returns to filter selection');
+check(session.face === 'none' && session.color === 'plain', 'New session starts with configured defaults');
+session.cancel();
+check(session.phase === 'idle', 'Cancel returns to frame selection');
+assert.throws(() => session.confirm(), /selection/i, 'Confirm without selection is rejected');
+console.log(`${checks + 1} capture session checks passed`);

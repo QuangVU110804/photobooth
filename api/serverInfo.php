@@ -2,10 +2,12 @@
 header('Content-Type: application/json');
 
 ob_start();
-require_once 'config.php';
+require_once __DIR__ . '/../lib/config.php';
 $output = ob_end_clean();
+require_once __DIR__ . '/../lib/api.php';
+requireAdminAccess();
 
-$content = $_GET['content'];
+$content = $_GET['content'] ?? '';
 
 switch ($content) {
     case 'nav-remotebuzzerlog':

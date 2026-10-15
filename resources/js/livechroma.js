@@ -243,7 +243,7 @@ $('.takeChroma, .newchroma').on('click', function (e) {
   }
 });
 $(document).on('keyup', function (ev) {
-  if (config.picture.key && parseInt(config.picture.key, 10) === ev.keyCode || config.collage.key && parseInt(config.collage.key, 10) === ev.keyCode) {
+  if (config.picture.key && parseInt(config.picture.key, 10) === ev.keyCode) {
     if (!backgroundImage) {
       photoboothTools.modalMesg.showError('#modal_mesg', photoboothTools.getTranslation('chroma_needs_background'));
       setTimeout(function () {
@@ -257,9 +257,6 @@ $(document).on('keyup', function (ev) {
       }, 1000);
       photoboothTools.console.logDev('Please reload the page to take a new Picture!');
     } else if (!photoBooth.takingPic) {
-      if (config.collage.key && parseInt(config.collage.key, 10) === ev.keyCode) {
-        photoboothTools.console.logDev('Collage key pressed. Not possible on live chroma, triggering photo now.');
-      }
       photoBooth.thrill('chroma');
     } else if (config.dev.loglevel > 0 && photoBooth.takingPic) {
       photoboothTools.console.log('Taking photo already in progress!');

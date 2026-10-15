@@ -22,27 +22,31 @@
                 } else {
                     $name = $image;
                 }
-                $dateObject = DateTime::createFromFormat('Ymd_His', substr($name, 0, strlen($name) - 4));
+                $dateObject = DateTime::createFromFormat('Ymd_His', substr($name, 0, 15));
                 if ($dateObject) {
                     $date = '<i class="' . $config['icons']['date'] . '"></i> ' . $dateObject->format($config['gallery']['date_format']);
                 }
             }
 
-            $filename_photo = $config['foldersRoot']['images'] . DIRECTORY_SEPARATOR . $image;
+            if (!is_string($image) || basename($image) !== $image || strpos($image, '\\') !== false) continue;
+            $filename_photo = $config['foldersAbs']['images'] . DIRECTORY_SEPARATOR . $image;
             if (is_readable($filename_photo)) {
-                $filename_thumb = $config['foldersRoot']['thumbs'] . DIRECTORY_SEPARATOR . $image;
+                $filename_thumb = $config['foldersAbs']['thumbs'] . DIRECTORY_SEPARATOR . $image;
 
                 if (!is_readable($filename_thumb)) {
-                    $filename_thumb = $config['foldersRoot']['images'] . DIRECTORY_SEPARATOR . $image;
+                    $filename_thumb = $filename_photo;
                 }
-                $imageinfo = getimagesize($filename_photo);
-                $imageinfoThumb = getimagesize($filename_thumb);
+                $imageinfo = @getimagesize($filename_photo);
+                $imageinfoThumb = @getimagesize($filename_thumb);
+                if (!$imageinfo || !$imageinfoThumb) continue;
+                $photoUrl = htmlspecialchars($config['foldersJS']['images'] . '/' . rawurlencode($image), ENT_QUOTES, 'UTF-8');
+                $thumbUrl = htmlspecialchars($config['foldersJS'][$filename_thumb === $filename_photo ? 'images' : 'thumbs'] . '/' . rawurlencode($image), ENT_QUOTES, 'UTF-8');
             ?>
 
-			<a href="<?=$filename_photo?>" class="gallery__img rotaryfocus" data-size="<?=$imageinfo[0]?>x<?=$imageinfo[1]?>"
-				data-med="<?=$filename_thumb?>" data-med-size="<?=$imageinfoThumb[0]?>x<?=$imageinfoThumb[1]?>">
+			<a href="<?=$photoUrl?>" class="gallery__img rotaryfocus" data-size="<?=$imageinfo[0]?>x<?=$imageinfo[1]?>"
+				data-med="<?=$thumbUrl?>" data-med-size="<?=$imageinfoThumb[0]?>x<?=$imageinfoThumb[1]?>">
 				<figure class="<?php echo $uiShape; ?>">
-					<img class="<?php echo $uiShape; ?>" src="<?=$filename_thumb?>" alt="<?=$image?>" loading="lazy" />
+					<img class="<?php echo $uiShape; ?>" src="<?=$thumbUrl?>" alt="<?=htmlspecialchars($image, ENT_QUOTES, 'UTF-8')?>" loading="lazy" />
                     <?php if ($config['gallery']['figcaption']): ?>
                     <figcaption class="<?php echo $uiShape; ?>"><?=$date?></figcaption>
                     <?php endif; ?>
@@ -64,9 +68,6 @@
                     <a href="#" class="<?php echo $btnClass; ?> gal-action-btn takePic rotaryfocus"><i class="<?php echo $config['icons']['take_picture']; ?>"></i> <span data-i18n="takePhoto"></span></a>
                     <?php endif; ?>
 
-                    <?php if ($config['collage']['enabled']): ?>
-                    <a href="#" class="<?php echo $btnClass; ?> gal-action-btn takeCollage rotaryfocus"><i class="<?php echo $config['icons']['take_collage']; ?>"></i> <span data-i18n="takeCollage"></span></a>
-                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>

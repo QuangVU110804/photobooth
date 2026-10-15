@@ -57,7 +57,7 @@ function rotateResizeImage($image, $rotation, $bg_color = '#ffffff') {
             $y = intval(($old_height - $new_height) / 2);
 
             // copy rotated image to new image with old dimensions
-            if (imagecopy($new, $image, $x, $y, 0, 0, $new_width, $new_height)) {
+            if (!imagecopy($new, $image, $x, $y, 0, 0, $new_width, $new_height)) {
                 throw new Exception('Cannot copy rotated image to new image.');
             }
         }
@@ -91,9 +91,17 @@ function resizeImage($image, $max_width, $max_height) {
         $new_width = ceil($scale * $old_width);
         $new_height = ceil($scale * $old_height);
 
-        $new_image = imagescale($image, $new_width, $new_height, IMG_TRIANGLE);
+        // Resample into a separately owned surface. Some GD builds crash in
+        // imagescale's interpolation path after face/color edits on a JPEG.
+        $new_image = imagecreatetruecolor((int) $new_width, (int) $new_height);
         if (!$new_image) {
             throw new Exception('Cannot resize image.');
+        }
+        imagealphablending($new_image, false);
+        imagesavealpha($new_image, true);
+        if (!imagecopyresampled($new_image, $image, 0, 0, 0, 0, (int) $new_width, (int) $new_height, $old_width, $old_height)) {
+            imagedestroy($new_image);
+            throw new Exception('Cannot resample image.');
         }
     } catch (Exception $e) {
         // Return unmodified resource

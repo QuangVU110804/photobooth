@@ -126,10 +126,10 @@ function initPhotoSwipeFromDOM(gallerySelector) {
       }
     });
     gallery.listen('afterChange', function () {
-      var img = gallery.currItem.src.split('\\').pop().split('/').pop();
+      var img = decodeURIComponent(gallery.currItem.src.split('\\').pop().split('/').pop());
       photoboothTools.console.logDev('Current image: ' + img);
       $('.pswp__button--custom-download').attr({
-        href: 'api/download.php?image=' + img,
+        href: 'api/download.php?image=' + encodeURIComponent(img),
         download: img
       });
       if (ssRunning) {
@@ -163,7 +163,7 @@ function initPhotoSwipeFromDOM(gallerySelector) {
     e.preventDefault();
     e.stopPropagation();
     var img = gallery.currItem.src;
-    img = img.split('\\').pop().split('/').pop();
+    img = decodeURIComponent(img.split('\\').pop().split('/').pop());
     var msg = photoboothTools.getTranslation('really_delete_image');
     var really = config["delete"].no_request ? true : confirm(img + ' ' + msg);
     if (really) {
@@ -179,7 +179,7 @@ function initPhotoSwipeFromDOM(gallerySelector) {
   $('.pswp__button--qrcode').on('click touchstart', function (e) {
     e.preventDefault();
     e.stopPropagation();
-    var image = gallery.currItem.src.split('\\').pop().split('/').pop();
+    var image = decodeURIComponent(gallery.currItem.src.split('\\').pop().split('/').pop());
     photoBooth.showQr('#qrPswp', image);
     photoboothTools.modal.toggle('#qrPswp');
   });
@@ -191,7 +191,7 @@ function initPhotoSwipeFromDOM(gallerySelector) {
     if (photoboothTools.isPrinting) {
       photoboothTools.console.log('Printing already in progress!');
     } else {
-      var img = gallery.currItem.src.split('\\').pop().split('/').pop();
+      var img = decodeURIComponent(gallery.currItem.src.split('\\').pop().split('/').pop());
       photoboothTools.printImage(img, function () {
         if (typeof remoteBuzzerClient !== 'undefined') {
           remoteBuzzerClient.inProgress(false);
@@ -205,15 +205,15 @@ function initPhotoSwipeFromDOM(gallerySelector) {
   $('.pswp__button--print-chroma-keying').on('click touchstart', function (e) {
     e.preventDefault();
     e.stopPropagation();
-    var img = gallery.currItem.src.split('\\').pop().split('/').pop();
+    var img = decodeURIComponent(gallery.currItem.src.split('\\').pop().split('/').pop());
     if (config.keying.enabled) {
-      location = 'chromakeying.php?filename=' + encodeURI(img);
+      location = 'chromakeying.php?filename=' + encodeURIComponent(img);
     }
   });
   $('.pswp__button--mail').on('click touchstart', function (e) {
     e.preventDefault();
     e.stopPropagation();
-    var img = gallery.currItem.src.split('\\').pop().split('/').pop();
+    var img = decodeURIComponent(gallery.currItem.src.split('\\').pop().split('/').pop());
     photoBooth.toggleMailDialog(img);
   });
 

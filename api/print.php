@@ -7,6 +7,8 @@ require_once '../lib/resize.php';
 require_once '../lib/applyFrame.php';
 require_once '../lib/applyText.php';
 require_once '../lib/log.php';
+require_once __DIR__ . '/../lib/photo-receipt.php';
+require_once __DIR__ . '/../lib/api.php';
 
 function applyQR($sourceResource, $qrPath, $x, $y) {
     $qr = imagecreatefrompng($qrPath);
@@ -14,15 +16,31 @@ function applyQR($sourceResource, $qrPath, $x, $y) {
     return $sourceResource;
 }
 
-if (empty($_GET['filename'])) {
-    $errormsg = basename($_SERVER['PHP_SELF']) . ': No file provided!';
-    logErrorAndDie($errormsg);
+function savePrintJpeg($image, string $path, int $quality): void {
+    if (!@imagejpeg($image, $path, $quality)) apiError('Could not render print', 500);
 }
 
-$filename = $_GET['filename'];
-$filename_source = $config['foldersAbs']['images'] . DIRECTORY_SEPARATOR . $filename;
+$filename = requirePhotoFilename($_GET['filename'] ?? null);
+$filename_source = apiPhotoPath($config['foldersAbs']['images'], $filename);
+if ($filename_source === null) apiError('Photo not found', 404);
+if (!is_string($config['print']['cmd']) || trim($config['print']['cmd']) === '') apiError('Print command is not configured', 503);
 $filename_print = $config['foldersAbs']['print'] . DIRECTORY_SEPARATOR . $filename;
 $filename_codes = $config['foldersAbs']['qrcodes'] . DIRECTORY_SEPARATOR . $filename;
+$receiptPrintQr = $config['print']['qrcode'] && file_exists(__DIR__ . '/../vendor/phpqrcode/lib/full/qrlib.php');
+if ($receiptPrintQr) {
+    if (photoReceiptFilename($filename) === null) {
+        logErrorAndDie('Invalid photo filename');
+    }
+    try {
+        $receiptUrl = photoReceiptUrl($filename);
+    } catch (RuntimeException $error) {
+        logErrorAndDie('Photo receipt URL is not configured correctly');
+    }
+    // Do not reuse a printed image or QR containing the old static-image destination.
+    $receiptCacheKey = hash('sha256', $receiptUrl);
+    $filename_print = $config['foldersAbs']['print'] . DIRECTORY_SEPARATOR . 'receipt-' . $receiptCacheKey . '.jpg';
+    $filename_codes = $config['foldersAbs']['qrcodes'] . DIRECTORY_SEPARATOR . 'print-receipt-' . $receiptCacheKey . '.png';
+}
 $quality = 100;
 $status = false;
 
@@ -33,7 +51,8 @@ if (!file_exists($filename_source)) {
 }
 
 // Only jpg/jpeg are supported
-$imginfo = getimagesize($filename_source);
+$imginfo = @getimagesize($filename_source);
+if (!$imginfo) apiError('Invalid source photo');
 $mimetype = $imginfo['mime'];
 if ($mimetype != 'image/jpg' && $mimetype != 'image/jpeg') {
     $errormsg = basename($_SERVER['PHP_SELF']) . ': The source file type ' . $mimetype . ' is not supported';
@@ -53,17 +72,23 @@ $line2text = $config['textonprint']['line2'];
 $line3text = $config['textonprint']['line3'];
 
 if (!file_exists($filename_print)) {
+    $printCache = $filename_print;
+    if (!is_dir(dirname($printCache)) || !is_writable(dirname($printCache))) apiError('Print directory is unavailable', 500);
+    $filename_print = @tempnam(dirname($printCache), 'print-');
+    if ($filename_print === false) apiError('Could not create print file', 500);
+    // Failed renderings must never become reusable print-cache entries.
+    register_shutdown_function(function () use ($filename_print) { if (is_file($filename_print)) @unlink($filename_print); });
     // rotate image if needed
     list($width, $height) = getimagesize($filename_source);
     if ($width > $height || $config['print']['no_rotate'] === true) {
         $image = imagecreatefromjpeg($filename_source);
-        imagejpeg($image, $filename_print, $quality);
+        savePrintJpeg($image, $filename_print, $quality);
         imagedestroy($image);
         $rotateQr = false;
     } else {
         $image = imagecreatefromjpeg($filename_source);
         $resultRotated = imagerotate($image, 90, 0);
-        imagejpeg($resultRotated, $filename_print, $quality);
+        savePrintJpeg($resultRotated, $filename_print, $quality);
         imagedestroy($image);
         $rotateQr = true;
         // re-define width & height after rotation
@@ -72,14 +97,10 @@ if (!file_exists($filename_print)) {
 
     $source = imagecreatefromjpeg($filename_print);
 
-    if ($config['print']['qrcode'] && file_exists('../vendor/phpqrcode/lib/full/qrlib.php')) {
+    if ($receiptPrintQr) {
         // create qr code
         if (!file_exists($filename_codes)) {
-            if ($config['qr']['append_filename']) {
-                $url = $config['qr']['url'] . $filename;
-            } else {
-                $url = $config['qr']['url'];
-            }
+            $url = $receiptUrl;
             include '../vendor/phpqrcode/lib/full/qrlib.php';
             switch ($config['qr']['ecLevel']) {
                 case 'QR_ECLEVEL_L':
@@ -98,7 +119,7 @@ if (!file_exists($filename_print)) {
                     $ecLevel = QR_ECLEVEL_M;
                     break;
             }
-            QRcode::png($url, $filename_codes, $ecLevel, $config['print']['qrSize'], $config['print']['qrMargin']);
+            writePhotoReceiptQr($url, $filename_codes, $ecLevel, $config['print']['qrSize'], $config['print']['qrMargin']);
             if ($rotateQr) {
                 $image = imagecreatefrompng($filename_codes);
                 $resultRotated = imagerotate($image, 90, 0);
@@ -193,15 +214,18 @@ if (!file_exists($filename_print)) {
         $source = resizeCropImage($crop_width, $crop_height, $source);
     }
 
-    imagejpeg($source, $filename_print, $quality);
+    savePrintJpeg($source, $filename_print, $quality);
     imagedestroy($source);
+    if (!@rename($filename_print, $printCache)) apiError('Could not save rendered print', 500);
+    $filename_print = $printCache;
 }
 
 // print image
-$cmd = sprintf($config['print']['cmd'], $filename_print);
+$cmd = sprintf($config['print']['cmd'], escapeshellarg($filename_print));
 $cmd .= ' 2>&1'; //Redirect stderr to stdout, otherwise error messages get lost.
 
 exec($cmd, $output, $returnValue);
+if ($returnValue !== 0) apiError('Print command failed', 500);
 
 $LogData = [
     'status' => 'ok',

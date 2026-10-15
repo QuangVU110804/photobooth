@@ -86,15 +86,16 @@ if (
 
 
 <link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=7"/>
+<link rel="stylesheet" href="vendor/cssgram/inkwell.min.css"/>
+<link rel="stylesheet" href="vendor/cssgram/reyes.min.css"/>
+<link rel="stylesheet" href="vendor/cssgram/moon.min.css"/>
+<link rel="stylesheet" href="resources/css/filter-stage.css?v=2"/>
 </head>
 
 <body class="deselect">
 
 <?php if ($config['preview']['showFrame'] && !empty($config['picture']['htmlframe'])): ?>
 <img id="picture--frame" class="<?php echo $config['preview']['flip']; ?> <?php echo $config['preview']['style']; ?>" src="<?php echo $config['picture']['htmlframe']; ?>" alt="pictureFrame" />
-<?php endif; ?>
-<?php if ($config['preview']['showFrame'] && !empty($config['collage']['htmlframe'])): ?>
-<img id="collage--frame" class="<?php echo $config['preview']['flip']; ?> <?php echo $config['preview']['style']; ?>" src="<?php echo $config['collage']['htmlframe']; ?>" alt="collageFrame" />
 <?php endif; ?>
 
 <video id="video--view" class="<?php echo $config['preview']['flip']; ?> <?php echo $config['preview']['style']; ?>"
@@ -103,6 +104,9 @@ if (
 <div id="aperture"></div>
 <div id="wrapper">
     <?php include('template/' . $config['ui']['style'] . '.template.php'); ?>
+    <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
+        <?php include('template/filter-stage.template.php'); ?>
+    <?php endif; ?>
 
     <!-- image Filter Pane -->
     <?php if ($config['filters']['enabled']): ?>
@@ -173,11 +177,6 @@ if (
                                     data-i18n="newPhoto"></span></a>
                     <?php endif; ?>
 
-                    <?php if ($config['collage']['enabled']): ?>
-                        <a href="#" class="<?php echo $btnClass; ?> newcollage rotaryfocus"><i class="<?php echo $config['icons']['take_collage']; ?>"></i>
-                            <span
-                                    data-i18n="newCollage"></span></a>
-                    <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if ($config['filters']['enabled']): ?>
@@ -228,14 +227,16 @@ if (
 <script type="text/javascript" src="vendor/PhotoSwipe/dist/photoswipe.min.js"></script>
 <script type="text/javascript" src="vendor/PhotoSwipe/dist/photoswipe-ui-default.min.js"></script>
 <script type="text/javascript" src="resources/js/tools.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
+<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
 <script type="text/javascript" src="resources/js/photoinit.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-<script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
+<script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
+<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
+<script src="resources/js/filter-session.js?v=2"></script>
+<script src="resources/js/filter-stage.js?v=3"></script>
+<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
 <script src="node_modules/@andreasremdt/simple-translator/dist/umd/translator.min.js"></script>
 <script type="text/javascript" src="resources/js/i18n.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-<script type="text/javascript" src="resources/js/hmu-frames.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
+<script type="text/javascript" src="resources/js/hmu-frames.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-2"></script>
 
 <?php require_once('lib/services_start.php'); ?>
 </body>

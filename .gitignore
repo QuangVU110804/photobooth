@@ -33,3 +33,12 @@ vendor/phpqrcode/lib/full/errors.txt
 reports/
 *.bak
 backups/
+
+# Local audit notes and one-off performance measurements
+/scripts/AUDIT_PLAN.md
+/scripts/AUDIT_REPORT.md
+/scripts/PERFORMANCE_REPORT.md
+/scripts/RUNTIME_PERFORMANCE_AUDIT.md
+/scripts/FILTER_STAGE.md
+/scripts/PHOTO_RECEIPT.md
+/scripts/benchmark-*.php

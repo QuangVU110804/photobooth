@@ -10,6 +10,9 @@ require '../vendor/PHPMailer/src/SMTP.php';
 require_once '../lib/config.php';
 require_once '../lib/db.php';
 require_once '../lib/log.php';
+require_once __DIR__ . '/../lib/api.php';
+if (!$config['mail']['enabled']) apiError('Email is disabled', 403);
+if (!is_string($_POST['sendTo'] ?? null) || !PHPMailer::validateAddress($_POST['sendTo'])) apiError('E-Mail address invalid');
 
 if (empty($_POST['sendTo']) || !PHPMailer::validateAddress($_POST['sendTo'])) {
     $LogData = [
@@ -25,17 +28,8 @@ if (empty($_POST['sendTo']) || !PHPMailer::validateAddress($_POST['sendTo'])) {
 }
 
 if (isset($_POST['send-link']) && $_POST['send-link'] === 'yes') {
-    if (!file_exists(MAIL_FILE)) {
-        $addresses = [];
-    } else {
-        $addresses = json_decode(file_get_contents(MAIL_FILE));
-    }
-
-    if (!in_array($_POST['sendTo'], $addresses)) {
-        $addresses[] = $_POST['sendTo'];
-    }
-
-    file_put_contents(MAIL_FILE, json_encode($addresses));
+    try { appendMailAddressToDB($_POST['sendTo']); }
+    catch (RuntimeException $error) { apiError($error->getMessage(), 500); }
 
     die(
         json_encode([
@@ -58,7 +52,8 @@ if (empty($_POST['image'])) {
     die($LogString);
 }
 
-$postImage = basename($_POST['image']);
+$postImage = requirePhotoFilename($_POST['image']);
+if (apiPhotoPath($config['foldersAbs']['images'], $postImage) === null) apiError('Photo not found', 404);
 if (!isImageInDB($postImage)) {
     $LogData = [
         'success' => false,

@@ -30,7 +30,7 @@ $out_keying_fileRoot = $config['foldersRoot']['tmp'] . DIRECTORY_SEPARATOR . 're
 $picture_frame = $config['picture']['frame'];
 
 $imageResource = imagecreatefromjpeg($filename_tmp);
-list($imageResource, $imageModified) = editSingleImage($config, $imageResource, $filter, true, $picture_frame, false);
+list($imageResource, $imageModified) = editSingleImage($config, $imageResource, $filter);
 if ($chromaEnabled) {
     $chroma_size = substr($config['keying']['size'], 0, -2);
     $chromaCopyResource = resizeImage($imageResource, $chroma_size, $chroma_size);
@@ -39,7 +39,7 @@ if ($chromaEnabled) {
 }
 
 $configText = $config['textonpicture'];
-list($imageResource, $imageModified) = addTextToImage($configText, $imageResource, $imageModified, false);
+list($imageResource, $imageModified) = addTextToImage($configText, $imageResource, $imageModified);
 
 $thumb_size = substr($config['picture']['thumb_size'], 0, -2);
 $thumbResource = resizeImage($imageResource, $thumb_size, $thumb_size);
