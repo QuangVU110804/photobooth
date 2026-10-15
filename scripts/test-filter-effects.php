@@ -99,7 +99,7 @@ function effectsEndpoint($directory, $post, $overrides = [], $endpoint = 'applyE
     fclose($pipes[2]);
     $exit = proc_close($process);
     preg_match('/STATUS:(\d+)/', $stderr, $match);
-    effectsCheck($exit === 0 && !preg_match('/Warning|Fatal error|Notice|Deprecated/i', $stderr . $body), 'Endpoint exits without diagnostics: ' . $stderr . ' ' . $body);
+    effectsCheck($exit === 0 && !preg_match('/Warning|Fatal error|Notice|Deprecated/i', $stderr . $body), 'Endpoint exits without diagnostics (exit ' . $exit . ', status ' . ($match[1] ?? 'none') . '): ' . $stderr . ' ' . $body);
     return [(int) ($match[1] ?? 0), json_decode($body, true)];
 }
 function effectsSnapshot($directory) {
