@@ -1,30 +1,18 @@
 <?php
 header('Content-Type: application/json');
+require_once __DIR__ . '/../lib/frames.php';
 $framesDir = __DIR__ . '/../resources/img/frames';
-$frameName = $_POST['frame'] ?? '';
+$frameName = $_POST['frame'] ?? null;
+$src = resolvePhotoFrame($framesDir, $frameName);
 
-if (!is_string($frameName) || $frameName === '') {
+$info = $src !== null ? @getimagesize($src) : false;
+if (!$info || $info[2] !== IMAGETYPE_PNG) {
     echo json_encode(['status' => 'error']);
     exit;
 }
 
-$availableFrames = glob($framesDir . '/*.png');
-$availableNames = [];
-foreach ($availableFrames as $file) {
-    $name = basename($file);
-    if (strcasecmp($name, 'current_active_frame.png') !== 0 && is_file($file)) {
-        $availableNames[] = $name;
-    }
-}
-
-if (!in_array($frameName, $availableNames, true)) {
-    echo json_encode(['status' => 'error']);
-    exit;
-}
-
-$src = $framesDir . DIRECTORY_SEPARATOR . $frameName;
 $dst = $framesDir . DIRECTORY_SEPARATOR . 'current_active_frame.png';
-if (copy($src, $dst)) {
+if (@copy($src, $dst)) {
     echo json_encode(['status' => 'success', 'active' => $frameName]);
     exit;
 }

@@ -5,6 +5,8 @@ require_once('lib/db.php');
 
 // Check if there is a request for the status of the database
 if (isset($_GET['status'])){
+	header('Content-Type: application/json');
+	header('Cache-Control: no-store');
 	// Request for DB-Status,
 	// Currently reports back the DB-Size to give the Client the ability
 	// to detect changes
@@ -12,6 +14,9 @@ if (isset($_GET['status'])){
 	exit(json_encode($resp));
 }
 
+// Capture the baseline before reading the list so a concurrent new photo
+// cannot be mistaken for content already rendered on this page.
+$galleryDBSize = getDBSize();
 if ($config['database']['enabled']) {
 	$images = getImagesFromDB();
 } else {
@@ -64,7 +69,7 @@ $GALLERY_FOOTER = false;
 	<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=7" />
 </head>
 
-<body class="deselect">
+<body class="deselect" data-gallery-db-size="<?=$galleryDBSize?>">
 	<div id="wrapper">
 		<?php include('template/gallery.template.php'); ?>
 	</div>
@@ -95,14 +100,14 @@ $GALLERY_FOOTER = false;
 		onStandaloneGalleryView = true;
 	</script>
 	<script type="text/javascript" src="resources/js/tools.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-	<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
+	<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
 	<script type="text/javascript" src="resources/js/photoinit.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-	<script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-	<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-	<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
+	<script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
+	<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
+	<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
 	<script type="text/javascript" src="resources/js/gallery.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
 	<?php if ($config['gallery']['db_check_enabled']): ?>
-	<script type="text/javascript" src="resources/js/gallery_updatecheck.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
+	<script type="text/javascript" src="resources/js/gallery_updatecheck.js?v=<?php echo $config['photobooth']['version']; ?>&poll=2"></script>
 	<?php endif; ?>
 	<script src="node_modules/@andreasremdt/simple-translator/dist/umd/translator.min.js"></script>
 	<script type="text/javascript" src="resources/js/i18n.js?v=<?php echo $config['photobooth']['version']; ?>"></script>

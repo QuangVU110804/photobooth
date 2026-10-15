@@ -1,0 +1,2 @@
+# Preserve bundled model/runtime bytes and upstream generated whitespace.
+/vendor/mediapipe/** -text -whitespace

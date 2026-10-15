@@ -1,19 +1,27 @@
-﻿<?php
+<?php
 error_reporting(0);
 ini_set("display_errors", "0");
 
-require_once "../lib/config.php";
-require_once "../lib/helper.php";
+require_once __DIR__ . "/../lib/config.php";
+require_once __DIR__ . "/../lib/photo-receipt.php";
 
-$rawFilename = isset($_GET["filename"]) ? $_GET["filename"] : "default.jpg";
-$filename = basename($rawFilename);
+$filename = photoReceiptFilename($_GET["filename"] ?? null);
+if ($filename === null) {
+    http_response_code(400);
+    exit("Invalid photo filename");
+}
 
-// URL tuyet doi den thu muc anh tren Tailscale Funnel
-$url = "https://fidk0125d1s0006.tail8a1993.ts.net/photobooth/data/images/" . $filename;
+// The URL-based cache key also separates new receipt QR codes from legacy image QR codes.
+try {
+    $url = photoReceiptUrl($filename);
+} catch (RuntimeException $error) {
+    http_response_code(500);
+    exit("Photo receipt URL is not configured correctly");
+}
 
-include_once "../vendor/phpqrcode/lib/full/qrlib.php";
+include_once __DIR__ . "/../vendor/phpqrcode/lib/full/qrlib.php";
 
-$cacheDir = __DIR__ . "/../data/qrcodes/";
+$cacheDir = $config['foldersAbs']['qrcodes'] . DIRECTORY_SEPARATOR;
 if (!is_dir($cacheDir)) {
     mkdir($cacheDir, 0777, true);
 }
@@ -22,7 +30,7 @@ $qrCacheFile = $cacheDir . md5($url) . ".png";
 
 if (!file_exists($qrCacheFile) || filesize($qrCacheFile) === 0) {
     ob_start();
-    QRcode::png($url, $qrCacheFile, QR_ECLEVEL_M, 8, 2);
+    writePhotoReceiptQr($url, $qrCacheFile, QR_ECLEVEL_M, 8, 2);
     ob_end_clean();
 }
 

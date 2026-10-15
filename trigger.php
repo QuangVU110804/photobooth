@@ -49,9 +49,6 @@ $uiShape = 'shape--' . $config['ui']['style'];
 			    <a href="#" class="<?php echo $btnClass; ?> remotePicture" onclick="photoboothTools.getRequest('http://' + config.webserver.ip + ':' + config.remotebuzzer.port + '/commands/start-picture');"><i class="<?php echo $config['icons']['take_picture'] ?>"></i> <span data-i18n="takePhoto"></span></a>
 			    <?php endif; ?>
 
-			    <?php if ($config['collage']['enabled'] && $config['remotebuzzer']['collagebutton']): ?>
-			    <a href="#" class="<?php echo $btnClass; ?> remoteCollage" onclick="photoboothTools.getRequest('http://' + config.webserver.ip + ':' + config.remotebuzzer.port + '/commands/start-collage');"><i class="<?php echo $config['icons']['take_collage'] ?>"></i> <span data-i18n="takeCollage"></span></a>
-			    <?php endif; ?>
 
 			    <?php if ($config['print']['from_result'] && $config['remotebuzzer']['printbutton']): ?>
 			    <a href="#" class="<?php echo $btnClass; ?> remotePrint" onclick="photoboothTools.getRequest('http://' + config.webserver.ip + ':' + config.remotebuzzer.port + '/commands/start-print');"><i class="<?php echo $config['icons']['print'] ?>"></i> <span data-i18n="print"></span></a>
@@ -79,7 +76,7 @@ $uiShape = 'shape--' . $config['ui']['style'];
 	<script type="text/javascript" src="api/config.php"></script>
 	<script type="text/javascript" src="node_modules/jquery/dist/jquery.min.js"></script>
 	<script type="text/javascript" src="resources/js/tools.js"></script>
-	<script type="text/javascript" src="resources/js/theme.js"></script>
+	<script type="text/javascript" src="resources/js/theme.js?capture=single-1"></script>
 	<script src="node_modules/@andreasremdt/simple-translator/dist/umd/translator.min.js"></script>
 	<script type="text/javascript" src="resources/js/i18n.js"></script>
 </body>

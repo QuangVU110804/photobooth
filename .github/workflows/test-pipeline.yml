@@ -34,11 +34,15 @@ jobs:
           extensions: mbstring, gd, json, curl, zip
           coverage: none
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Run Quality Gates & Telemetry Extraction
         id: run_tests
-        continue-on-error: true
         run: |
-          php scripts/run-tests.php
+          node scripts/run-project-tests.cjs
 
       - name: Publish AI Action Guide to GitHub Step Summary
         if: always()
@@ -54,7 +58,3 @@ jobs:
           name: diagnostic-report-php${{ matrix.php-version }}
           path: reports/
           retention-days: 7
-
-      - name: Enforce Pipeline Exit Code
-        run: |
-          php scripts/run-tests.php

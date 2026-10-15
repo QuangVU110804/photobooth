@@ -1,6 +1,5 @@
 /* VARIABLES */
-let collageInProgress = false,
-    triggerArmed = true;
+let triggerArmed = true;
 
 const API_DIR_NAME = 'api';
 const API_FILE_NAME = 'config.php';
@@ -52,26 +51,12 @@ function photoboothAction(type) {
     switch (type) {
         case 'picture':
             triggerArmed = false;
-            collageInProgress = false;
             log('Photobooth trigger PICTURE : [ photobooth-socket ] => [ All Clients ]: command [ picture ]');
             ioServer.emit('photobooth-socket', 'start-picture');
             break;
 
-        case 'collage':
-            triggerArmed = false;
-            collageInProgress = true;
-            log('Photobooth trigger COLLAGE : [ photobooth-socket ]  => [ All Clients ]: command [ collage ]');
-            ioServer.emit('photobooth-socket', 'start-collage');
-            break;
-
-        case 'collage-next':
-            log('Photobooth COLLAGE : [ photobooth-socket ]  => [ All Clients ]: command [ collage-next ]');
-            ioServer.emit('photobooth-socket', 'collage-next');
-            break;
-
         case 'completed':
             triggerArmed = true;
-            collageInProgress = false;
             log('Photobooth activity completed : [ photobooth-socket ] => [ All Clients ]: command [ completed ]');
             ioServer.emit('photobooth-socket', 'completed');
             break;
@@ -119,7 +104,6 @@ const requestListener = function (req, res) {
                 `<h1>Trigger Endpoints</h1>
             <ul>
                 <li>Trigger photo: <a href="${baseUrl}/commands/start-picture" target="_blank">${baseUrl}/commands/start-picture</a></li>
-                <li>Trigger collage: <a href="${baseUrl}/commands/start-collage" target="_blank">${baseUrl}/commands/start-collage</a></li>
                 <li>Trigger print: <a href="${baseUrl}/commands/start-print" target="_blank">${baseUrl}/commands/start-print</a></li>
             </ul>
             <h1>Rotary Endpoints</h1>
@@ -151,23 +135,6 @@ const requestListener = function (req, res) {
                 }
             } else {
                 sendText('Please enable Hardware Button support and Picture Button!');
-            }
-            break;
-        case '/commands/start-collage':
-            log('http: GET /commands/start-collage');
-            if (config.remotebuzzer.usebuttons && config.remotebuzzer.collagebutton) {
-                if (triggerArmed) {
-                    if (config.collage.enabled) {
-                        photoboothAction('collage');
-                        sendText('TAKE COLLAGE TRIGGERED');
-                    } else {
-                        sendText('COLLAGE DISABLED.');
-                    }
-                } else {
-                    sendText('ALREADY TRIGGERED AN ACTION');
-                }
-            } else {
-                sendText('Please enable Hardware Button support and Collage Button!');
             }
             break;
         case '/commands/start-print':
@@ -270,14 +237,6 @@ ioServer.on('connection', function (client) {
                 photoboothAction('picture');
                 break;
 
-            case 'start-collage':
-                photoboothAction('collage');
-                break;
-
-            case 'collage-wait-for-next':
-                triggerArmed = true;
-                break;
-
             default:
                 log('Received unknown command [', data, '] - ignoring');
                 break;
@@ -291,7 +250,6 @@ ioServer.on('connection', function (client) {
         if (ioServer.engine.clientsCount == 0) {
             log('No more clients connected - removing lock and arming trigger');
             triggerArmed = true;
-            collageInProgress = false;
         }
     });
 });
@@ -428,45 +386,6 @@ function buttonTimer(millis) {
     return false;
 }
 
-/* WATCH FUNCTION PICTURE BUTTON WITH LONGPRESS FOR COLLAGE*/
-const watchPictureGPIOwithCollage = function watchPictureGPIOwithCollage(err, gpioValue) {
-    if (err) {
-        throw err;
-    }
-
-    /* if there is some activity in progress ignore GPIO pin for now */
-    if (!triggerArmed || buttonActiveCheck(config.remotebuzzer.picturegpio, gpioValue)) {
-        return;
-    }
-
-    if (gpioValue) {
-        /* Button released - raising flank detected */
-        const timeElapsed = buttonTimer();
-
-        if (!timeElapsed) {
-            /* Too long button press - timeout - reset server state machine */
-            log('GPIO', config.remotebuzzer.picturegpio, '- too long button press - Reset server state machine');
-            photoboothAction('reset');
-            buttonActiveCheck(-1, -1);
-        } else if (timeElapsed <= config.remotebuzzer.collagetime * 1000 && !collageInProgress) {
-            /* Start Picture */
-            log('GPIO', config.remotebuzzer.picturegpio, '- Picture button released - normal -', timeElapsed, ' [ms] ');
-            photoboothAction('picture');
-        } else if (collageInProgress) {
-            /* Next Collage Picture*/
-            log('GPIO', config.remotebuzzer.picturegpio, '- Picture button released - long -', timeElapsed, ' [ms] ');
-            photoboothAction('collage-next');
-        } else {
-            /* Start Collage */
-            log('GPIO', config.remotebuzzer.picturegpio, '- Picture button released - long -', timeElapsed, ' [ms] ');
-            photoboothAction('collage');
-        }
-    } else {
-        /* Button pressed - falling flank detected (pull to ground) */
-        log('GPIO ', config.remotebuzzer.picturegpio, ' - Picture button pressed');
-    }
-};
-
 /* WATCH FUNCTION PICTURE BUTTON */
 const watchPictureGPIO = function watchPictureGPIO(err, gpioValue) {
     if (err) {
@@ -485,9 +404,7 @@ const watchPictureGPIO = function watchPictureGPIO(err, gpioValue) {
         if (timeElapsed) {
             log('GPIO', config.remotebuzzer.picturegpio, '- Picture button released - normal -', timeElapsed, ' [ms] ');
             /* Start Picture */
-            if (!collageInProgress) {
-                photoboothAction('picture');
-            }
+            photoboothAction('picture');
         } else {
             /* Too long button press - timeout - reset server state machine */
             log('GPIO', config.remotebuzzer.picturegpio, '- too long button press - Reset server state machine');
@@ -497,43 +414,6 @@ const watchPictureGPIO = function watchPictureGPIO(err, gpioValue) {
     } else {
         /* Button pressed - falling flank detected (pull to ground) */
         log('GPIO', config.remotebuzzer.picturegpio, '- Picture button pressed');
-    }
-};
-
-/* WATCH FUNCTION COLLAGE BUTTON */
-const watchCollageGPIO = function watchCollageGPIO(err, gpioValue) {
-    if (err) {
-        throw err;
-    }
-
-    /* if there is some activity in progress ignore GPIO pin for now */
-    if (!triggerArmed || buttonActiveCheck(config.remotebuzzer.collagegpio, gpioValue)) {
-        return;
-    }
-
-    if (gpioValue) {
-        /* Button released - raising flank detected */
-        const timeElapsed = buttonTimer();
-
-        if (timeElapsed) {
-            log('GPIO', config.remotebuzzer.collagegpio, '- Collage button released ', timeElapsed, ' [ms] ');
-
-            /* Collage Trigger Next */
-            if (collageInProgress) {
-                photoboothAction('collage-next');
-            } else {
-                /* Start Collage */
-                photoboothAction('collage');
-            }
-        } else {
-            /* Too long button press - timeout - reset server state machine */
-            log('GPIO', config.remotebuzzer.collagegpio, '- too long button press - Reset server state machine');
-            photoboothAction('reset');
-            buttonActiveCheck(-1, -1);
-        }
-    } else {
-        /* Button pressed - falling flank detected (pull to ground) */
-        log('GPIO', config.remotebuzzer.collagegpio, '- Collage button pressed');
     }
 };
 
@@ -746,25 +626,7 @@ if (useGpio) {
                 debounceTimeout: config.remotebuzzer.debounce
             });
             log('Looking for Picture Button on Raspberry GPIO', config.remotebuzzer.picturegpio);
-            if (!config.remotebuzzer.collagebutton && config.collage.enabled) {
-                pictureButton.watch(watchPictureGPIOwithCollage);
-                log('config: collage enabled for picture button');
-            } else {
-                pictureButton.watch(watchPictureGPIO);
-            }
-        }
-
-        /* COLLAGE BUTTON */
-        if (
-            config.collage.enabled &&
-            config.remotebuzzer.collagebutton &&
-            gpioSanity(config.remotebuzzer.collagegpio)
-        ) {
-            const collageButton = new Gpio(config.remotebuzzer.collagegpio, 'in', 'both', {
-                debounceTimeout: config.remotebuzzer.debounce
-            });
-            log('Looking for Collage Button on Raspberry GPIO', config.remotebuzzer.collagegpio);
-            collageButton.watch(watchCollageGPIO);
+            pictureButton.watch(watchPictureGPIO);
         }
 
         /* SHUTDOWN BUTTON */

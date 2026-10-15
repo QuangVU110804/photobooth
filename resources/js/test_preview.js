@@ -23,8 +23,7 @@ var photoboothPreviewTest = function () {
   var api = {},
     url = $('#ipcam--view'),
     video = $('#video--view'),
-    pictureFrame = $('#picture--frame'),
-    collageFrame = $('#collage--frame');
+    pictureFrame = $('#picture--frame');
   var pid;
   api.init = function () {
     video.hide();
@@ -33,7 +32,6 @@ var photoboothPreviewTest = function () {
     $('#no_preview').show();
     $('.stopPreview').hide();
     pictureFrame.hide();
-    collageFrame.hide();
     $('.hideFrame').hide();
   };
   api.runCmd = function (mode) {
@@ -72,7 +70,6 @@ var photoboothPreviewTest = function () {
     e.preventDefault();
     photoboothTools.console.log('Stopping preview...');
     $('.stopPreview').hide();
-    collageFrame.hide();
     pictureFrame.hide();
     if (config.preview.killcmd) {
       api.runCmd('stop');
@@ -96,20 +93,11 @@ var photoboothPreviewTest = function () {
     e.preventDefault();
     photoboothTools.console.log('Showing picture frame over the preview...');
     pictureFrame.show();
-    collageFrame.hide();
-    $('.hideFrame').show();
-  });
-  $('.showCollageFrame').on('click', function (e) {
-    e.preventDefault();
-    photoboothTools.console.log('Showing collage frame over the preview...');
-    collageFrame.show();
-    pictureFrame.hide();
     $('.hideFrame').show();
   });
   $('.hideFrame').on('click', function (e) {
     e.preventDefault();
     photoboothTools.console.log('Hiding frames...');
-    collageFrame.hide();
     pictureFrame.hide();
     $('.hideFrame').hide();
   });
@@ -124,8 +112,6 @@ var photoboothPreviewTest = function () {
     if (newWidth !== 0 && newHeight !== 0) {
       pictureFrame.css('width', newWidth);
       pictureFrame.css('height', newHeight);
-      collageFrame.css('width', newWidth);
-      collageFrame.css('height', newHeight);
     }
   });
   return api;

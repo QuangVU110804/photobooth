@@ -57,7 +57,7 @@ function rotateResizeImage($image, $rotation, $bg_color = '#ffffff') {
             $y = intval(($old_height - $new_height) / 2);
 
             // copy rotated image to new image with old dimensions
-            if (imagecopy($new, $image, $x, $y, 0, 0, $new_width, $new_height)) {
+            if (!imagecopy($new, $image, $x, $y, 0, 0, $new_width, $new_height)) {
                 throw new Exception('Cannot copy rotated image to new image.');
             }
         }

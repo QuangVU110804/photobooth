@@ -101,23 +101,19 @@ $defaultConfig = $config;
 if (file_exists($my_config_file)) {
     require_once $my_config_file;
 
+    $mailTemplate = $mailTemplates[$config['ui']['language'] ?? $defaultConfig['ui']['language']] ?? $mailTemplates['en'];
     if (empty($config['mail']['subject'])) {
-        if (!empty($config['ui']['language'])) {
-            $config['mail']['subject'] = $mailTemplates[$config['ui']['language']]['mail']['subject'];
-        } else {
-            $config['mail']['subject'] = $mailTemplates[$defaultConfig['ui']['language']]['mail']['subject'];
-        }
+        $config['mail']['subject'] = $mailTemplate['mail']['subject'];
     }
     if (empty($config['mail']['text'])) {
-        if (!empty($config['ui']['language'])) {
-            $config['mail']['text'] = $mailTemplates[$config['ui']['language']]['mail']['text'];
-        } else {
-            $config['mail']['text'] = $mailTemplates[$defaultConfig['ui']['language']]['mail']['text'];
-        }
+        $config['mail']['text'] = $mailTemplate['mail']['text'];
     }
 
     $config = array_deep_merge($defaultConfig, $config);
 }
+
+// Ignore retired settings from older local configurations.
+unset($config['collage'], $config['textoncollage'], $config['remotebuzzer']['collagetime'], $config['remotebuzzer']['collagebutton'], $config['remotebuzzer']['collagegpio'], $config['get_request']['collage'], $config['icons']['take_collage']);
 
 if ($config['dev']['loglevel'] > 0) {
     ini_set('display_errors', 1);
@@ -132,19 +128,18 @@ if (file_exists($my_config_file) && !is_writable($my_config_file)) {
 }
 
 if (empty($config['ui']['folders_lang'])) {
-    $config['ui']['folders_lang'] = getrootpath('../resources/lang');
+    $config['ui']['folders_lang'] = getrootpath(__DIR__ . '/../resources/lang');
 }
 
 $config['ui']['folders_lang'] = fixSeperator($config['ui']['folders_lang']);
 
 foreach ($config['folders'] as $key => $folder) {
-    if ($folder === 'data' || $folder === 'archives' || $folder === 'config' || $folder === 'private') {
+    if (in_array($key, ['data', 'archives', 'config', 'private'], true)) {
         $path = $basepath . DIRECTORY_SEPARATOR . $folder;
     } else {
         $path = $basepath . DIRECTORY_SEPARATOR . $config['folders']['data'] . DIRECTORY_SEPARATOR . $folder;
         $config['foldersRoot'][$key] = $config['folders']['data'] . DIRECTORY_SEPARATOR . $folder;
 
-        $config['foldersJS'][$key] = str_replace('\\', '/', getrootpath($path));
     }
 
     if (!file_exists($path)) {
@@ -157,6 +152,7 @@ foreach ($config['folders'] as $key => $folder) {
 
     $path = realpath($path);
     $config['foldersAbs'][$key] = $path;
+    if (isset($config['foldersRoot'][$key])) $config['foldersJS'][$key] = fixSeperator(getrootpath($path));
 }
 
 if ($config['preview']['mode'] === 'gphoto') {
@@ -179,18 +175,6 @@ if (empty($config['textonpicture']['font']) || !testFile($config['textonpicture'
     $config['textonpicture']['font'] = $default_font;
 }
 
-if (empty($config['collage']['frame']) || !testFile($config['collage']['frame'])) {
-    $config['collage']['frame'] = $default_frame;
-}
-
-if (empty($config['collage']['placeholderpath']) || !testFile($config['collage']['placeholderpath'])) {
-    $config['collage']['placeholderpath'] = realpath($basepath . DIRECTORY_SEPARATOR . 'resources/img/background/01.jpg');
-}
-
-if (empty($config['textoncollage']['font']) || !testFile($config['textoncollage']['font'])) {
-    $config['textoncollage']['font'] = $default_font;
-}
-
 if (empty($config['print']['frame']) || !testFile($config['print']['frame'])) {
     $config['print']['frame'] = $default_frame;
 }
@@ -199,12 +183,8 @@ if (empty($config['textonprint']['font']) || !testFile($config['textonprint']['f
     $config['textonprint']['font'] = $default_font;
 }
 
-if (empty($config['collage']['limit'])) {
-    $config['collage']['limit'] = 4;
-}
-
 if (isSubfolderInstall()) {
-    $bg_root = getrootpath('../resources/img/bg_stone.jpg');
+    $bg_root = getrootpath(__DIR__ . '/../resources/img/bg_stone.jpg');
     $bg_url = fixSeperator($bg_root);
 } else {
     $bg_url = '/resources/img/bg_stone.jpg';
@@ -225,11 +205,6 @@ if (empty($config['background']['chroma'])) {
 if (!empty($config['picture']['frame'])) {
     $pf_root = getrootpath($config['picture']['frame']);
     $config['picture']['htmlframe'] = fixSeperator($pf_root);
-}
-
-if (!empty($config['collage']['frame'])) {
-    $cf_root = getrootpath($config['collage']['frame']);
-    $config['collage']['htmlframe'] = fixSeperator($cf_root);
 }
 
 if (empty($config['webserver']['ip'])) {

@@ -1,24 +1,37 @@
 <?php
 header('Content-Type: application/json');
 
+// Reject removed/unknown modes before loading config or renaming a capture.
+if (!isset($_POST['style']) || !in_array($_POST['style'], ['photo', 'chroma'], true)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid capture style']);
+    exit;
+}
+
 require_once '../lib/config.php';
 require_once '../lib/db.php';
 require_once '../lib/log.php';
+require_once __DIR__ . '/../lib/capture.php';
+require_once __DIR__ . '/../lib/face-effects.php';
+
+// Decode and validate before an existing raw capture can be renamed/replaced.
+if (isset($_POST['file']) && !faceEffectFilename($_POST['file'])) apiError('Invalid capture filename');
+$cameraBytes = null;
+if (!$config['dev']['demo_images'] && $config['preview']['mode'] === 'device_cam' && $config['preview']['camTakesPic']) {
+    try { $cameraBytes = decodeCameraImage($_POST['canvasimg'] ?? null, 'image/jpeg'); }
+    catch (InvalidArgumentException $error) { apiError($error->getMessage()); }
+}
 
 function takePicture($filename) {
-    global $config;
+    global $config, $cameraBytes;
 
     if ($config['dev']['demo_images']) {
         $demoFolder = __DIR__ . '/../resources/img/demo/';
-        $devImg = array_diff(scandir($demoFolder), ['.', '..']);
-        copy($demoFolder . $devImg[array_rand($devImg)], $filename);
+        $devImg = glob($demoFolder . '*.{jpg,jpeg,JPG,JPEG}', GLOB_BRACE) ?: [];
+        if (!$devImg) apiError('No demo JPEG images available', 503);
+        if (!copy($devImg[array_rand($devImg)], $filename)) apiError('Could not save demo capture', 500);
     } elseif ($config['preview']['mode'] === 'device_cam' && $config['preview']['camTakesPic']) {
-        $data = $_POST['canvasimg'];
-        list($type, $data) = explode(';', $data);
-        list(, $data) = explode(',', $data);
-        $data = base64_decode($data);
-
-        file_put_contents($filename, $data);
+        if (file_put_contents($filename, $cameraBytes) !== strlen($cameraBytes)) apiError('Could not save capture', 500);
 
         if ($config['preview']['flip'] != 'off') {
             $im = imagecreatefromjpeg($filename);
@@ -40,7 +53,8 @@ function takePicture($filename) {
         if (substr($config['take_picture']['cmd'], 0, strlen('gphoto')) === 'gphoto') {
             chdir(dirname($filename));
         }
-        $cmd = sprintf($config['take_picture']['cmd'], $filename);
+        if (trim($config['take_picture']['cmd']) === '') apiError('Capture command is not configured', 503);
+        $cmd = sprintf($config['take_picture']['cmd'], escapeshellarg($filename));
         $cmd .= ' 2>&1'; //Redirect stderr to stdout, otherwise error messages get lost.
 
         exec($cmd, $output, $returnValue);
@@ -57,7 +71,7 @@ function takePicture($filename) {
             logError($ErrorData);
         }
 
-        if (!file_exists($filename)) {
+        if (!is_file($filename) || !@getimagesize($filename)) {
             $ErrorData = [
                 'error' => 'File was not created',
                 'cmd' => $cmd,
@@ -72,21 +86,9 @@ function takePicture($filename) {
     }
 }
 
-$random = md5(microtime()) . '.jpg';
-
-if (!empty($_POST['file']) && preg_match('/^[a-z0-9_]+\.jpg$/', $_POST['file'])) {
-    $name = $_POST['file'];
-} elseif ($config['picture']['naming'] === 'dateformatted') {
-    $name = date('Ymd_His') . '.jpg';
-} else {
-    $name = $random;
-}
-
-if ($config['database']['file'] === 'db' || (!empty($_POST['file']) && preg_match('/^[a-z0-9_]+\.jpg$/', $_POST['file']))) {
-    $file = $name;
-} else {
-    $file = $config['database']['file'] . '_' . $name;
-}
+try { $file = $_POST['file'] ?? newCaptureFilename($config); }
+catch (InvalidArgumentException $error) { apiError($error->getMessage()); }
+$random = bin2hex(random_bytes(16)) . '.jpg';
 
 $filename_tmp = $config['foldersAbs']['tmp'] . DIRECTORY_SEPARATOR . $file;
 $filename_random = $config['foldersAbs']['tmp'] . DIRECTORY_SEPARATOR . $random;
@@ -107,36 +109,6 @@ switch ($_POST['style']) {
         $LogData = [
             'success' => 'image',
             'file' => $file,
-            'php' => basename($_SERVER['PHP_SELF']),
-        ];
-        break;
-    case 'collage':
-        if (!is_numeric($_POST['collageNumber'])) {
-            $errormsg = basename($_SERVER['PHP_SELF']) . ': No or invalid collage number provided';
-            logErrorAndDie($errormsg);
-        }
-
-        $number = $_POST['collageNumber'] + 0;
-
-        if ($number > $config['collage']['limit']) {
-            $errormsg = basename($_SERVER['PHP_SELF']) . ': Collage consists only of ' . $config['collage']['limit'] . ' pictures';
-            logErrorAndDie($errormsg);
-        }
-
-        $basecollage = substr($file, 0, -4);
-        $collage_name = $basecollage . '-' . $number . '.jpg';
-
-        $basename = substr($filename_tmp, 0, -4);
-        $filename = $basename . '-' . $number . '.jpg';
-
-        takePicture($filename);
-
-        $LogData = [
-            'success' => 'collage',
-            'file' => $file,
-            'collage_file' => $collage_name,
-            'current' => $number,
-            'limit' => $config['collage']['limit'],
             'php' => basename($_SERVER['PHP_SELF']),
         ];
         break;

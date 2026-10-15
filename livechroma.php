@@ -153,17 +153,17 @@ if (
         <script type="text/javascript" src="vendor/PhotoSwipe/dist/photoswipe-ui-default.min.js"></script>
         <script type="text/javascript" src="resources/js/tools.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
         <script type="text/javascript" src="resources/js/photoinit.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-        <script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-        <script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
+        <script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
+        <script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
         <?php if ($config['keying']['variant'] === 'marvinj'): ?>
             <script type="text/javascript" src="node_modules/marvinj/marvinj/release/marvinj-1.0.js"></script>
         <?php else: ?>
             <script type="text/javascript" src="vendor/Seriously/seriously.js"></script>
             <script type="text/javascript" src="vendor/Seriously/effects/seriously.chroma.js"></script>
         <?php endif; ?>
-        <script type="text/javascript" src="resources/js/livechroma.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-        <script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-        <script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
+        <script type="text/javascript" src="resources/js/livechroma.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
+        <script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
+        <script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
         <script src="node_modules/@andreasremdt/simple-translator/dist/umd/translator.min.js"></script>
         <script type="text/javascript" src="resources/js/i18n.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
 

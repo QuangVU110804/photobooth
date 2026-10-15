@@ -3,6 +3,8 @@ header('Content-Type: application/json');
 
 require_once '../lib/config.php';
 require_once '../lib/db.php';
+require_once __DIR__ . '/../lib/api.php';
+requireAdminAccess();
 
 $LogData = [
     'php' => basename($_SERVER['PHP_SELF']),
@@ -136,51 +138,11 @@ if (isset($data['type'])) {
         }
     }
 
-    $collageLayout = $newConfig['collage']['layout'];
-    $collageConfigFilePath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'private/collage.json';
-    if ($collageLayout === '1+2' || $collageLayout == '2+1' || $collageLayout == '2x3') {
-        $newConfig['collage']['limit'] = 3;
-    } elseif ($collageLayout == 'collage.json' && file_exists($collageConfigFilePath)) {
-        $collageConfig = json_decode(file_get_contents($collageConfigFilePath), true);
-        if (is_array($collageConfig)) {
-            $newConfig['collage']['limit'] = count($collageConfig);
-        } else {
-            $newConfig['collage']['limit'] = 4;
-        }
-    } else {
-        $newConfig['collage']['limit'] = 4;
-    }
-
-    // If there is a collage placeholder whithin the correct range (0 < placeholderposition <= collage limit), we need to decrease the collage limit by 1
-    if ($newConfig['collage']['placeholder']) {
-        $collagePlaceholderPosition = (int) $newConfig['collage']['placeholderposition'];
-        if ($collagePlaceholderPosition > 0 && $collagePlaceholderPosition <= $newConfig['collage']['limit']) {
-            $newConfig['collage']['limit'] = $newConfig['collage']['limit'] - 1;
-        } else {
-            $newConfig['collage']['placeholder'] = false;
-            $LogData[] = ['collage' => 'Placeholder position not in range. Placeholder disabled.'];
-        }
-
-        if (empty($newConfig['collage']['placeholderpath']) || !is_array(@getimagesize($newConfig['collage']['placeholderpath']))) {
-            $newConfig['collage']['placeholder'] = false;
-            $LogData[] = ['collage' => 'Collage Placeholder does not exist or is empty. Collage Placeholder disabled. Note: Must be an absoloute path'];
-            $LogData[] = ['collage' => empty($newConfig['collage']['placeholderpath']) ? 'Empty.' : $newConfig['collage']['placeholderpath']];
-        }
-    }
-
     if ($newConfig['picture']['take_frame']) {
         if (empty($newConfig['picture']['frame']) || !is_array(@getimagesize($newConfig['picture']['frame']))) {
             $newConfig['picture']['take_frame'] = false;
             $LogData[] = ['frame' => 'Picture frame does not exist or is empty. Picture frame disabled. Note: Must be an absoloute path'];
             $LogData[] = ['frame' => empty($newConfig['picture']['frame']) ? 'Empty.' : $newConfig['picture']['frame']];
-        }
-    }
-
-    if ($newConfig['collage']['take_frame']) {
-        if (empty($newConfig['collage']['frame']) || !is_array(@getimagesize($newConfig['collage']['frame']))) {
-            $newConfig['collage']['take_frame'] = false;
-            $LogData[] = ['frame' => 'Collage frame does not exist or is empty. Collage frame disabled. Note: Must be an absoloute path'];
-            $LogData[] = ['frame' => empty($newConfig['collage']['frame']) ? 'Empty.' : $newConfig['collage']['frame']];
         }
     }
 
@@ -197,14 +159,6 @@ if (isset($data['type'])) {
             $newConfig['textonpicture']['enabled'] = false;
             $LogData[] = ['font' => 'Picture font does not exist or is empty. Disabled text on picture. Note: Must be an absoloute path'];
             $LogData[] = ['font' => empty($newConfig['textonpicture']['font']) ? 'Empty.' : $newConfig['textonpicture']['font']];
-        }
-    }
-
-    if ($newConfig['textoncollage']['enabled']) {
-        if (empty($newConfig['textoncollage']['font']) || !file_exists($newConfig['textoncollage']['font'])) {
-            $newConfig['textoncollage']['enabled'] = false;
-            $LogData[] = ['font' => 'Collage font does not exist or is empty. Disabled text on collage. Note: Must be an absoloute path.'];
-            $LogData[] = ['font' => empty($newConfig['textoncollage']['font']) ? 'Empty.' : $newConfig['textoncollage']['font']];
         }
     }
 

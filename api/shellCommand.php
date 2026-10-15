@@ -2,15 +2,19 @@
 header('Content-Type: application/json');
 
 require_once '../lib/config.php';
+require_once __DIR__ . '/../lib/api.php';
 
-$mode = $_POST['mode'];
+$mode = $_POST['mode'] ?? null;
+if (!in_array($mode, ['pre-command', 'post-command', 'reboot', 'shutdown'], true)) apiError('Invalid shell command mode');
+if (in_array($mode, ['reboot', 'shutdown'], true)) requireAdminAccess();
 
 switch ($mode) {
     case 'pre-command':
         $cmd = sprintf($config['pre_photo']['cmd']);
         break;
     case 'post-command':
-        $cmd = sprintf($config['post_photo']['cmd'], $_POST['filename']);
+        $filename = requirePhotoFilename($_POST['filename'] ?? null);
+        $cmd = sprintf($config['post_photo']['cmd'], escapeshellarg($filename));
         break;
     case 'reboot':
         $cmd = 'sudo ' . sprintf($config['reboot']['cmd']);
@@ -22,6 +26,7 @@ switch ($mode) {
         $cmd = 'echo "Error for mode ' . $mode . ' - command not defined in configuration"';
         break;
 }
+if (trim($cmd) === '' || trim($cmd) === 'sudo') apiError('Shell command is not configured', 503);
 
 $success = exec($cmd, $output, $retval);
 

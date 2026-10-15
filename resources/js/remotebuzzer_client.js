@@ -33,17 +33,6 @@ function initRemoteBuzzerFromDOM() {
             case 'start-picture':
               buttonController.takePicture();
               break;
-            case 'start-collage':
-              buttonController.takeCollage();
-              break;
-            case 'collage-next':
-              // Need to handle collage process in button handler
-              if (buttonController.waitingToProcessCollage) {
-                buttonController.processCollage();
-              } else {
-                buttonController.takeCollageNext();
-              }
-              break;
             case 'print':
               buttonController.print();
               break;
@@ -82,25 +71,9 @@ function initRemoteBuzzerFromDOM() {
         }
       }
     };
-    api.collageWaitForNext = function () {
-      if (this.enabled()) {
-        this.emitToServer('collage-wait-for-next');
-      }
-    };
-    api.collageWaitForProcessing = function () {
-      buttonController.waitingToProcessCollage = true;
-      if (this.enabled()) {
-        this.emitToServer('collage-wait-for-next');
-      }
-    };
     api.startPicture = function () {
       if (this.enabled()) {
         this.emitToServer('start-picture');
-      }
-    };
-    api.startCollage = function () {
-      if (this.enabled()) {
-        this.emitToServer('start-collage');
       }
     };
     api.emitToServer = function (cmd) {
@@ -108,17 +81,11 @@ function initRemoteBuzzerFromDOM() {
         case 'start-picture':
           ioClient.emit('photobooth-socket', 'start-picture');
           break;
-        case 'start-collage':
-          ioClient.emit('photobooth-socket', 'start-collage');
-          break;
         case 'in-progress':
           ioClient.emit('photobooth-socket', 'in-progress');
           break;
         case 'completed':
           ioClient.emit('photobooth-socket', 'completed');
-          break;
-        case 'collage-wait-for-next':
-          ioClient.emit('photobooth-socket', 'collage-wait-for-next');
           break;
         default:
           break;
@@ -133,7 +100,6 @@ function initRemoteBuzzerFromDOM() {
   buttonController = function () {
     // vars
     var api = {};
-    api.waitingToProcessCollage = false;
     api.init = function () {
       // nothing to init
     };
@@ -145,20 +111,6 @@ function initRemoteBuzzerFromDOM() {
         $('.resultInner').removeClass('show');
         photoBooth.thrill('photo');
       }
-    };
-    api.takeCollage = function () {
-      if (this.enabled() && config.collage.enabled) {
-        $('.resultInner').removeClass('show');
-        this.waitingToProcessCollage = false;
-        photoBooth.thrill('collage');
-      }
-    };
-    api.takeCollageNext = function () {
-      $('#btnCollageNext').trigger('click');
-    };
-    api.processCollage = function () {
-      this.waitingToProcessCollage = false;
-      $('#btnCollageProcess').trigger('click');
     };
     api.print = function () {
       if ($('#result').is(':visible')) {

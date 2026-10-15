@@ -68,26 +68,22 @@ $uiShape = 'shape--' . $config['ui']['style'];
 			} else {
 				$name = $image;
 			}
-			$dateObject = DateTime::createFromFormat('Ymd_His', substr($name, 0, strlen($name) - 4));
+            $dateObject = DateTime::createFromFormat('Ymd_His', substr($name, 0, 15));
 			if ($dateObject) {
 				$date = '<i class="' . $config['icons']['date'] . '"></i> ' . $dateObject->format($config['gallery']['date_format']);
 			}
 		}
 
-		if ($config['slideshow']['use_thumbs']) {
-			$filename_photo = '../' . $config['foldersRoot']['thumbs'] . DIRECTORY_SEPARATOR . $image;
-			if (!is_readable($filename_photo)) {
-				$filename_photo = '../' . $config['foldersRoot']['images'] . DIRECTORY_SEPARATOR . $image;
-			}
-		} else {
-			$filename_photo = '../' . $config['foldersRoot']['images'] . DIRECTORY_SEPARATOR . $image;
-		}
+		if (!is_string($image) || basename($image) !== $image || strpos($image, '\\') !== false) continue;
+        $imageFolder = $config['slideshow']['use_thumbs'] && is_readable($config['foldersAbs']['thumbs'] . DIRECTORY_SEPARATOR . $image) ? 'thumbs' : 'images';
+        $filename_photo = $config['foldersAbs'][$imageFolder] . DIRECTORY_SEPARATOR . $image;
+        $photoUrl = htmlspecialchars($config['foldersJS'][$imageFolder] . '/' . rawurlencode($image), ENT_QUOTES, 'UTF-8');
 
 		if (is_readable($filename_photo)) {
 		?>
 		<div class="center">
 			<figure>
-				<img class="<?php echo $uiShape; ?>" src="<?=$filename_photo?>" alt="<?=$image?>" />
+				<img class="<?php echo $uiShape; ?>" src="<?=$photoUrl?>" alt="<?=htmlspecialchars($image, ENT_QUOTES, 'UTF-8')?>" />
                 <?php if ($config['gallery']['figcaption']): ?>
                 <figcaption class="<?php echo $uiShape; ?>"><?=$date?></figcaption>
                 <?php endif; ?>

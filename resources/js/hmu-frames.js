@@ -9,6 +9,13 @@
   var heroFrame = document.getElementById("hmuHeroFrame");
   var errorMessage = document.getElementById("hmuFrameError");
   var storageKey = "hmu-photobooth-selected-frame";
+  var syncPromise = Promise.resolve();
+  var selectionRevision = 0;
+  var listPromise;
+  window.hmuFrameSelection = {
+    filename: null,
+    ready: function () { return listPromise.then(function () { return syncPromise; }); }
+  };
 
   function frameTitle(filename) {
     var match = filename.match(/kiosk_frame_(\d+)/i);
@@ -42,28 +49,35 @@
     }
 
     document.documentElement.style.setProperty("--picture-frame", 'url("' + url + '")');
-    document.documentElement.style.setProperty("--collage-frame", 'url("' + url + '")');
-    document.querySelectorAll("#picture--frame, #collage--frame, #frame, .frameImage, #preview-frame, .live-preview-frame").forEach(function (element) {
+    document.querySelectorAll("#picture--frame, #frame, .frameImage, #preview-frame, .live-preview-frame").forEach(function (element) {
       if (element.tagName.toLowerCase() === "img") element.src = url;
       else element.style.backgroundImage = 'url("' + url + '")';
     });
 
     if (!persist) return;
+    window.hmuFrameSelection.filename = filename;
+    var revision = ++selectionRevision;
 
     try { window.localStorage.setItem(storageKey, filename); } catch (error) { /* Storage may be disabled in kiosk privacy mode. */ }
 
     var form = new FormData();
     form.append("frame", filename);
-    fetch("api/setFrame.php", { method: "POST", body: form, credentials: "same-origin" })
+    // Serialize writes so the last selected frame also wins on the server.
+    syncPromise = syncPromise.catch(function () {}).then(function () {
+      if (revision !== selectionRevision) return;
+      return fetch("api/setFrame.php", { method: "POST", body: form, credentials: "same-origin" })
       .then(function (response) {
         if (!response.ok) throw new Error("Frame request failed");
         return response.json();
       })
       .then(function (result) {
         if (!result || result.status !== "success") throw new Error("Frame could not be saved");
+        if (revision !== selectionRevision) return;
         if (errorMessage) errorMessage.hidden = true;
       })
-      .catch(function () {
+    });
+    syncPromise.catch(function () {
+        if (revision !== selectionRevision) return;
         if (errorMessage) {
           errorMessage.textContent = "Đã chọn khung để xem trước, nhưng chưa đồng bộ được với máy chủ. Hãy thử chọn lại khung.";
           errorMessage.hidden = false;
@@ -86,7 +100,7 @@
     var thumb = document.createElement("span");
     thumb.className = "hmu-frame-thumb";
     var image = document.createElement("img");
-    image.src = frameUrl(filename);
+    image.src = new URL("api/framePreview.php?frame=" + encodeURIComponent(filename), document.baseURI).href;
     image.alt = "";
     image.loading = "lazy";
     image.decoding = "async";
@@ -121,7 +135,7 @@
   }
 
   selector.setAttribute("aria-busy", "true");
-  fetch("api/getFrames.php", { credentials: "same-origin" })
+  listPromise = fetch("api/getFrames.php", { credentials: "same-origin" })
     .then(function (response) {
       if (!response.ok) throw new Error("Frame list request failed");
       return response.json();
@@ -129,7 +143,9 @@
     .then(function (frames) {
       if (!Array.isArray(frames) || !frames.length) throw new Error("No frames available");
 
-      frames.forEach(function (filename) { selector.appendChild(makeFrameCard(filename)); });
+      var cards = document.createDocumentFragment();
+      frames.forEach(function (filename) { cards.appendChild(makeFrameCard(filename)); });
+      selector.appendChild(cards);
       if (frameCount) frameCount.textContent = String(frames.length);
 
       var savedFrame = null;
@@ -140,11 +156,13 @@
       });
       selectFrame(initialFrame, initialCard, true);
     })
-    .catch(function () {
+    .catch(function (error) {
       selector.innerHTML = "";
       if (errorMessage) errorMessage.hidden = false;
+      throw error;
     })
     .finally(function () { selector.setAttribute("aria-busy", "false"); });
+  listPromise.catch(function () {});
 
   var previewCaption = document.getElementById("hmuPreviewCaption") || document.querySelector(".hmu-preview-caption");
   if (previewCaption) {

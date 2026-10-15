@@ -32,7 +32,7 @@ if (!preg_match('/\.hmu-preview-caption[^{]*\{[^}]*cursor:\s*pointer/i', $hmuCss
 }
 
 // 4. Non-regression check: Core actions must be preserved
-$requiredCoreClasses = ['takePic', 'takeCollage', 'gallery-button'];
+$requiredCoreClasses = ['takePic', 'gallery-button'];
 foreach ($requiredCoreClasses as $cls) {
     if (!str_contains($modernTemplate, $cls)) {
         $failures[] = "modern.template.php: Core action class '{$cls}' was removed or modified!";

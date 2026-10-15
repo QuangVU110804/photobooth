@@ -1,6 +1,12 @@
 
 # Photobooth v4
 
+Install frontend dependencies with `npm ci --ignore-scripts --no-audit --no-fund` (Windows: `setup.bat`), then serve this directory with PHP and GD enabled. Runtime folders are created automatically. Configure the camera and select the modern UI in the admin panel to use the frame and face-effect selection flow.
+
+Run `npm test` for PHP/API/JavaScript regression checks. Run `npm run test:browser` with Node 22+ and Chrome installed; set `PHOTOBOOTH_TEST_PHP` and `PHOTOBOOTH_TEST_BROWSER` when executables are outside the runner's defaults.
+
+Photo receipt QR links use the installation URL automatically. For a public address or reverse proxy, set `PHOTOBOOTH_PUBLIC_URL` to the HTTP(S) installation URL including its subfolder, or create `config/photo-receipt.local.php` containing `<?php return 'https://booth.example/event';`. The environment setting takes priority. Keep personal application configuration in `config/my.config.inc.php`; runtime photos, logs and local configuration are excluded from Git.
+
 ![](resources/img/logo/banner.png)
 
 A Photobooth web interface for Linux and Windows.
@@ -118,8 +124,7 @@ _*2 Capture from webcam is possible e.g. using [fswebcam](https://www.sanslogic.
   - Event specific (e.g. wedding, birthday) config to show a symbol (e.g. heart)
     between some text on the start page.
   - Chroma keying
-  - Photo collage function: take pictures in a row with or without
-    interruption and let it generate a collage out of it. Choose between different collage layouts!
+  - HMU single-photo flow: select a frame, choose effects, confirm capture, and receive the final JPG.
   - Save pictures with a Polaroid effect.
   - Adjust take picture and print commands.
   - Adjust the style of Photobooth via admin panel.

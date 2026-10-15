@@ -88,44 +88,6 @@ $config['textonpicture']['font_size'] = '80';
 $config['textonpicture']['linespace'] = '90';
 
 
-// C O L L A G E
-$config['collage']['enabled'] = true;
-// control countdown timer between collage pictures in seconds
-$config['collage']['cntdwn_time'] = '3';
-$config['collage']['continuous'] = true;
-$config['collage']['continuous_time'] = '5';
-// possible layout values: '2+2', '2+2-2', '1+3', '1+3-2', '3+1', '1+2', '2+1', '2x4', '2x4-2', '2x4-3', '2x3', 'collage.json'
-$config['collage']['layout'] = '2+2-2';
-// possible layout values: '150dpi', '300dpi', '400dpi', '600dpi'
-$config['collage']['resolution'] = '300dpi';
-$config['collage']['dashedline_color'] = '#000000';
-$config['collage']['keep_single_images'] = false;
-// specify key id (e.g. 13 is the enter key) to use that key to take a collage (collage key)
-// use for example https://keycode.info to get the key code
-$config['collage']['key'] = '';
-$config['collage']['background_color'] = '#ffffff';
-// possible take_frame values: 'off', 'always', 'once'
-$config['collage']['take_frame'] = 'off';
-$config['collage']['frame'] = '';
-$config['collage']['placeholder'] = false;
-$config['collage']['placeholderposition'] = '1';
-$config['collage']['placeholderpath'] = '';
-$config['collage']['background'] = '';
-$config['textoncollage']['enabled'] = true;
-$config['textoncollage']['line1'] = 'Photobooth';
-$config['textoncollage']['line2'] = 'HMU';
-$config['textoncollage']['line3'] = '';
-$config['textoncollage']['locationx'] = '1470';
-$config['textoncollage']['locationy'] = '250';
-$config['textoncollage']['rotation'] = '0';
-$config['textoncollage']['font'] = '';
-$config['textoncollage']['font_color'] = '#000000';
-$config['textoncollage']['font_size'] = '50';
-$config['textoncollage']['linespace'] = '90';
-// DO NOT CHANGE limit here
-$config['collage']['limit'] = '';
-
-
 // G A L L E R Y
 $config['gallery']['enabled'] = true;
 $config['gallery']['newest_first'] = true;
@@ -269,11 +231,7 @@ $config['remotebuzzer']['rotaryclkgpio'] = 27;
 $config['remotebuzzer']['rotarydtgpio'] = 17;
 $config['remotebuzzer']['rotarybtngpio'] = 22;
 $config['remotebuzzer']['picturebutton'] = true;
-// collagetime controls the time to distinguish picture from collage in seconds
-$config['remotebuzzer']['collagetime'] = '2';
 $config['remotebuzzer']['picturegpio'] = 21;
-$config['remotebuzzer']['collagebutton'] = false;
-$config['remotebuzzer']['collagegpio'] = 20;
 $config['remotebuzzer']['printbutton'] = false;
 $config['remotebuzzer']['printgpio'] = 26;
 $config['remotebuzzer']['shutdownbutton'] = false;
@@ -297,7 +255,6 @@ $config['get_request']['countdown'] = false;
 $config['get_request']['processed'] = false;
 $config['get_request']['server'] = '';
 $config['get_request']['picture'] = 'CNTDWNPHOTO';
-$config['get_request']['collage'] = 'CNTDWNCOLLAGE';
 
 
 // A U T H E N T I C A T I O N
@@ -366,7 +323,6 @@ $config['icons']['manual'] = 'fa fa-info-circle';
 $config['icons']['telegram'] = 'fa fa-telegram';
 $config['icons']['cups'] = 'fa fa-print';
 $config['icons']['take_picture'] = 'fa fa-camera';
-$config['icons']['take_collage'] = 'fa fa-th-large';
 $config['icons']['close'] = 'fa fa-times';
 $config['icons']['refresh'] = 'fa fa-refresh';
 $config['icons']['delete'] = 'fa fa-trash';
