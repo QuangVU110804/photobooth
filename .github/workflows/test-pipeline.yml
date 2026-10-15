@@ -41,6 +41,8 @@ jobs:
 
       - name: Run Quality Gates & Telemetry Extraction
         id: run_tests
+        env:
+          PHOTOBOOTH_TRACE_GD: '1'
         run: |
           node scripts/run-project-tests.cjs
 

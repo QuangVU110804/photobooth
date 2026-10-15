@@ -126,6 +126,14 @@ foreach (['data', 'tmp', 'images', 'thumbs', 'keying', 'print', 'qrcodes'] as $f
 foreach (['app/api', 'app/lib', 'app/config', 'app/resources/img/frames'] as $folder) mkdir($directory . '/' . $folder, 0755, true);
 foreach (glob($root . '/lib/*.php') as $source) copy($source, $directory . '/app/lib/' . basename($source));
 foreach (['applyEffects.php', 'takePic.php'] as $endpoint) copy($root . '/api/' . $endpoint, $directory . '/app/api/' . $endpoint);
+if (getenv('PHOTOBOOTH_TRACE_GD') === '1') {
+    $tracePath = $directory . '/app/api/applyEffects.php';
+    $traceSource = file_get_contents($tracePath);
+    foreach (["require_once '../lib/config.php';", '$imageResource = @imagecreatefromjpeg', 'list($imageResource, $imageModified) = editSingleImage', 'list($imageResource, $imageModified) = addTextToImage', '$thumbResource = resizeImage', 'if (!@imagejpeg($thumbResource', 'compressImage($config', 'clearPhotoCaches($image)'] as $number => $needle) {
+        $traceSource = str_replace($needle, 'fwrite(STDERR, "GD stage ' . $number . '\\n");' . "\n" . $needle, $traceSource);
+    }
+    file_put_contents($tracePath, $traceSource);
+}
 copy($root . '/config/config.inc.php', $directory . '/app/config/config.inc.php');
 $frame = imagecreatetruecolor(120, 80);
 imagealphablending($frame, false); imagesavealpha($frame, true);
