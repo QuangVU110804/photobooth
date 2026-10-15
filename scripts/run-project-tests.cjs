@@ -14,7 +14,7 @@ for (const name of readdirSync(path.join(root, 'resources/js')).filter((name) =>
 }
 console.log('JavaScript syntax checks passed');
 if (process.argv.includes('--syntax-only')) process.exit(0);
-for (const test of ['run-tests.php', 'test-api-logic.php', 'test-filter-effects.php', 'test-photo-receipt.php', 'test-receipt-deployment.php', 'test-frame-previews.php', 'test-scroll-interaction.php']) {
+for (const test of ['run-tests.php', 'test-resize.php', 'test-api-logic.php', 'test-filter-effects.php', 'test-photo-receipt.php', 'test-receipt-deployment.php', 'test-frame-previews.php', 'test-scroll-interaction.php']) {
   run(php, [path.join('scripts', test)]);
 }
 run(process.execPath, ['scripts/test-filter-session.cjs']);
