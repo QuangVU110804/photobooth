@@ -12,10 +12,20 @@ function run(command, args) {
 for (const name of readdirSync(path.join(root, 'resources/js')).filter((name) => name.endsWith('.js'))) {
   run(process.execPath, ['--check', path.join('resources/js', name)]);
 }
+for (const name of readdirSync(path.join(root, 'resources/js/beauty')).filter((name) => name.endsWith('.mjs'))) {
+  run(process.execPath, ['--check', path.join('resources/js/beauty', name)]);
+}
 console.log('JavaScript syntax checks passed');
 if (process.argv.includes('--syntax-only')) process.exit(0);
-for (const test of ['run-tests.php', 'test-resize.php', 'test-api-logic.php', 'test-filter-effects.php', 'test-photo-receipt.php', 'test-receipt-deployment.php', 'test-frame-previews.php', 'test-scroll-interaction.php']) {
+run(php, ['scripts/test-skin-beauty.php']);
+run(php, ['scripts/test-beauty-upload.php']);
+run(process.execPath, ['scripts/test-skin-beauty.cjs']);
+run(process.execPath, ['scripts/test-beauty-controls.cjs']);
+run(process.execPath, ['scripts/test-beauty-geometry.mjs']);
+for (const test of ['run-tests.php', 'test-resize.php', 'test-api-logic.php', 'test-filter-effects.php', 'test-face-stickers.php', 'test-photo-receipt.php', 'test-receipt-deployment.php', 'test-frame-previews.php', 'test-scroll-interaction.php']) {
   run(php, [path.join('scripts', test)]);
 }
 run(process.execPath, ['scripts/test-filter-session.cjs']);
+run(process.execPath, ['scripts/test-face-stickers.cjs']);
 run(process.execPath, ['scripts/test-gallery-polling.cjs']);
+run(process.execPath, ['scripts/test-kiosk-zoom.cjs']);

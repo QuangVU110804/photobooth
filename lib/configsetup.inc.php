@@ -192,6 +192,13 @@ $configsetup = [
             'name' => 'dev[reload_on_error]',
             'value' => $config['dev']['reload_on_error'],
         ],
+        'webserver_public_url' => [
+            'view' => 'basic',
+            'type' => 'input',
+            'name' => 'webserver[public_url]',
+            'placeholder' => 'https://booth.example/photobooth',
+            'value' => htmlentities($config['webserver']['public_url'] ?? '', ENT_QUOTES, 'UTF-8'),
+        ],
         'webserver_ip' => [
             'view' => 'advanced',
             'type' => 'input',

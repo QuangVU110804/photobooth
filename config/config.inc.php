@@ -21,6 +21,7 @@ $config['start_screen']['subtitle_visible'] = true;
 $config['picture']['thumb_size'] = '540px';
 $config['dev']['reload_on_error'] = true;
 $config['webserver']['ip'] = '';
+$config['webserver']['public_url'] = '';
 $config['webserver']['ssid'] = 'Photobooth';
 $config['download']['enabled'] = true;
 $config['download']['thumbs'] = false;
@@ -122,9 +123,9 @@ $config['pswp']['bgOpacity'] = 1;
 // P R E V I E W
 // Please read https://photoboothproject.github.io/FAQ#how-to-use-a-live-stream-as-background-at-countdown
 // possible preview_mode values: none, device_cam, url
-$config['preview']['mode'] = 'none';
+$config['preview']['mode'] = 'device_cam';
 $config['preview']['stop_time'] = '2';
-$config['preview']['camTakesPic'] = false;
+$config['preview']['camTakesPic'] = true;
 $config['preview']['style'] = 'scale-down';
 // possibile flip values: off, flip-horizontal, flip-vertical
 $config['preview']['flip'] = 'off';

@@ -125,6 +125,9 @@ foreach (['data', 'tmp', 'images', 'thumbs', 'keying', 'print', 'qrcodes'] as $f
 // for alpha PNG fixtures, with no writes to the repository's frames or config.
 foreach (['app/api', 'app/lib', 'app/config', 'app/resources/img/frames'] as $folder) mkdir($directory . '/' . $folder, 0755, true);
 foreach (glob($root . '/lib/*.php') as $source) copy($source, $directory . '/app/lib/' . basename($source));
+mkdir($directory . '/app/resources/face-effects/stickers', 0755, true);
+copy($root . '/resources/face-effects/catalog.json', $directory . '/app/resources/face-effects/catalog.json');
+foreach (glob($root . '/resources/face-effects/stickers/*.png') as $source) copy($source, $directory . '/app/resources/face-effects/stickers/' . basename($source));
 foreach (['applyEffects.php', 'takePic.php'] as $endpoint) copy($root . '/api/' . $endpoint, $directory . '/app/api/' . $endpoint);
 copy($root . '/config/config.inc.php', $directory . '/app/config/config.inc.php');
 $frame = imagecreatetruecolor(120, 80);
@@ -292,6 +295,72 @@ try {
     $saved = imagecreatefromjpeg($directory . '/images/chroma.jpg');
     effectsCheck($status === 200 && effectsNear(effectsPixel($saved, 100, 40), [55,55,55], 4), 'Chroma style retains the same geometry/filter contract');
     imagedestroy($saved);
+
+    // Beauty is independent of stickers; verify real exports and validation before writes.
+    $beautyRegion = ['outline'=>[[.1,.1],[.9,.1],[.9,.9],[.1,.9]], 'holes'=>[[[.4,.4],[.6,.4],[.6,.6],[.4,.6]]]];
+    $beautySettings = ['smooth'=>0,'white'=>100,'faces'=>[$beautyRegion]];
+    $image = effectsSolid([180,130,110]); imagejpeg($image,$directory.'/tmp/beauty.jpg',100); imagedestroy($image);
+    $beautyPost = ['file'=>'beauty.jpg','style'=>'photo','filter'=>'plain','beautyEffects'=>json_encode($beautySettings)];
+    [$status,$body] = effectsEndpoint($directory,$beautyPost,['picture'=>['flip'=>'off']]);
+    $saved = imagecreatefromjpeg($directory.'/images/beauty.jpg');
+    effectsCheck($status===200 && effectsPixel($saved,30,25)[1]>140,'Beauty-only request is saved to the real JPG');
+    effectsCheck(effectsNear(effectsPixel($saved,60,40),[180,130,110],4),'Beauty export excludes facial features');
+    effectsCheck(effectsNear(effectsPixel($saved,2,2),[180,130,110],4),'Beauty export preserves background');
+    imagedestroy($saved);
+    $before = effectsSnapshot($directory);
+    $badBeauty = $beautyPost; $badBeauty['beautyEffects'] = '{"smooth":101,"white":0,"faces":[]}';
+    [$status,$body] = effectsEndpoint($directory,$badBeauty);
+    effectsCheck($status===400 && effectsSnapshot($directory)===$before,'Invalid beauty levels are rejected before any photo writes');
+    $badBeauty = $beautyPost; $badBeauty['style']='chroma';
+    [$status,$body] = effectsEndpoint($directory,$badBeauty);
+    effectsCheck($status===400 && effectsSnapshot($directory)===$before,'Beauty does not alter the chroma contract');
+    $jpeg = file_get_contents($directory.'/tmp/beauty.jpg');
+    $exif = "Exif\0\0II\x2a\0\x08\0\0\0".pack('v',1).pack('vvVv',0x112,3,1,6)."\0\0".pack('V',0);
+    file_put_contents($directory.'/tmp/beauty-exif.jpg',substr($jpeg,0,2)."\xff\xe1".pack('n',strlen($exif)+2).$exif.substr($jpeg,2));
+    $orientedBeauty = ['smooth'=>0,'white'=>100,'faces'=>[['outline'=>[[.1,.2],[.4,.2],[.4,.5],[.1,.5]],'holes'=>[]]]];
+    [$status,$body] = effectsEndpoint($directory,['file'=>'beauty-exif.jpg','style'=>'photo','filter'=>'plain','beautyEffects'=>json_encode($orientedBeauty)],['picture'=>['flip'=>'off']]);
+    $saved=imagecreatefromjpeg($directory.'/images/beauty-exif.jpg');
+    effectsCheck($status===200 && effectsPixel($saved,42,60)[1]>140,'Portrait DSLR whitening reaches raw pixels after EXIF inverse mapping');
+    effectsCheck(effectsNear(effectsPixel($saved,24,24),[180,130,110],4),'Portrait DSLR whitening avoids the unrotated display-coordinate region');
+    imagedestroy($saved);
+
+    // The GPU result replaces only the processing input, never the retained raw.
+    $retainedHash=hash_file('sha256',$directory.'/tmp/beauty.jpg');
+    $gpuImage=effectsSolid([205,155,135]);ob_start();imagejpeg($gpuImage,null,100);$gpuBytes=ob_get_clean();imagedestroy($gpuImage);
+    $gpuPost=['file'=>'beauty.jpg','style'=>'photo','filter'=>'plain','beautyImage'=>'data:image/jpeg;base64,'.base64_encode($gpuBytes)];
+    [$status,$body]=effectsEndpoint($directory,$gpuPost,['picture'=>['flip'=>'off']]);
+    $saved=imagecreatefromjpeg($directory.'/images/beauty.jpg');
+    effectsCheck($status===200&&effectsNear(effectsPixel($saved,30,25),[205,155,135],4),'GPU beauty pixels persist even without a server color/face filter');
+    effectsCheck(hash_file('sha256',$directory.'/tmp/beauty.jpg')===$retainedHash,'GPU processing preserves retained original bytes');imagedestroy($saved);
+    $before=effectsSnapshot($directory);$gpuPost['beautyImage']='data:image/png;base64,'.base64_encode($gpuBytes);
+    [$status,$body]=effectsEndpoint($directory,$gpuPost);
+    effectsCheck($status===400&&effectsSnapshot($directory)===$before,'Invalid GPU image is rejected before writes');
+
+    // Browser landmarks use upright EXIF coordinates, even with GPU beauty Off.
+    $quadrants=[[220,40,40],[30,190,60],[40,60,220],[210,190,40]];
+    $expectedCorners=[1=>[0,3],2=>[1,2],3=>[3,0],4=>[2,1],5=>[0,3],6=>[2,1],7=>[3,0],8=>[1,2]];
+    foreach($expectedCorners as $orientation=>[$topLeft,$bottomRight])foreach(['polygon','png'] as $kind) {
+        $name='oriented-'.$orientation.'-'.$kind.'.jpg';
+        $image=effectsSolid($quadrants[0],480,320);
+        imagefilledrectangle($image,240,0,479,159,imagecolorallocate($image,...$quadrants[1]));
+        imagefilledrectangle($image,0,160,239,319,imagecolorallocate($image,...$quadrants[2]));
+        imagefilledrectangle($image,240,160,479,319,imagecolorallocate($image,...$quadrants[3]));
+        ob_start();imagejpeg($image,null,100);$jpeg=ob_get_clean();imagedestroy($image);
+        $exif="Exif\0\0II\x2a\0\x08\0\0\0".pack('v',1).pack('vvVv',0x112,3,1,$orientation)."\0\0".pack('V',0);
+        file_put_contents($directory.'/tmp/'.$name,substr($jpeg,0,2)."\xff\xe1".pack('n',strlen($exif)+2).$exif.substr($jpeg,2));
+        $rawHash=hash_file('sha256',$directory.'/tmp/'.$name);
+        $element=$kind==='png'
+            ?['type'=>'sticker','effect'=>'gold-crown','part'=>0,'center'=>[.25,.3],'width'=>.4,'angle'=>0]
+            :['color'=>'ink','points'=>[[.1,.2],[.3,.2],[.3,.4],[.1,.4]]];
+        [$status,$body]=effectsEndpoint($directory,['file'=>$name,'style'=>'photo','filter'=>'plain','faceEffects'=>json_encode([$name=>[$element]])],['picture'=>['flip'=>'off']]);
+        $saved=imagecreatefromjpeg($directory.'/images/'.$name);$width=imagesx($saved);$height=imagesy($saved);
+        effectsCheck($status===200&&[$width,$height]===($orientation>=5?[320,480]:[480,320]),'EXIF '.$orientation.' '.$kind.' export retains upright dimensions');
+        effectsCheck(effectsNear(effectsPixel($saved,5,5),$quadrants[$topLeft],8)&&effectsNear(effectsPixel($saved,$width-6,$height-6),$quadrants[$bottomRight],8),'EXIF '.$orientation.' '.$kind.' preserves upright background orientation');
+        $position=$kind==='png'?[.25,.3]:[.2,.3];$expectedColor=$kind==='png'?[222,61,110]:[18,36,58];
+        $actualColor=effectsPixel($saved,(int)round($width*$position[0]),(int)round($height*$position[1]));
+        effectsCheck(effectsNear($actualColor,$expectedColor,$kind==='png'?25:5),'EXIF '.$orientation.' '.$kind.' matches browser landmark coordinates without GPU beauty '.json_encode($actualColor));
+        effectsCheck(hash_file('sha256',$directory.'/tmp/'.$name)===$rawHash,'EXIF '.$orientation.' '.$kind.' retains original bytes');imagedestroy($saved);
+    }
 
     // Removed modes must fail before touching even an existing capture.
     for ($i = 0; $i < 4; $i++) {

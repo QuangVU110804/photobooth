@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "effects": [
+    {
+      "id": "gold-crown",
+      "title": "Vương miện vàng",
+      "parts": [
+        {
+          "file": "crown.png",
+          "anchor": "forehead",
+          "width": 1.6,
+          "origin": [0.5, 1],
+          "offset": [0, 0.04],
+          "opacity": 1
+        }
+      ]
+    },
+    {
+      "id": "hat",
+      "title": "Mũ y tá",
+      "parts": [
+        {
+          "file": "hat.png",
+          "anchor": "forehead",
+          "width": 2.3,
+          "origin": [0.5, 0.68],
+          "offset": [0, 0.04],
+          "opacity": 1
+        }
+      ]
+    },
+    {
+      "id": "mask",
+      "title": "Khẩu trang",
+      "parts": [
+        {
+          "file": "mask.png",
+          "anchor": "mouth",
+          "width": 2.2,
+          "origin": [0.5, 0.5],
+          "offset": [0, 0],
+          "opacity": 1
+        }
+      ]
+    }
+  ]
+}

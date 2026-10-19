@@ -17,14 +17,31 @@ var photoboothPreview = function () {
     webcamConstraints = {
       audio: false,
       video: {
-        width: config.preview.videoWidth,
-        height: config.preview.videoHeight,
-        facingMode: config.preview.camera_mode
+        width: { ideal: Number(config.preview.videoWidth) || 1280 },
+        height: { ideal: Number(config.preview.videoHeight) || 720 },
+        facingMode: { ideal: config.preview.camera_mode || 'user' }
       }
     },
     api = {};
   var pid, video, loader, wrapper, url, pictureFrame;
   var mediaRequest = null, mediaGeneration = 0;
+  try {
+    var savedDevice = sessionStorage.getItem('hmu-camera-device');
+    if (savedDevice) webcamConstraints.video.deviceId = { exact: savedDevice };
+  } catch (error) { /* Optional persistence. */ }
+  api.selectDevice = function (deviceId) {
+    api.stopVideo();
+    if (deviceId) webcamConstraints.video.deviceId = { exact: deviceId };
+    else delete webcamConstraints.video.deviceId;
+    try { sessionStorage.setItem('hmu-camera-device', deviceId || ''); } catch (error) { /* Optional persistence. */ }
+    return api.initializeMedia(function () {}, 0, true);
+  };
+  api.listDevices = function () {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return Promise.resolve([]);
+    return navigator.mediaDevices.enumerateDevices().then(function (devices) {
+      return devices.filter(function (device) { return device.kind === 'videoinput'; });
+    });
+  };
   api.changeVideoMode = function (mode) {
     photoboothTools.console.logDev('Preview: Changing video mode: ' + mode);
     if (mode === CameraDisplayMode.BACKGROUND) {
@@ -58,7 +75,13 @@ var photoboothPreview = function () {
     }
     if (mediaRequest) return mediaRequest.then(function (stream) { cb(); return stream; });
     var generation = mediaGeneration;
-    mediaRequest = getMedia.call(navigator.mediaDevices, webcamConstraints).then(function (stream) {
+    mediaRequest = getMedia.call(navigator.mediaDevices, webcamConstraints).catch(function (error) {
+      // A disconnected saved device or an unsupported size must not block all cameras.
+      if (error.name !== 'OverconstrainedError' && error.name !== 'NotFoundError') throw error;
+      if (generation !== mediaGeneration) throw new Error('Camera preview was cancelled');
+      delete webcamConstraints.video.deviceId;
+      return getMedia.call(navigator.mediaDevices, { audio: false, video: true });
+    }).then(function (stream) {
       if (generation !== mediaGeneration) { stream.getTracks().forEach(function (track) { track.stop(); }); throw new Error('Camera preview was cancelled'); }
       photoboothTools.console.logDev('Preview: getMedia done!');
       api.stream = stream;
@@ -191,7 +214,7 @@ var photoboothPreview = function () {
   };
   api.prepareFilterPreview = function () {
     var generation = mediaGeneration;
-    var command = config.preview.cmd ? Promise.resolve(api.runCmd('start')) : Promise.resolve();
+    var command = !config.preview.camTakesPic && config.preview.cmd ? Promise.resolve(api.runCmd('start')) : Promise.resolve();
     return command.then(function () {
       if (generation !== mediaGeneration) throw new Error('Camera preview was cancelled');
       if (config.preview.mode === PreviewMode.URL.valueOf()) return null;

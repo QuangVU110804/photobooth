@@ -1,6 +1,6 @@
 # Đặc tả và checklist: sticker PNG bám khuôn mặt
 
-Trạng thái: chờ người dùng duyệt đặc tả; chưa triển khai code sản phẩm.
+Trạng thái: đã triển khai và kiểm chứng; npm test và browser suites đều exit 0.
 Ngày: 2026-10-16 (Asia/Bangkok).
 
 ## 1. Mục tiêu đã thống nhất
@@ -125,37 +125,37 @@ Sticker chịu filter màu như hai hiệu ứng mặt cũ; preview phải cùng
 
 ### File runtime hiện có: chỉ 4 file
 
-- [ ] resources/js/filter-stage.js: nạp catalog/ảnh khi cần, bổ sung lựa chọn,
+- [x] resources/js/filter-stage.js: nạp catalog/ảnh khi cần, bổ sung lựa chọn,
   gọi module PNG cho preview và raw-image payload; xử lý race/lifecycle.
-- [ ] resources/js/face-effects-worker.js: hỗ trợ yêu cầu một tập landmark có
+- [x] resources/js/face-effects-worker.js: hỗ trợ yêu cầu một tập landmark có
   giới hạn, giữ cấu trúc anchor legacy và một detector hiện có.
-- [ ] lib/face-effects.php: thêm nhánh kiểm tra/render PNG, giữ polygon cũ.
-- [ ] index.php: nạp module sticker trước filter-stage; đổi version URL chỉ
+- [x] lib/face-effects.php: thêm nhánh kiểm tra/render PNG, giữ polygon cũ.
+- [x] index.php: nạp module sticker trước filter-stage; đổi version URL chỉ
   với script bị sửa để trình duyệt không giữ giao thức cũ.
 
 ### File mới
 
-- [ ] resources/js/face-stickers.js: schema client, asset cache, hình học,
+- [x] resources/js/face-stickers.js: schema client, asset cache, hình học,
   Canvas renderer và builder phần tử payload PNG; có thể test bằng Node.
-- [ ] lib/face-stickers.php: đọc/kiểm tra catalog, resolve asset, kiểm tra
+- [x] lib/face-stickers.php: đọc/kiểm tra catalog, resolve asset, kiểm tra
   phần tử PNG và renderer GD dùng vùng ảnh giới hạn.
-- [ ] resources/face-effects/catalog.json: danh mục có version và mẫu PNG.
-- [ ] resources/face-effects/stickers/: tối thiểu một sticker PNG gốc dùng
+- [x] resources/face-effects/catalog.json: danh mục có version và mẫu PNG.
+- [x] resources/face-effects/stickers/: tối thiểu một sticker PNG gốc dùng
   được; không sao chép tài nguyên không rõ quyền từ repo tham khảo.
-- [ ] resources/face-effects/README.md: cách tự thêm PNG/config, đơn vị,
+- [x] resources/face-effects/README.md: cách tự thêm PNG/config, đơn vị,
   preset, giới hạn, cách hiệu chỉnh và kiểm tra ảnh xuất.
-- [ ] scripts/test-face-stickers.cjs: testcase schema, hình học và vòng đời cache.
-- [ ] scripts/test-face-stickers.php: testcase catalog, alpha, GD, bounds,
+- [x] scripts/test-face-stickers.cjs: testcase schema, hình học và vòng đời cache.
+- [x] scripts/test-face-stickers.php: testcase catalog, alpha, GD, bounds,
   payload và endpoint thật trong fixture tạm.
 
 ### File kiểm thử hiện có
 
-- [ ] scripts/test-filter-stage-browser.mjs: bổ sung thử chọn PNG, preview,
+- [x] scripts/test-filter-stage-browser.mjs: bổ sung thử chọn PNG, preview,
   countdown, ảnh xuất, đổi nhanh/hủy, nhiều phiên và lỗi tài nguyên.
-- [ ] scripts/run-project-tests.cjs: đăng ký hai bộ testcase mới.
-- [ ] scripts/test-filter-effects.php: chỉ cập nhật fixture copy nếu cần
+- [x] scripts/run-project-tests.cjs: đăng ký hai bộ testcase mới.
+- [x] scripts/test-filter-effects.php: chỉ cập nhật fixture copy nếu cần
   để endpoint trong thư mục tạm có helper/catalog/assets mới.
-- [ ] scripts/filter-test-router.php: chỉ nếu cần ghi log/inject lỗi để kiểm
+- [x] scripts/filter-test-router.php: đã xác định không cần sửa; dùng CDP inject lỗi để kiểm
   thử PNG; không sửa hành vi production hay giả kết quả nhận diện MediaPipe.
 
 ### File giữ nguyên theo thiết kế
@@ -168,28 +168,28 @@ package-lock.json. Các file này vẫn được kiểm thử hồi quy đầy �
 
 ## 7. Checklist testcase sau triển khai
 
-- [ ] Schema hợp lệ; ID trùng/legacy, part sai, preset sai, JSON lỗi/quá lớn,
+- [x] Schema hợp lệ; ID trùng/legacy, part sai, preset sai, JSON lỗi/quá lớn,
   file thiếu/sai MIME/quá lớn, traversal/URL/symlink đều xử lý đúng.
-- [ ] Geometry fixture độc lập: tâm, tỷ lệ ảnh, offset theo trục mặt, góc 0,
+- [x] Geometry fixture độc lập: tâm, tỷ lệ ảnh, offset theo trục mặt, góc 0,
   góc dương/âm, mặt gần/xa, ảnh ngang/dọc và một phần ngoài khung.
-- [ ] PNG alpha 0/50/100%, biên xoay không có nền đen; màu và tâm khớp Canvas/GD
+- [x] PNG alpha 0/50/100%, biên xoay không có nền đen; màu và tâm khớp Canvas/GD
   trong sai số raster/JPEG đã định nghĩa, dùng ảnh bất đối xứng để bắt lật góc.
-- [ ] Payload polygon cũ tiếp tục hợp lệ và pixel output giữ nguyên.
-- [ ] Payload PNG hợp lệ ghi đúng JPG/thumbnail; không ghép preview độ phân giải thấp.
-- [ ] Payload lỗi ở phần tử sau không gây ghi ảnh/file một phần.
-- [ ] 0, 1, 4 mặt; lựa chọn nhiều part; không mặt thì không có sticker.
-- [ ] PNG + plain/Inkwell/Reyes/Moon + khung + flip/rotation;
+- [x] Payload polygon cũ tiếp tục hợp lệ và pixel output giữ nguyên.
+- [x] Payload PNG hợp lệ ghi đúng JPG/thumbnail; không ghép preview độ phân giải thấp.
+- [x] Payload lỗi ở phần tử sau không gây ghi ảnh/file một phần.
+- [x] 0, 1, 4 mặt; lựa chọn nhiều part; không mặt thì không có sticker.
+- [x] PNG + plain/Inkwell/Reyes/Moon + khung + flip/rotation;
   keep_original bật/tắt; đường chroma legacy giữ hành vi.
-- [ ] Real MediaPipe + Chrome fake camera + PHP/GD thật đi hết luồng PNG.
-- [ ] Countdown giữ sticker; double click chỉ chụp một lần; phiên mới reset.
-- [ ] Đổi effect/camera/hủy khi load hoặc inference chậm không để lộ dữ liệu cũ.
-- [ ] Lỗi catalog/asset/worker không khóa chụp với lựa chọn none/legacy khả dụng.
-- [ ] Tab ẩn, back, pagehide giải phóng tài nguyên; cache/request/inference đúng giới hạn.
-- [ ] Kiểm tra hiệu năng theo mục 5, ghi rõ số đo và điều kiện chạy.
-- [ ] npm.cmd test: toàn bộ regression PHP/API/JS, resize, receipt, frames,
+- [x] Real MediaPipe + Chrome fake camera + PHP/GD thật đi hết luồng PNG.
+- [x] Countdown giữ sticker; double click chỉ chụp một lần; phiên mới reset.
+- [x] Đổi effect/camera/hủy khi load hoặc inference chậm không để lộ dữ liệu cũ.
+- [x] Lỗi catalog/asset/worker không khóa chụp với lựa chọn none/legacy khả dụng.
+- [x] Tab ẩn, back, pagehide giải phóng tài nguyên; cache/request/inference đúng giới hạn.
+- [x] Kiểm tra hiệu năng theo mục 5, ghi rõ số đo và điều kiện chạy.
+- [x] npm.cmd test: toàn bộ regression PHP/API/JS, resize, receipt, frames,
   scroll, session, gallery, kiosk và testcase sticker mới.
-- [ ] npm.cmd run test:browser: toàn bộ browser filter và photo receipt.
-- [ ] git diff --check; đối chiếu diff với checklist và baseline file người dùng.
+- [x] npm.cmd run test:browser: toàn bộ browser filter và photo receipt.
+- [x] git diff --check; đối chiếu diff với checklist và baseline file người dùng.
 
 Test thiết bị thật (độ rung khi người di chuyển, webcam thực và DSLR thực)
 được ghi riêng; fake camera/hardware fixture không được báo là kiểm chứng
@@ -214,3 +214,9 @@ Theo skill Superpowers brainstorming, người dùng cần duyệt đặc tả n
 khi chuyển sang kế hoạch triển khai; kế hoạch và phương thức thực hiện cũng
 được duyệt trước khi sửa code. Việc người dùng chọn hướng 2 xác nhận hướng
 thiết kế, chưa thay thế bước duyệt tài liệu cụ thể này.
+
+## 9. Quyết định khi triển khai
+
+Người dùng đã duyệt đặc tả và yêu cầu thực hiện trong phiên. Chọn thực hiện native trên nhánh feature/configurable-png-face-stickers, giữ nguyên baseline đang sửa. Chỉ 7 file có sẵn thay đổi (4 runtime + 3 file kiểm thử); không cần sửa test router, core hoặc API. Review độc lập phát hiện hai lỗi đã có testcase RED -> GREEN: lỗi budget phải chuyển thành RuntimeException để API trả JSON, và cache phải hủy/giới hạn lượt tải đang chạy. Dữ liệu geometry dùng bitmap aspect ratio. Báo cáo kiểm chứng ở reports/png-stickers-verification.md.
+
+Kết quả cuối: 60 PNG JS + 69 PNG PHP/GD/API checks; browser 108 + 62 checks. Giới hạn kiểm chứng: thiết bị thật chưa thử; fixture symlink trên Windows không tạo được, guard đã được review. Chi tiết và số đo nằm trong báo cáo kiểm chứng.

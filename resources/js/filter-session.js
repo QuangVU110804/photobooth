@@ -1,11 +1,13 @@
 (function (root) {
   'use strict';
+  const Beauty = root.HmuBeautySettings || (typeof require === 'function' ? require('./beauty-settings.js') : null);
   class CaptureSession {
     constructor(defaultColor) {
       this.defaultColor = defaultColor || 'plain';
       this.phase = 'idle';
       this.color = this.defaultColor;
       this.face = 'none';
+      this.beauty = Beauty.preset('off');
       this.style = 'photo';
     }
     request(style, continuation) {
@@ -17,6 +19,7 @@
         this.style = style;
         this.color = this.defaultColor;
         this.face = 'none';
+        this.beauty = Beauty.preset('off');
       }
       return false;
     }
@@ -29,8 +32,13 @@
       if (this.phase !== 'selecting') throw new Error('Filter selection is not active');
       this.phase = 'confirmed';
     }
+    selectBeauty(settings) {
+      if (this.phase !== 'selecting') return;
+      const next = Beauty.validate(settings);
+      this.beauty = Object.freeze({ values: Object.freeze(next.values), colors: Object.freeze(next.colors), preset: next.preset });
+    }
     finish() { this.phase = 'idle'; }
-    cancel() { this.phase = 'idle'; this.face = 'none'; }
+    cancel() { this.phase = 'idle'; this.face = 'none'; this.beauty = Beauty.preset('off'); }
   }
   if (typeof module === 'object' && module.exports) module.exports = CaptureSession;
   else root.HmuCaptureSession = CaptureSession;

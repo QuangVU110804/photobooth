@@ -66,7 +66,7 @@ $GALLERY_FOOTER = false;
 	<?php if (is_file("private/overrides.css")): ?>
 	<link rel="stylesheet" href="private/overrides.css?v=<?php echo $config['photobooth']['version']; ?>" />
 	<?php endif; ?>
-	<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=7" />
+	<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=8" />
 </head>
 
 <body class="deselect" data-gallery-db-size="<?=$galleryDBSize?>">
@@ -91,6 +91,7 @@ $GALLERY_FOOTER = false;
 	</div>
 
 	<script src="node_modules/whatwg-fetch/dist/fetch.umd.js"></script>
+    <script src="resources/js/kiosk-zoom.js?v=1"></script>
 	<script type="text/javascript" src="api/config.php?v=<?php echo $config['photobooth']['version']; ?>"></script>
 	<script type="text/javascript" src="resources/js/adminshortcut.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
 	<script type="text/javascript" src="node_modules/jquery/dist/jquery.min.js"></script>
@@ -100,12 +101,13 @@ $GALLERY_FOOTER = false;
 		onStandaloneGalleryView = true;
 	</script>
 	<script type="text/javascript" src="resources/js/tools.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-	<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
-	<script type="text/javascript" src="resources/js/photoinit.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-	<script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
-	<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
-	<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
+	<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
+	<script type="text/javascript" src="resources/js/photoinit.js?v=<?php echo $config['photobooth']['version']; ?>&gallery=2"></script>
+	<script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
+	<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
+	<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
 	<script type="text/javascript" src="resources/js/gallery.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
+    <script src="resources/js/gallery-selection.js?v=2"></script>
 	<?php if ($config['gallery']['db_check_enabled']): ?>
 	<script type="text/javascript" src="resources/js/gallery_updatecheck.js?v=<?php echo $config['photobooth']['version']; ?>&poll=2"></script>
 	<?php endif; ?>

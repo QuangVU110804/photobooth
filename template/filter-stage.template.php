@@ -30,8 +30,10 @@
                         <div id="hmu-filter-surface" class="hmu-filter-surface">
                             <video id="hmu-filter-video" autoplay muted playsinline></video>
                             <img id="hmu-filter-ipcam" alt="Camera trực tiếp" hidden>
+                            <canvas id="hmu-beauty-surface" aria-hidden="true" hidden></canvas>
                             <canvas id="hmu-filter-overlay" aria-hidden="true"></canvas>
                         </div>
+                        <img id="hmu-preview-frame" class="hmu-preview-frame" alt="Khung ảnh đã chọn" hidden>
                     </div>
                     <span class="hmu-filter-live"><span aria-hidden="true"></span> CAMERA PREVIEW</span>
                     <span class="hmu-filter-camera-caption"><i class="fa fa-camera" aria-hidden="true"></i> Khoảnh khắc của bạn, phong cách của bạn</span>
@@ -43,21 +45,48 @@
                 <div class="hmu-filter-preview-tip"><i class="fa fa-lightbulb-o" aria-hidden="true"></i><span>Một chút ánh sáng, một nụ cười — sẵn sàng cho bức ảnh thật đẹp.</span></div>
             </div>
             <div class="hmu-filter-settings">
-                <section class="hmu-filter-group" aria-labelledby="hmu-color-title">
-                    <div class="hmu-filter-card-heading">
-                        <span class="hmu-filter-card-icon"><i class="fa fa-adjust" aria-hidden="true"></i></span>
-                        <div><h2 id="hmu-color-title">Màu ảnh <span>Color filters</span></h2><p>Chọn tông màu hợp với bạn</p></div>
-                        <span class="hmu-filter-card-tag">Thử trực tiếp</span>
-                    </div>
-                    <div id="hmu-color-filters" class="hmu-filter-rail" role="group" aria-label="Chọn màu ảnh"></div>
+                <section class="hmu-filter-group hmu-camera-settings" aria-labelledby="hmu-camera-title">
+                    <details class="hmu-filter-section" open>
+                        <summary class="rotaryfocus"><h2 id="hmu-camera-title">Nguồn camera</h2></summary>
+                        <label for="hmu-camera-source">Chụp ảnh bằng</label>
+                        <select id="hmu-camera-source">
+                            <option value="browser">Camera trên thiết bị / Webcam USB</option>
+                            <option value="external">Máy ảnh ngoài (DSLR / Mirrorless)</option>
+                        </select>
+                        <label for="hmu-camera-device">Camera xem trước</label>
+                        <select id="hmu-camera-device"><option value="">Camera mặc định</option></select>
+                        <p id="hmu-camera-help">Cho phép truy cập camera để xem trước và chụp ảnh.</p>
+                    </details>
                 </section>
-                <section class="hmu-filter-group hmu-filter-group-face" aria-labelledby="hmu-face-title">
+                <section class="hmu-filter-group" aria-labelledby="hmu-color-title">
+                    <details class="hmu-filter-section">
+                        <summary class="rotaryfocus"><h2 id="hmu-color-title">Màu ảnh</h2></summary>
+                        <p class="hmu-filter-section-description">Chọn tông màu hợp với bạn</p>
+                        <div id="hmu-color-filters" class="hmu-filter-rail hmu-filter-options-list" role="group" aria-label="Chọn màu ảnh"></div>
+                    </details>
+                </section>
+                <section class="hmu-filter-group hmu-beauty-group" aria-labelledby="hmu-beauty-title">
                     <div class="hmu-filter-card-heading">
                         <span class="hmu-filter-card-icon"><i class="fa fa-magic" aria-hidden="true"></i></span>
-                        <div><h2 id="hmu-face-title">Hiệu ứng khuôn mặt</h2><p>Thêm chút vui nhộn cho bức ảnh</p></div>
-                        <span class="hmu-filter-card-tag">Face AR</span>
+                        <div><h2 id="hmu-beauty-title">Làm đẹp &amp; Chỉnh ảnh</h2><p>21 tinh chỉnh · 6 phong cách</p></div>
                     </div>
-                    <div id="hmu-face-filters" class="hmu-filter-rail" role="group" aria-label="Chọn hiệu ứng khuôn mặt"></div>
+                    <div id="hmu-beauty-controls"></div>
+                    <div class="hmu-beauty-actions">
+                        <button id="hmu-beauty-compare" type="button" aria-pressed="false" disabled>Giữ để xem ảnh trước</button>
+                        <button id="hmu-beauty-split" type="button" aria-pressed="false" disabled>Chia đôi</button>
+                        <button id="hmu-beauty-mask" type="button" aria-pressed="false" disabled>Vùng tác động</button>
+                        <button id="hmu-beauty-mirror" type="button" aria-pressed="false">Lật gương</button>
+                        <button id="hmu-beauty-reset" type="button" disabled>Đặt lại</button>
+                    </div>
+                    <label class="hmu-beauty-split-label" for="hmu-beauty-split-range" hidden>Vị trí so sánh<input id="hmu-beauty-split-range" type="range" min="0" max="100" value="50"></label>
+                    <p id="hmu-beauty-help" class="hmu-beauty-help" role="status">Chọn một phong cách hoặc mở nhóm để tự điều chỉnh.</p>
+                </section>
+                <section class="hmu-filter-group hmu-filter-group-face" aria-labelledby="hmu-face-title">
+                    <details class="hmu-filter-section">
+                        <summary class="rotaryfocus"><h2 id="hmu-face-title">Hiệu ứng khuôn mặt</h2></summary>
+                        <p class="hmu-filter-section-description">Thêm chút vui nhộn cho bức ảnh</p>
+                        <div id="hmu-face-filters" class="hmu-filter-rail hmu-filter-options-list" role="group" aria-label="Chọn hiệu ứng khuôn mặt"></div>
+                    </details>
                 </section>
                 <section class="hmu-filter-timer" aria-labelledby="hmu-timer-title">
                     <span class="hmu-filter-card-icon"><i class="fa fa-clock-o" aria-hidden="true"></i></span>

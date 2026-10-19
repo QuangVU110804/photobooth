@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/photo-receipt.php';
+require_once __DIR__ . '/face-stickers.php';
 
 /** Raw capture names only; no paths, streams, hidden files or Windows devices. */
 function faceEffectFilename($name): bool {
@@ -29,7 +30,13 @@ function parseFaceEffects($raw): array {
             throw new InvalidArgumentException('Invalid faceEffects filename or polygon list');
         }
         $result[$name] = [];
+        $stickerCount = 0;
         foreach ($polygons as $polygon) {
+            if ($polygon instanceof stdClass && ($polygon->type ?? null) === 'sticker') {
+                if (++$stickerCount > 16) throw new InvalidArgumentException('Too many PNG stickers');
+                $result[$name][] = parseFaceSticker($polygon);
+                continue;
+            }
             if (!$polygon instanceof stdClass || !isset($polygon->points, $polygon->color)
                 || count(get_object_vars($polygon)) !== 2
                 || !in_array($polygon->color, ['ink', 'pink', 'white'], true)
@@ -53,9 +60,12 @@ function parseFaceEffects($raw): array {
     return $result;
 }
 
-/** Render validated polygons into the existing raw-oriented image only. */
+/** Render validated polygons/PNG stickers into the existing raw-oriented image. */
 function applyFaceEffects(GdImage $image, array $polygons): void {
     if (!$polygons) return;
+    foreach ($polygons as $polygon) {
+        if (($polygon['type'] ?? null) === 'sticker') { applyFaceStickers($image, $polygons); return; }
+    }
     $width = imagesx($image);
     $height = imagesy($image);
     $colors = ['ink' => [18,36,58], 'pink' => [242,148,172], 'white' => [255,255,255]];

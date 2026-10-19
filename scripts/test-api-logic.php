@@ -43,6 +43,24 @@ try {
     imagejpeg($im, $fixture . '/images/sample.jpg'); imagedestroy($im);
     copy($fixture . '/images/sample.jpg', $fixture . '/tmp/raw.jpg');
     $jpeg = 'data:image/jpeg;base64,' . base64_encode(file_get_contents($fixture . '/images/sample.jpg'));
+    $r = auditEndpoint('api/takePic.php', [], ['style'=>'photo', 'captureSource'=>'browser', 'canvasimg'=>$jpeg], '$config["preview"]["mode"]="none";$config["preview"]["camTakesPic"]=false;$config["take_picture"]["cmd"]="";');
+    auditCheck(($r['json']['success'] ?? null) === 'image' && is_file($fixture . '/tmp/' . ($r['json']['file'] ?? 'missing')), 'Explicit browser source saves camera bytes even with external-camera defaults');
+    auditError(auditEndpoint('api/takePic.php', [], ['style'=>'photo', 'captureSource'=>'unknown', 'canvasimg'=>$jpeg]), 400, 'Unknown capture source is rejected');
+    foreach (['one.jpg', 'two.jpg', 'keep.jpg'] as $name) copy($fixture . '/images/sample.jpg', $fixture . '/images/' . $name);
+    auditError(auditEndpoint('api/deletePhoto.php', [], ['files'=>['one.jpg', '../sentinel.jpg']]), 400, 'Entire batch is validated before deleting any file');
+    auditCheck(is_file($fixture . '/images/one.jpg'), 'Invalid batch preserves valid files');
+    auditError(auditEndpoint('api/deletePhoto.php', [], ['files'=>[]]), 400, 'Empty deletion batch rejected');
+    auditError(auditEndpoint('api/deletePhoto.php', [], ['files'=>array_fill(0, 101, 'one.jpg')]), 400, 'Oversized deletion batch rejected');
+    auditError(auditEndpoint('api/deletePhoto.php', [], ['files'=>['one.jpg']], '$config["gallery"]["allow_delete"]=false;$config["picture"]["allow_delete"]=true;'), 403, 'Batch deletion honors gallery permission');
+    $r = auditEndpoint('api/deletePhoto.php', [], ['files'=>['one.jpg', 'two.jpg', 'one.jpg']]);
+    clearstatcache();
+    auditCheck(($r['json']['deleted'] ?? null) === ['one.jpg', 'two.jpg'] && !is_file($fixture . '/images/one.jpg') && !is_file($fixture . '/images/two.jpg') && is_file($fixture . '/images/keep.jpg'), 'Batch deletion removes only selected photos and deduplicates');
+    copy($fixture . '/images/sample.jpg', $fixture . '/images/partial.jpg');
+    mkdir($fixture . '/images/blocked.jpg');
+    $r = auditEndpoint('api/deletePhoto.php', [], ['files'=>['partial.jpg', 'blocked.jpg']]);
+    auditCheck($r['status'] === 500 && ($r['json']['deleted'] ?? []) === ['partial.jpg'] && ($r['json']['failed'] ?? []) === ['blocked.jpg'], 'Partial batch failure reports separate deleted and failed filenames');
+    rmdir($fixture . '/images/blocked.jpg');
+    unlink($fixture . '/images/keep.jpg');
     file_put_contents($fixture . '/sentinel.jpg', 'outside-photo-directory');
     foreach (['../sentinel.jpg', ['sample.jpg'], "bad\0.jpg"] as $bad) {
         auditError(auditEndpoint('api/download.php', ['image' => $bad]), 400, 'Download rejects unsafe filename');

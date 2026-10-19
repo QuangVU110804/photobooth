@@ -22,6 +22,10 @@ self.onmessage = async ({ data }) => {
       return;
     }
     if (!task || !bitmap) throw new Error('Face detector is not ready');
+    const indices = data.indices === undefined ? [33, 263, 93, 323] : data.indices;
+    if (!Array.isArray(indices) || indices.length < 4 || indices.length > (data.skin ? 478 : 32) || new Set(indices).size !== indices.length
+      || ![33, 263, 93, 323].every((value, i) => indices[i] === value)
+      || !indices.every(i => Number.isInteger(i) && i >= 0 && i < 478)) throw new Error('Invalid face landmark request');
     const desiredMode = type === 'image' ? 'IMAGE' : 'VIDEO';
     if (runningMode !== desiredMode) { await task.setOptions({ runningMode: desiredMode }); runningMode = desiredMode; }
     if (!canvas) { canvas = new OffscreenCanvas(bitmap.width, bitmap.height); context = canvas.getContext('2d'); }
@@ -30,8 +34,8 @@ self.onmessage = async ({ data }) => {
     if (canvas.height !== bitmap.height) canvas.height = bitmap.height;
     context.drawImage(bitmap, 0, 0);
     const result = desiredMode === 'IMAGE' ? task.detect(canvas) : task.detectForVideo(canvas, data.timestamp);
-    // Only anchors used by the two effects cross the worker boundary.
-    const faces = result.faceLandmarks.map((face) => [33, 263, 93, 323].map((i) => ({ x: face[i].x, y: face[i].y })));
+    // Transfer only the anchors required by the selected effect.
+    const faces = result.faceLandmarks.map((face) => indices.map((i) => ({ x: face[i].x, y: face[i].y })));
     self.postMessage({ id, faces });
   } catch (error) {
     self.postMessage({ id, error: error.message || 'Không tải được hiệu ứng khuôn mặt.' });

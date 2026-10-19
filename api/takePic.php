@@ -17,20 +17,22 @@ require_once __DIR__ . '/../lib/face-effects.php';
 // Decode and validate before an existing raw capture can be renamed/replaced.
 if (isset($_POST['file']) && !faceEffectFilename($_POST['file'])) apiError('Invalid capture filename');
 $cameraBytes = null;
-if (!$config['dev']['demo_images'] && $config['preview']['mode'] === 'device_cam' && $config['preview']['camTakesPic']) {
+$captureSource = $_POST['captureSource'] ?? (($config['preview']['mode'] === 'device_cam' && $config['preview']['camTakesPic']) ? 'browser' : 'external');
+if (!in_array($captureSource, ['browser', 'external'], true)) apiError('Invalid capture source');
+if (!$config['dev']['demo_images'] && $captureSource === 'browser') {
     try { $cameraBytes = decodeCameraImage($_POST['canvasimg'] ?? null, 'image/jpeg'); }
     catch (InvalidArgumentException $error) { apiError($error->getMessage()); }
 }
 
 function takePicture($filename) {
-    global $config, $cameraBytes;
+    global $config, $cameraBytes, $captureSource;
 
     if ($config['dev']['demo_images']) {
         $demoFolder = __DIR__ . '/../resources/img/demo/';
         $devImg = glob($demoFolder . '*.{jpg,jpeg,JPG,JPEG}', GLOB_BRACE) ?: [];
         if (!$devImg) apiError('No demo JPEG images available', 503);
         if (!copy($devImg[array_rand($devImg)], $filename)) apiError('Could not save demo capture', 500);
-    } elseif ($config['preview']['mode'] === 'device_cam' && $config['preview']['camTakesPic']) {
+    } elseif ($captureSource === 'browser') {
         if (file_put_contents($filename, $cameraBytes) !== strlen($cameraBytes)) apiError('Could not save capture', 500);
 
         if ($config['preview']['flip'] != 'off') {
@@ -73,7 +75,7 @@ function takePicture($filename) {
 
         if (!is_file($filename) || !@getimagesize($filename)) {
             $ErrorData = [
-                'error' => 'File was not created',
+                'error' => 'Máy ảnh ngoài chưa tạo được ảnh. Kiểm tra kết nối và lệnh digiCamControl/gphoto2, hoặc chọn camera trên thiết bị.',
                 'cmd' => $cmd,
                 'returnValue' => $returnValue,
                 'output' => $output,

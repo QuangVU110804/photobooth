@@ -2,6 +2,8 @@
 header('Content-Type: application/json');
 
 require_once '../lib/face-effects.php';
+require_once __DIR__ . '/../lib/skin-beauty.php';
+require_once __DIR__ . '/../lib/beauty-upload.php';
 require_once __DIR__ . '/../lib/api.php';
 require_once __DIR__ . '/../lib/filter.php';
 require_once __DIR__ . '/../lib/frames.php';
@@ -9,6 +11,9 @@ require_once __DIR__ . '/../lib/frames.php';
 // Validate the complete request before reading captures or creating any edits.
 try {
     $faceEffects = parseFaceEffects($_POST['faceEffects'] ?? null);
+    $beautyEffects = parseBeautyEffects($_POST['beautyEffects'] ?? null);
+    if (isset($_POST['beautyImage']) && (($_POST['style'] ?? null) !== 'photo' || $beautyEffects)) throw new InvalidArgumentException('Invalid GPU beauty capture');
+    if ($beautyEffects && ($_POST['style'] ?? null) !== 'photo') throw new InvalidArgumentException('Skin beauty requires a photo capture');
     if (!isset($_POST['filter'])) $_POST['filter'] = 'plain';
     if (!is_string($_POST['filter']) || !array_key_exists($_POST['filter'], AVAILABLE_FILTERS)) {
         throw new InvalidArgumentException('Invalid image filter');
@@ -109,10 +114,25 @@ try {
         $filename_thumb = $config['foldersAbs']['thumbs'] . DIRECTORY_SEPARATOR . $image;
 
         if (apiPhotoPath($config['foldersAbs']['tmp'], $image) === null) apiError('Raw capture not found', 404);
-        $imageResource = @imagecreatefromjpeg($filename_tmp);
+        $beautyBytes = null;
+        if (array_key_exists('beautyImage',$_POST)) {
+            try { $beautyBytes = decodeBeautyImage($_POST['beautyImage'],$filename_tmp); }
+            catch (InvalidArgumentException $e) { apiError($e->getMessage(),400); }
+        }
+        $imageResource = $beautyBytes !== null ? @imagecreatefromstring($beautyBytes) : @imagecreatefromjpeg($filename_tmp);
         if (!$imageResource) apiError('Invalid JPEG capture');
 
-        list($imageResource, $imageModified) = editSingleImage($config, $imageResource, $image_filter, $faceEffects[$image] ?? []);
+        $orientation = skinBeautyJpegOrientation($filename_tmp);
+        $rawBeauty = $beautyEffects ? skinBeautyRawOrientation($beautyEffects, $orientation) : [];
+        $normalizeOrientation = $beautyBytes === null && !empty($faceEffects[$image]) && $orientation !== 1;
+        if ($normalizeOrientation) {
+            // Legacy beauty regions address raw pixels; sticker anchors address upright pixels.
+            if ($rawBeauty) { applySkinBeauty($imageResource, $rawBeauty); $rawBeauty = []; }
+            $imageResource = orientPhotoPixels($imageResource, $orientation);
+        }
+        list($imageResource, $imageModified) = editSingleImage($config, $imageResource, $image_filter, $faceEffects[$image] ?? [], $rawBeauty);
+        if ($beautyBytes !== null || $normalizeOrientation) { $imageModified = true; $config['picture']['orientation_normalized'] = true; }
+        unset($beautyBytes);
 
         if ($config['keying']['enabled'] || $_POST['style'] === 'chroma') {
             $chroma_size = substr($config['keying']['size'], 0, -2);

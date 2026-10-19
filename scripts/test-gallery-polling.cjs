@@ -56,6 +56,19 @@ for (const value of [0, -1, 'invalid', null]) {
   check(load(value).state.period >= 1000, 'Invalid or zero interval cannot create a request storm');
 }
 check(load(5).state.period === 5000, 'Configured polling interval is preserved');
+const selecting = load(1, '10');
+selecting.context.window = { hmuGallerySelection: { active: true } };
+selecting.state.ticks();
+check(selecting.requests.length === 0, 'Selecting photos defers polling so selection cannot be lost');
+selecting.context.window.hmuGallerySelection.active = false;
+selecting.state.ticks();
+selecting.context.window.hmuGallerySelection.active = true;
+selecting.requests[0].success({dbsize: 20}); selecting.requests[0].complete();
+check(selecting.state.reloads === 0, 'In-flight status response cannot reload during photo selection');
+selecting.context.window.hmuGallerySelection.active = false;
+selecting.state.ticks();
+selecting.requests[1].success({dbsize:20}); selecting.requests[1].complete();
+check(selecting.state.reloads === 1, 'Polling resumes after selection and still detects deferred changes');
 const earlyHidden = load(1, '100');
 earlyHidden.context.document.hidden = true; earlyHidden.state.ticks();
 earlyHidden.context.document.hidden = false; earlyHidden.state.ticks();
