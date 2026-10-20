@@ -16,7 +16,7 @@ Máy ảnh phải được hệ điều hành/trình duyệt nhận diện hoặ
 - [ ] Kiểm tra cử chỉ trên thiết bị cảm ứng thực tế.
 
 ## 3. Preview khi đếm ngược
-- [x] Giữ camera đang chạy cùng khung, màu ảnh và hiệu ứng khuôn mặt đã chọn.
+- [x] Giữ camera đang chạy cùng khung và hiệu ứng khuôn mặt đã chọn.
 - [x] Dùng cùng nguồn video để chụp ảnh; xử lý hiệu ứng trên ảnh gốc ở máy chủ.
 - [x] Trở về màn chọn khung và giải phóng camera khi hủy.
 

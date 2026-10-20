@@ -4,11 +4,11 @@
 
 ## Mở hướng dẫn trực tiếp trên màn hình
 
-Chọn nút **Hướng dẫn** ở thanh điều hướng trang chủ để bắt đầu. Màn hình sẽ làm nổi bật lần lượt các nút thật: chọn khung, mở camera, chọn màu, chụp và nhận ảnh bằng QR. Chạm đúng khu vực được hướng dẫn để đi tiếp; chọn **Ảnh gốc** nếu không muốn đổi màu.
+Chọn nút **Hướng dẫn** ở thanh điều hướng trang chủ để bắt đầu. Màn hình sẽ làm nổi bật lần lượt các nút thật: chọn khung, mở camera, chụp và nhận ảnh bằng QR. Chạm đúng khu vực được hướng dẫn để đi tiếp.
 
 Bạn có thể nhấn nút **×** của hộp hướng dẫn hoặc phím **Escape** để dừng bất cứ lúc nào. Khi đang chờ quyền camera, dùng nút **Dừng hướng dẫn**. Tour ẩn trong lúc đếm ngược và chụp, rồi tiếp tục khi ảnh đã sẵn sàng. Khi bạn mở mã QR, tour kết thúc để mã không bị che.
 
-Hướng dẫn chỉ chạy khi bạn chủ động chọn nút; bạn có thể mở lại ở lượt sau. Booth không lưu lịch sử đã xem hướng dẫn. Nếu bộ lọc hoặc QR đang tắt, tour tự bỏ qua phần tương ứng.
+Hướng dẫn chỉ chạy khi bạn chủ động chọn nút; bạn có thể mở lại ở lượt sau. Booth không lưu lịch sử đã xem hướng dẫn. Nếu QR hoặc nhóm nút kết quả đang tắt, tour hoàn tất sau khi ảnh sẵn sàng.
 
 ## Chụp ảnh trong 3 bước
 
@@ -22,10 +22,10 @@ Chọn **Chọn hiệu ứng và chụp**. Trên màn hình xem trước:
 
 - Cho phép trình duyệt truy cập camera nếu được hỏi. Nếu booth dùng máy ảnh ngoài, người vận hành đã cấu hình máy ảnh và lệnh chụp.
 - Chọn nguồn chụp nếu mục này xuất hiện: **Camera trên thiết bị / Webcam USB** hoặc **Máy ảnh ngoài (DSLR / Mirrorless)**.
-- Có thể chọn tông màu, hiệu ứng khuôn mặt hoặc các tùy chỉnh làm đẹp nếu muốn. Các mục tùy chọn có thể mở rộng bằng cách chạm vào tiêu đề.
+- Có thể chọn hiệu ứng khuôn mặt hoặc các tùy chỉnh làm đẹp nếu muốn. Các mục tùy chọn có thể mở rộng bằng cách chạm vào tiêu đề.
 - Kiểm tra khung và hình xem trước. Khi đã sẵn sàng, chọn **Bắt đầu chụp ảnh**.
 
-Nếu không muốn hiệu ứng, giữ lựa chọn ảnh gốc. Hiệu ứng làm đẹp cần camera xem trước trên thiết bị; nếu camera hoặc trình duyệt không hỗ trợ, một số tùy chỉnh có thể không dùng được.
+Nếu không muốn hiệu ứng, để làm đẹp ở **Tắt** và hiệu ứng khuôn mặt ở **Không hiệu ứng**. Hiệu ứng làm đẹp cần camera xem trước trên thiết bị; nếu camera hoặc trình duyệt không hỗ trợ, một số tùy chỉnh có thể không dùng được.
 
 ### 3. Tạo dáng và nhận ảnh
 

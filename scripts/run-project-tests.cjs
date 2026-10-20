@@ -17,6 +17,7 @@ for (const name of readdirSync(path.join(root, 'resources/js/beauty')).filter((n
 }
 console.log('JavaScript syntax checks passed');
 if (process.argv.includes('--syntax-only')) process.exit(0);
+run(process.execPath, ['scripts/test-setup.cjs']);
 run(php, ['scripts/test-skin-beauty.php']);
 run(php, ['scripts/test-beauty-upload.php']);
 run(process.execPath, ['scripts/test-skin-beauty.cjs']);

@@ -17,10 +17,11 @@ for(const c of B.allControls()) {
   v.values[c.key]=c.max+1;assert.throws(()=>B.validate(v));
 }
 const bad=B.preset('off');bad.colors.lip='javascript:bad';assert.throws(()=>B.validate(bad));
-const session=new Session('plain');session.request('photo');session.selectBeauty(doll);
-session.select('cssgram-moon','glasses');session.confirm();session.selectBeauty(off);
+const session=new Session();session.request('photo');session.selectBeauty(doll);
+session.select('glasses');session.confirm();session.selectBeauty(off);
 session.request('photo');session.request('photo',true);
 assert.equal(session.beauty.values.slim,58,'Confirmed geometry persists through retry');
+assert.equal(session.face,'glasses','Beauty session keeps its selected sticker through retry');
 assert.ok(Object.isFrozen(session.beauty.values),'Confirmed values cannot be mutated through a retained reference');
 session.finish();session.request('photo');assert.ok(!B.isActive(session.beauty));
 console.log('21 beauty controls, presets, validation and capture lifecycle passed');

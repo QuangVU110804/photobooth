@@ -58,13 +58,6 @@
                         <p id="hmu-camera-help">Cho phép truy cập camera để xem trước và chụp ảnh.</p>
                     </details>
                 </section>
-                <section class="hmu-filter-group" aria-labelledby="hmu-color-title">
-                    <details class="hmu-filter-section">
-                        <summary class="rotaryfocus"><h2 id="hmu-color-title">Màu ảnh</h2></summary>
-                        <p class="hmu-filter-section-description">Chọn tông màu hợp với bạn</p>
-                        <div id="hmu-color-filters" class="hmu-filter-rail hmu-filter-options-list" role="group" aria-label="Chọn màu ảnh"></div>
-                    </details>
-                </section>
                 <section class="hmu-filter-group hmu-beauty-group" aria-labelledby="hmu-beauty-title">
                     <details class="hmu-filter-section">
                         <summary class="rotaryfocus"><h2 id="hmu-beauty-title">Làm đẹp &amp; Chỉnh ảnh</h2></summary>
@@ -101,7 +94,7 @@
     </div>
     <div class="hmu-filter-confirm">
         <div class="hmu-filter-confirm-inner">
-            <div class="hmu-filter-selection"><span class="hmu-filter-selection-icon"><i class="fa fa-check" aria-hidden="true"></i></span><div><span class="hmu-filter-selection-label">LỰA CHỌN CỦA BẠN</span><p id="hmu-filter-choice">Ảnh gốc · Không hiệu ứng</p></div></div>
+            <div class="hmu-filter-selection"><span class="hmu-filter-selection-icon"><i class="fa fa-check" aria-hidden="true"></i></span><div><span class="hmu-filter-selection-label">LỰA CHỌN CỦA BẠN</span><p id="hmu-filter-choice">Không hiệu ứng</p></div></div>
             <button id="hmu-filter-shoot" class="hmu-filter-shoot" type="button" disabled><span class="hmu-filter-shoot-icon"><i class="fa fa-camera" aria-hidden="true"></i></span><span>Bắt đầu chụp ảnh</span><i class="fa fa-angle-right" aria-hidden="true"></i></button>
         </div>
     </div>

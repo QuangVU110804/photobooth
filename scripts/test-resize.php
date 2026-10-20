@@ -1,7 +1,6 @@
 <?php
 /** Exercise GD resizing independently so native failures have a clear origin. */
 require dirname(__DIR__) . '/lib/resize.php';
-require dirname(__DIR__) . '/lib/filter.php';
 require dirname(__DIR__) . '/lib/face-effects.php';
 $checks = 0;
 foreach (['memory', 'edited-jpeg'] as $variant) {
@@ -15,7 +14,6 @@ foreach ([[120, 80, 120, 120, 120, 80], [180, 120, 120, 120, 120, 80], [60, 40, 
         $image = imagecreatefromstring($jpeg);
         applyFaceEffects($image, [['points' => [[.05,.2],[.35,.2],[.35,.8],[.05,.8]], 'color' => 'ink']]);
         imageflip($image, IMG_FLIP_HORIZONTAL);
-        applyFilter('cssgram-reyes', $image);
     }
     $sourcePixel = imagecolorat($image, 0, 0);
     $output = resizeImage($image, $maxWidth, $maxHeight);

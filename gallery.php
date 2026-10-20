@@ -51,6 +51,7 @@ $GALLERY_FOOTER = false;
 
 	<!-- Fullscreen Mode on old iOS-Devices when starting photobooth from homescreen -->
 	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="mobile-web-app-capable" content="yes" />
 	<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
 	<link rel="stylesheet" href="node_modules/normalize.css/normalize.css" />
@@ -101,11 +102,11 @@ $GALLERY_FOOTER = false;
 		onStandaloneGalleryView = true;
 	</script>
 	<script type="text/javascript" src="resources/js/tools.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-	<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
+	<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3"></script>
 	<script type="text/javascript" src="resources/js/photoinit.js?v=<?php echo $config['photobooth']['version']; ?>&gallery=2"></script>
 	<script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
 	<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
-	<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
+	<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3"></script>
 	<script type="text/javascript" src="resources/js/gallery.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
     <script src="resources/js/gallery-selection.js?v=2"></script>
 	<?php if ($config['gallery']['db_check_enabled']): ?>

@@ -113,6 +113,7 @@ if (file_exists($my_config_file)) {
 }
 
 // Ignore retired settings from older local configurations.
+unset($config['filters'], $config['icons']['filter']);
 unset($config['collage'], $config['textoncollage'], $config['remotebuzzer']['collagetime'], $config['remotebuzzer']['collagebutton'], $config['remotebuzzer']['collagegpio'], $config['get_request']['collage'], $config['icons']['take_collage']);
 
 if ($config['dev']['loglevel'] > 0) {

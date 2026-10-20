@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/filter.php';
 /*
  ** This file defines the admin panel of photobooth. The admin panel definition is done in a JSON variable and structured as follows
  **
@@ -459,27 +458,6 @@ $configsetup = [
             'placeholder' => $defaultConfig['picture']['polaroid_rotation'],
             'name' => 'picture[polaroid_rotation]',
             'value' => $config['picture']['polaroid_rotation'],
-        ],
-        'filters_enabled' => [
-            'view' => 'advanced',
-            'type' => 'checkbox',
-            'name' => 'filters[enabled]',
-            'value' => $config['filters']['enabled'],
-        ],
-        'filters_defaults' => [
-            'view' => 'advanced',
-            'type' => 'select',
-            'name' => 'filters[defaults]',
-            'placeholder' => $defaultConfig['filters']['defaults'],
-            'options' => AVAILABLE_FILTERS,
-            'value' => $config['filters']['defaults'],
-        ],
-        'filters_disabled' => [
-            'view' => 'expert',
-            'type' => 'multi-select',
-            'name' => 'filters[disabled]',
-            'options' => AVAILABLE_FILTERS,
-            'value' => $config['filters']['disabled'],
         ],
         'picture_take_frame' => [
             'view' => 'expert',
@@ -2068,13 +2046,6 @@ $configsetup = [
             'name' => 'icons[mail_submit]',
             'placeholder' => htmlentities($defaultConfig['icons']['mail_submit'] ?? ''),
             'value' => htmlentities($config['icons']['mail_submit'] ?? ''),
-        ],
-        'icons_filter' => [
-            'view' => 'expert',
-            'type' => 'input',
-            'name' => 'icons[filter]',
-            'placeholder' => htmlentities($defaultConfig['icons']['filter'] ?? ''),
-            'value' => htmlentities($config['icons']['filter'] ?? ''),
         ],
         'icons_chroma' => [
             'view' => 'expert',

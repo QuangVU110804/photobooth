@@ -127,7 +127,7 @@ try {
     copy($root.'/resources/face-effects/catalog.json',$dir.'/app/resources/face-effects/catalog.json');
     foreach(glob($root.'/resources/face-effects/stickers/*.png') as $source)copy($source,$dir.'/app/resources/face-effects/stickers/'.basename($source));
     $base=imagecreatetruecolor(200,100);imagefill($base,0,0,imagecolorallocate($base,100,100,100));imagejpeg($base,$dir.'/tmp/shot.jpg',100);imagedestroy($base);
-    $post=['file'=>'shot.jpg','style'=>'photo','filter'=>'plain','faceEffects'=>json_encode($raw)];
+    $post=['file'=>'shot.jpg','style'=>'photo','faceEffects'=>json_encode($raw)];
     $request=function($post,$overrides=[])use($dir){$p=proc_open([PHP_BINARY,__FILE__,'--endpoint',$dir,$dir.'/app'],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);fwrite($pipes[0],json_encode(['post'=>$post,'overrides'=>array_replace_recursive(['picture'=>['flip'=>'off']],$overrides)]));fclose($pipes[0]);$out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$code=proc_close($p);stickerCheck($code===0&&!preg_match('/Warning|Fatal|Deprecated|Notice/',$out.$err),'Endpoint exits cleanly '.$out.$err);return [$out,$err];};
     [$out,$err]=$request($post);stickerCheck(str_contains($err,'STATUS:200')&&is_file($dir.'/images/shot.jpg'),'Actual API persists sticker JPG');
     $saved=imagecreatefromjpeg($dir.'/images/shot.jpg');$rgb=stickerRgb($saved,100,50);stickerNear($rgb,[222,61,110],'Center gemstone survives JPEG export',25);imagedestroy($saved);
@@ -144,19 +144,19 @@ try {
     stickerCheck(str_contains($err,'STATUS:400')&&hash_file('sha256',$dir.'/images/shot.jpg')===$before,'Invalid late element leaves existing JPG unchanged');
     $large=imagecreatetruecolor(3840,2160);imagejpeg($large,$dir.'/tmp/large.jpg',80);imagedestroy($large);
     $tooWide=$shot;$tooWide['width']=2;
-    [$out,$err]=$request(['file'=>'large.jpg','style'=>'photo','filter'=>'plain','faceEffects'=>json_encode(['large.jpg'=>[$tooWide]])]);
+    [$out,$err]=$request(['file'=>'large.jpg','style'=>'photo','faceEffects'=>json_encode(['large.jpg'=>[$tooWide]])]);
     $error=json_decode($out,true);
     stickerCheck(str_contains($err,'STATUS:500')&&isset($error['error'])&&!is_file($dir.'/images/large.jpg')&&!is_file($dir.'/thumbs/large.jpg'),'Over-budget render returns controlled JSON error before writes');
     mkdir($dir.'/app/resources/img/frames',0755,true);
     $frame=imagecreatetruecolor(200,100);imagealphablending($frame,false);imagesavealpha($frame,true);
     imagefill($frame,0,0,imagecolorallocatealpha($frame,0,0,0,127));imagefilledrectangle($frame,0,0,199,3,imagecolorallocate($frame,20,40,230));imagepng($frame,$dir.'/app/resources/img/frames/test.png');imagedestroy($frame);
-    foreach ([['plain','off','0',true],['cssgram-inkwell','horizontal','0',true],['cssgram-reyes','vertical','90',false],['cssgram-moon','both','180',true]] as $i=>[$filter,$flip,$rotation,$keep]) {
+    foreach ([['off','0',true],['horizontal','0',true],['vertical','90',false],['both','180',true]] as $i=>[$flip,$rotation,$keep]) {
         $name='variant-'.$i.'.jpg';$control='control-'.$i.'.jpg';
         copy($dir.'/tmp/shot.jpg',$dir.'/tmp/'.$name);copy($dir.'/tmp/shot.jpg',$dir.'/tmp/'.$control);
         $e=$shot;$e['center']=[.3,.6];$e['width']=.25;
         $settings=['picture'=>['flip'=>$flip,'rotation'=>$rotation,'keep_original'=>$keep]];
-        $p=['file'=>$name,'style'=>'photo','filter'=>$filter,'frame'=>'test.png','faceEffects'=>json_encode([$name=>[$e]])];
-        [$out,$err]=$request($p,$settings);stickerCheck(str_contains($err,'STATUS:200'),'PNG/filter/frame/flip/rotation combination '.$i.' succeeds');
+        $p=['file'=>$name,'style'=>'photo','frame'=>'test.png','faceEffects'=>json_encode([$name=>[$e]])];
+        [$out,$err]=$request($p,$settings);stickerCheck(str_contains($err,'STATUS:200'),'PNG/frame/flip/rotation combination '.$i.' succeeds without a color filter');
         stickerCheck(is_file($dir.'/tmp/'.$name)===$keep,'keep_original honored for PNG '.$i);
         unset($p['faceEffects']);$p['file']=$control;$request($p,$settings);
         $a=imagecreatefromjpeg($dir.'/images/'.$name);$b=imagecreatefromjpeg($dir.'/images/'.$control);$changed=0;
@@ -164,7 +164,7 @@ try {
             $rgbA=stickerRgb($a,$x,$y);$rgbB=stickerRgb($b,$x,$y);
             if(array_sum(array_map(fn($v,$w)=>abs($v-$w),$rgbA,$rgbB))>50)$changed++;
         }
-        stickerCheck($changed>10,'PNG remains visible through '.$filter.'/'.$flip.'/'.$rotation.' pipeline');
+        stickerCheck($changed>10,'PNG remains visible through '.$flip.'/'.$rotation.' pipeline');
         stickerCheck(is_file($dir.'/thumbs/'.$name),'PNG combination creates thumbnail');imagedestroy($a);imagedestroy($b);
     }
     if (in_array('--benchmark',$argv,true)) {

@@ -1,6 +1,5 @@
 <?php
 require_once '../lib/config.php';
-require_once '../lib/filter.php';
 require_once '../lib/polaroid.php';
 require_once '../lib/resize.php';
 require_once '../lib/applyText.php';
@@ -8,7 +7,6 @@ require_once '../lib/applyFrame.php';
 require_once '../lib/applyEffects.php';
 
 $style = isset($_GET['style']) ? $_GET['style'] : null;
-$filter = isset($_GET['filter']) ? $_GET['filter'] : 'plain';
 $chromaEnabled = $config['keying']['enabled'] || $style === 'chroma';
 
 $demoPath = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'resources/img/demo';
@@ -30,7 +28,7 @@ $out_keying_fileRoot = $config['foldersRoot']['tmp'] . DIRECTORY_SEPARATOR . 're
 $picture_frame = $config['picture']['frame'];
 
 $imageResource = imagecreatefromjpeg($filename_tmp);
-list($imageResource, $imageModified) = editSingleImage($config, $imageResource, $filter);
+list($imageResource, $imageModified) = editSingleImage($config, $imageResource);
 if ($chromaEnabled) {
     $chroma_size = substr($config['keying']['size'], 0, -2);
     $chromaCopyResource = resizeImage($imageResource, $chroma_size, $chroma_size);

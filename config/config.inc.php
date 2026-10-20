@@ -61,9 +61,6 @@ $config['picture']['flip'] = 'off';
 $config['picture']['rotation'] = '0';
 $config['picture']['polaroid_effect'] = false;
 $config['picture']['polaroid_rotation'] = '0';
-$config['filters']['enabled'] = true;
-$config['filters']['defaults'] = 'plain';
-$config['filters']['disabled'] = array();
 $config['picture']['take_frame'] = false;
 $config['picture']['frame'] = '';
 // specify key id (e.g. 13 is the enter key) to use that key to take a picture (picture key)
@@ -334,7 +331,6 @@ $config['icons']['qr'] = 'fa fa-qrcode';
 $config['icons']['mail'] = 'fa fa-envelope';
 $config['icons']['mail_close'] = 'fa fa-times';
 $config['icons']['mail_submit'] = 'fa fa-spinner fa-spin';
-$config['icons']['filter'] = 'fa fa-magic';
 $config['icons']['chroma'] = 'fa fa-paint-brush';
 $config['icons']['fullscreen'] = 'fa fa-arrows-alt';
 $config['icons']['share'] = 'fa fa-share-alt';

@@ -107,42 +107,40 @@ try {
   await new Promise(resolve=>catalogCacheServer.close(resolve));catalogCacheServer=null;
   const load=async()=>{await cdp.send('Page.navigate',{url:`${base}/index.php`});await waitFor(()=>cdp.evaluate("document.readyState==='complete' && document.querySelector('.hmu-frame-card') && !document.getElementById('kioskFrameSelector').getAttribute('aria-busy').includes('true')"),'frame list');};
   const logs=async()=>await(await fetch(`${base}/_filter-test-log`)).json();
-  // Compare decoded JPG pixels from the real export against controls rendered
-  // from the same raw capture and frame, isolating face and color contributions.
+  // Compare real exported pixels with the same raw capture and frame without
+  // face/beauty effects. The processing request must never contain a color filter.
   const verifyExport = async (request, label) => {
     const finalPath=path.join(fixture,'images',request.file);
     const original=await fs.readFile(finalPath);
     const saved=path.join(fixture,`${label}-final.jpg`);
-    const colorOnly=path.join(fixture,`${label}-color.jpg`);
     const plain=path.join(fixture,`${label}-plain.jpg`);
     await fs.writeFile(saved,original);
-    const render=async(filter,destination)=>{
-      const response=await fetch(`${base}/api/applyEffects.php`,{method:'POST',body:new URLSearchParams({file:request.file,style:'photo',filter,frame:request.frame})});
+    const render=async(destination)=>{
+      const response=await fetch(`${base}/api/applyEffects.php`,{method:'POST',body:new URLSearchParams({file:request.file,style:'photo',frame:request.frame})});
       const body=await response.json();
       check(response.ok&&body.file===request.file,`${label}: control export succeeds`);
       await fs.copyFile(finalPath,destination);
     };
     try {
-      await render(request.filter,colorOnly);
-      await render('plain',plain);
+      check(request.hasColorFilter===false,`${label}: capture omits the retired color-filter field`);
+      await render(plain);
       const stats=JSON.parse(execFileSync(php,['-r',`
-        $final=imagecreatefromjpeg($argv[1]);$color=imagecreatefromjpeg($argv[2]);$plain=imagecreatefromjpeg($argv[3]);
-        $faceCount=0;$colorCount=0;$grayCount=0;$total=imagesx($final)*imagesy($final);
+        $final=imagecreatefromjpeg($argv[1]);$plain=imagecreatefromjpeg($argv[2]);
+        $effectCount=0;$grayCount=0;$total=imagesx($final)*imagesy($final);
         for($y=0;$y<imagesy($final);$y++)for($x=0;$x<imagesx($final);$x++){
-          $a=imagecolorat($final,$x,$y);$b=imagecolorat($color,$x,$y);$c=imagecolorat($plain,$x,$y);
-          $faceDiff=0;$colorDiff=0;
-          foreach([0,8,16] as $shift){$faceDiff+=abs((($a>>$shift)&255)-(($b>>$shift)&255));$colorDiff+=abs((($b>>$shift)&255)-(($c>>$shift)&255));}
-          if($faceDiff>60)$faceCount++;if($colorDiff>60)$colorCount++;
+          $a=imagecolorat($final,$x,$y);$b=imagecolorat($plain,$x,$y);
+          $effectDiff=0;
+          foreach([0,8,16] as $shift)$effectDiff+=abs((($a>>$shift)&255)-(($b>>$shift)&255));
+          if($effectDiff>60)$effectCount++;
           $r=($a>>16)&255;$g=($a>>8)&255;$blue=$a&255;if(max($r,$g,$blue)-min($r,$g,$blue)<=3)$grayCount++;
         }
-        echo json_encode(['facePixels'=>$faceCount,'colorPixels'=>$colorCount,'grayPixels'=>$grayCount,'totalPixels'=>$total]);
-      `,saved,colorOnly,plain],{encoding:'utf8'}));
+        echo json_encode(['effectPixels'=>$effectCount,'grayPixels'=>$grayCount,'totalPixels'=>$total]);
+      `,saved,plain],{encoding:'utf8'}));
       await fs.mkdir(path.join(root,'reports'),{recursive:true});
       await fs.copyFile(saved,path.join(root,'reports',`export-${label}.jpg`));
       await fs.copyFile(plain,path.join(root,'reports',`export-${label}-plain.jpg`));
       console.log(`${label} JPG pixel evidence: ${JSON.stringify(stats)}`);
-      check(stats.facePixels>20,`${label}: face effect is baked into JPG (${stats.facePixels} changed pixels)`);
-      check(stats.colorPixels>100,`${label}: color filter is baked into JPG (${stats.colorPixels} changed pixels)`);
+      check(stats.effectPixels>20,`${label}: face/beauty effects are baked into JPG (${stats.effectPixels} changed pixels)`);
     } finally { await fs.writeFile(finalPath,original); }
   };
   const openStage=async()=>{await cdp.evaluate("document.querySelector('.takePic').click()");await waitFor(()=>cdp.evaluate("hmuFilterStage.active && !document.getElementById('hmu-filter-shoot').disabled"),'stage camera');};
@@ -177,7 +175,7 @@ try {
   check(await cdp.evaluate("document.querySelectorAll('.hmu-frame-card')[1].getAttribute('aria-pressed')==='true'"),'Frame selection updates selected state');
   check(await cdp.evaluate("!document.querySelector('.takeCollage,.newcollage,[data-style=collage]')"),'Capture UI offers only single photos');
   await openStage();
-  check((await logs()).length===0,'Capture button opens filters without countdown/takePic');
+  check((await logs()).length===0,'Capture button opens effect selection without countdown/takePic');
   check(await cdp.evaluate("document.getElementById('hmu-camera-source')?.value==='browser' && document.getElementById('hmu-camera-device')?.options.length>0"), 'Camera source and detected device can be selected');
   check(await cdp.evaluate("document.getElementById('hmu-preview-frame')?.complete && document.getElementById('hmu-preview-frame')?.naturalWidth>0"), 'Selected frame is loaded above camera preview');
   await cdp.evaluate("document.getElementById('hmu-camera-device').dispatchEvent(new Event('change'))");
@@ -187,7 +185,7 @@ try {
   check(await cdp.evaluate("hmuFilterStage.captureSource==='external'&&!config.preview.camTakesPic"),'External source routes capture to the configured hardware command');
   await cdp.evaluate("document.getElementById('hmu-camera-source').value='browser';document.getElementById('hmu-camera-source').dispatchEvent(new Event('change'))");
   check(await cdp.evaluate("hmuFilterStage.captureSource==='browser'&&config.preview.camTakesPic"),'Browser source routes capture to the preview camera');
-  check(await cdp.evaluate("!photoBooth.takingPic && !document.getElementById('loader').classList.contains('open')"),'Countdown stays idle while choosing filters');
+  check(await cdp.evaluate("!photoBooth.takingPic && !document.getElementById('loader').classList.contains('open')"),'Countdown stays idle while choosing face/beauty effects');
   check(await cdp.evaluate("document.getElementById('hmu-filter-video').srcObject === photoboothPreview.stream"),'Live stage shares the existing camera stream');
   await cdp.evaluate("document.getElementById('start').classList.remove('open');document.getElementById('hmu-filter-back').click()");
   check(await cdp.evaluate("(()=>{const start=document.getElementById('start');const style=getComputedStyle(start);const wrapper=getComputedStyle(document.getElementById('wrapper'));return !hmuFilterStage.active&&start.classList.contains('open')&&style.display==='flex'&&start.getBoundingClientRect().height>0&&wrapper.backgroundColor==='rgb(247, 249, 252)';})()"),'Back restores the main screen layout and HMU background');
@@ -196,6 +194,9 @@ try {
   await cdp.evaluate("document.getElementById('hmu-filter-back').click()");
   check(await cdp.evaluate("(()=>{const start=document.getElementById('start');const style=getComputedStyle(start);const wrapper=getComputedStyle(document.getElementById('wrapper'));return !hmuFilterStage.active&&document.getElementById('result').style.display==='none'&&style.display==='flex'&&start.getBoundingClientRect().height>0&&wrapper.backgroundColor==='rgb(247, 249, 252)';})()"),'Back restores the main screen and HMU background after a result preview');
   await openStage();
+  await cdp.evaluate("config.remotebuzzer.userotary=true;rotaryController.focusSet('#gallery')");
+  check(await cdp.evaluate("document.querySelector('#hmu-filter-stage .rotaryfocus.focused')!==null&&!document.querySelector('#gallery .focused')"),'A late gallery focus callback cannot take rotary focus out of the active capture dialog');
+  await cdp.evaluate("config.remotebuzzer.userotary=false;rotaryController.focusRemove()");
   for(const [width,height] of [[320,740],[375,812],[768,1024],[844,390],[1440,1000]]) {
     await cdp.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<900});
     const layout=await cdp.evaluate("({overflow:document.getElementById('hmu-filter-stage').scrollWidth>innerWidth,button:document.getElementById('hmu-filter-shoot').getBoundingClientRect().height})");
@@ -212,8 +213,7 @@ try {
   await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
   await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
   check(await cdp.evaluate("document.activeElement.id==='hmu-filter-back'"),'Keyboard focus stays inside filter stage');
-  await cdp.evaluate("document.querySelector('[data-color=\"cssgram-inkwell\"]').click()");
-  check(await cdp.evaluate("hmuFilterStage.color === 'cssgram-inkwell' && getComputedStyle(document.getElementById('hmu-filter-surface')).filter.includes('grayscale')"),'Color selection immediately changes live CSSgram preview');
+  check(await cdp.evaluate("!document.getElementById('hmu-color-filters')&&!document.querySelector('[data-color]')&&!('color' in hmuFilterStage)&&getComputedStyle(document.getElementById('hmu-filter-surface')).filter==='none'"),'Capture screen has no color controls, state or CSS color treatment');
   // Keep the real worker/detector; hold its response at the slow external boundary.
   await cdp.evaluate(`
     window.previewWork={pending:new Set(),queued:[],peak:0,hold:false,starts:new Map(),timings:[]};
@@ -254,19 +254,19 @@ try {
   const before=(await logs()).length;
   await cdp.evaluate("document.getElementById('hmu-filter-shoot').click();document.getElementById('hmu-filter-shoot').click();");
   check(await cdp.evaluate("photoBooth.takingPic && !hmuFilterStage.active"),'Only confirmation starts countdown');
-  check(await cdp.evaluate("!document.getElementById('hmu-countdown-preview').hidden && document.getElementById('hmu-countdown-preview').contains(document.getElementById('hmu-preview-frame')) && getComputedStyle(document.getElementById('hmu-filter-surface')).filter.includes('grayscale') && !document.getElementById('hmu-filter-video').paused"), 'Countdown keeps the selected frame, color, live camera and face overlay');
-  await waitFor(()=>cdp.evaluate("typeof photoBooth !== 'undefined' && !photoBooth.takingPic && document.getElementById('result').getAttribute('data-img')"),'final filtered photo',40000);
+  check(await cdp.evaluate("!document.getElementById('hmu-countdown-preview').hidden && document.getElementById('hmu-countdown-preview').contains(document.getElementById('hmu-preview-frame')) && getComputedStyle(document.getElementById('hmu-filter-surface')).filter==='none' && !document.getElementById('hmu-filter-video').paused"), 'Countdown keeps the selected frame, live camera and face overlay with natural photo colors');
+  await waitFor(()=>cdp.evaluate("typeof photoBooth !== 'undefined' && !photoBooth.takingPic && document.getElementById('result').getAttribute('data-img')"),'final processed photo',40000);
   const first=(await logs()).slice(before);
   check(first.filter((r)=>r.route==='api/takePic.php').length===1,'Double click produces exactly one capture');
   const processed=first.find((r)=>r.route==='api/applyEffects.php');
-  check(processed?.filter==='cssgram-inkwell','Selected filter survives takePic and reaches applyEffects');
+  check(first.filter(r=>['api/takePic.php','api/applyEffects.php'].includes(r.route)).every(r=>r.hasColorFilter===false),'Capture and final processing omit the retired color-filter field');
   check(processed?.frame && JSON.parse(processed.faceEffects)[processed.file].length>0,'Final processing uses selected frame and fresh still-image landmarks');
-  check((await fs.stat(path.join(fixture,'images',processed.file))).size>0,'Real PHP/GD saves the final filtered photo');
-  await verifyExport(processed,'inkwell-glasses');
+  check((await fs.stat(path.join(fixture,'images',processed.file))).size>0,'Real PHP/GD saves the final processed photo');
+  await verifyExport(processed,'glasses');
   await cdp.evaluate("document.querySelector('.newpic').click()");
   await waitFor(()=>cdp.evaluate("hmuFilterStage.active&&!document.getElementById('hmu-filter-shoot').disabled"),'new photo stage');
-  check(await cdp.evaluate("hmuFilterStage.face==='none'&&hmuFilterStage.color==='plain'"),'New session resets effects without leaking previous choices');
-  await cdp.evaluate("document.querySelector('[data-color=\"cssgram-reyes\"]').click();document.querySelector('[data-face=blush]').click()");
+  check(await cdp.evaluate("hmuFilterStage.face==='none'&&!('color' in hmuFilterStage)"),'New session resets effects without restoring retired color state');
+  await cdp.evaluate("document.querySelector('[data-face=blush]').click()");
   await waitFor(()=>cdp.evaluate("hmuFilterStage.face==='blush'&&!document.getElementById('hmu-filter-shoot').disabled"),'blush ready');
   const nextBefore=(await logs()).length;
   await cdp.evaluate("document.getElementById('hmu-filter-shoot').click()");
@@ -274,9 +274,9 @@ try {
   const next=(await logs()).slice(nextBefore);
   check(next.filter((r)=>r.route==='api/takePic.php').length===1,'Second session captures exactly one photo');
   const nextEffects=next.find((r)=>r.route==='api/applyEffects.php');
-  check(nextEffects?.style==='photo'&&nextEffects.filter==='cssgram-reyes','Second photo retains the confirmed color');
+  check(nextEffects?.style==='photo'&&nextEffects.hasColorFilter===false,'Second photo processes without a color-filter parameter');
   check(JSON.parse(nextEffects.faceEffects)[nextEffects.file].some(shape=>shape.color==='pink'),'Blush uses fresh still-image landmarks');
-  await verifyExport(nextEffects,'reyes-blush');
+  await verifyExport(nextEffects,'blush');
   check(await cdp.evaluate("!document.dispatchEvent(new WheelEvent('wheel',{ctrlKey:true,cancelable:true})) && document.dispatchEvent(new WheelEvent('wheel',{cancelable:true})) && !document.dispatchEvent(new KeyboardEvent('keydown',{key:'+',ctrlKey:true,cancelable:true}))"), 'Kiosk blocks zoom shortcuts while preserving normal scrolling');
   await cdp.evaluate("document.querySelector('.gallery-button,.gallerybtn').click()");
   await waitFor(()=>cdp.evaluate("document.querySelectorAll('#galimages > a').length>=2"),'two captured images in gallery');
@@ -375,7 +375,7 @@ try {
   const pngFrame=await cdp.evaluate('hmuFilterStage.frame');
   await waitFor(()=>cdp.evaluate("!!document.querySelector('[data-face=gold-crown]')"),'PNG catalog option');
   check(await cdp.evaluate("!document.querySelector('[data-face=gold-crown]').disabled"),'PNG sticker available with browser camera');
-  await cdp.evaluate("document.querySelector('[data-color=\"cssgram-moon\"]').click();document.querySelector('[data-face=gold-crown]').click()");
+  await cdp.evaluate("document.querySelector('[data-face=gold-crown]').click()");
   await waitFor(()=>cdp.evaluate("hmuFilterStage.face==='gold-crown'&&!document.getElementById('hmu-filter-shoot').disabled"),'PNG assets decoded');
   await waitFor(()=>cdp.evaluate("(()=>{const c=document.getElementById('hmu-filter-overlay');return c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((n,i)=>i%4===3&&n>0);})()"),'PNG preview follows actual face');
   await waitFor(()=>cdp.evaluate("previewWork.timings.filter(t=>t.png).length>=8"),'PNG inference timing samples');
@@ -402,16 +402,16 @@ try {
   const pngRequests=(await logs()).slice(pngBefore),pngExport=pngRequests.find(r=>r.route==='api/applyEffects.php');
   check(pngRequests.filter(r=>r.route==='api/takePic.php').length===1,'PNG double click captures only once');
   check(JSON.parse(pngExport.faceEffects)[pngExport.file].some(e=>e.type==='sticker'&&e.effect==='gold-crown'),'Fresh still-image payload contains catalog PNG');
-  check(pngExport.frame===pngFrame&&pngExport.filter==='cssgram-moon','PNG keeps chosen frame and color');
+  check(pngExport.frame===pngFrame&&pngExport.hasColorFilter===false,'PNG keeps the chosen frame without restoring color filters');
   console.log('PNG placement evidence:',pngExport.faceEffects, 'frame:',pngExport.frame);
-  await verifyExport(pngExport,'moon-crown');
+  await verifyExport(pngExport,'crown');
   await cdp.evaluate("document.querySelector('.newpic').click()");
   await waitFor(()=>cdp.evaluate("hmuFilterStage.active&&!document.getElementById('hmu-filter-shoot').disabled"),'session after PNG');
   check(await cdp.evaluate("hmuFilterStage.face==='none'"),'PNG does not leak into next session');
   // Supplied PNG assets must survive real browser decoding, landmarks and JPG export.
   check(await cdp.evaluate("['glasses','blush','gold-crown','hat','mask'].every(id=>!!document.querySelector('[data-face='+id+']'))"),'Old and new face filters remain selectable together');
   for(const id of ['hat','mask']) {
-    await cdp.evaluate(`document.querySelector('[data-color="cssgram-moon"]').click();document.querySelector('[data-face=${id}]').click()`);
+    await cdp.evaluate(`document.querySelector('[data-face=${id}]').click()`);
     await waitFor(()=>cdp.evaluate(`hmuFilterStage.face==='${id}'&&!document.getElementById('hmu-filter-shoot').disabled`),id+' PNG decoded');
     await waitFor(()=>cdp.evaluate("(()=>{const c=document.getElementById('hmu-filter-overlay');return c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((n,i)=>i%4===3&&n>0);})()"),id+' preview visible');
     const before=(await logs()).length;
@@ -419,7 +419,7 @@ try {
     await waitFor(()=>cdp.evaluate("!photoBooth.takingPic&&!!document.getElementById('result').getAttribute('data-img')"),id+' capture completes',45000);
     const exported=(await logs()).slice(before).find(r=>r.route==='api/applyEffects.php');
     check(JSON.parse(exported.faceEffects)[exported.file].some(e=>e.type==='sticker'&&e.effect===id),id+' uses fresh still-image placement');
-    await verifyExport(exported,'moon-'+id);
+    await verifyExport(exported,id);
     await cdp.evaluate("document.querySelector('.newpic').click()");
     await waitFor(()=>cdp.evaluate("hmuFilterStage.active&&!document.getElementById('hmu-filter-shoot').disabled"),'session after '+id);
   }
@@ -477,7 +477,7 @@ try {
   await cdp.evaluate("sessionStorage.removeItem('hmu-camera-source')");
   await load();await cdp.evaluate("document.querySelector('.takePic').click()");
   await waitFor(()=>cdp.evaluate("document.getElementById('hmu-filter-status').textContent.includes('Chưa mở được camera')"),'DSLR preview denial');
-  check(await cdp.evaluate("!document.getElementById('hmu-filter-shoot').disabled"),'External-camera users can choose colors when browser preview is unavailable');
+  check(await cdp.evaluate("!document.getElementById('hmu-filter-shoot').disabled"),'External-camera capture remains available when browser preview is unavailable');
   await cdp.send('Page.removeScriptToEvaluateOnNewDocument',{identifier:denial.identifier});
   await cdp.evaluate("document.cookie='filterTestMode=frame-fail;path=/'");
   await load();await cdp.evaluate("document.querySelector('.takePic').click()");
@@ -489,12 +489,11 @@ try {
   check(await cdp.evaluate("typeof hmuFilterStage==='undefined'"),'Classic layout retains its original flow');
   await cdp.evaluate("photoBooth.thrill('photo')");
   const classicFile=await waitFor(()=>cdp.evaluate("!photoBooth.takingPic&&document.getElementById('result').getAttribute('data-img')"),'classic first photo');
-  await cdp.evaluate("document.getElementById('sepia-light').click()");
-  await waitFor(()=>cdp.evaluate("jQuery.active===0"),'classic result filter completes');
+  check(await cdp.evaluate("!document.getElementById('mySidenav')&&!document.querySelector('.imageFilter,.filterbtn')"),'Classic results have no retired color-filter menu');
   const classicBefore=(await logs()).length;
   await cdp.evaluate("photoBooth.thrill('photo')");
   await waitFor(()=>cdp.evaluate(`!photoBooth.takingPic&&document.getElementById('result').getAttribute('data-img')!==${JSON.stringify(classicFile)}`),'classic next photo');
-  check((await logs()).slice(classicBefore).find(r=>r.route==='api/applyEffects.php')?.filter==='plain','Classic new capture uses its configured default, not the previous result filter');
+  check((await logs()).slice(classicBefore).find(r=>r.route==='api/applyEffects.php')?.hasColorFilter===false,'Classic capture also omits retired color-filter parameters');
   check(cdp.errors.length===0,`No browser errors: ${cdp.errors.join('; ')}`);
   check(!/PHP (?:Warning|Fatal error|Notice|Deprecated)/i.test(serverLog),`No PHP diagnostics: ${serverLog.match(/.*PHP (?:Warning|Fatal error|Notice|Deprecated).*/g)?.join('; ')}`);
   console.log(`${checks} real camera/browser/PHP flow checks passed`);

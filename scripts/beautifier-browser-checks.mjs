@@ -52,7 +52,7 @@ export async function checkBeautifier({cdp,check,waitFor,openStage,logs,fixture,
   check(await cdp.evaluate("!document.getElementById('hmu-beauty-split-range').parentElement.hidden&&document.getElementById('hmu-beauty-split').getAttribute('aria-pressed')==='true'"),'Split view is adjustable');
   await cdp.evaluate("document.getElementById('hmu-beauty-mask').click()");
   check(await cdp.evaluate("document.getElementById('hmu-beauty-mask').getAttribute('aria-pressed')==='true'&&document.getElementById('hmu-beauty-split').getAttribute('aria-pressed')==='false'"),'Mask view replaces split inspection');
-  await cdp.evaluate("document.getElementById('hmu-beauty-mask').click();document.querySelector('[data-color=cssgram-moon]').click();document.querySelector('[data-face=blush]').click()");
+  await cdp.evaluate("document.getElementById('hmu-beauty-mask').click();document.querySelector('[data-face=blush]').click()");
   await waitFor(()=>cdp.evaluate("hmuFilterStage.face==='blush'&&!document.getElementById('hmu-filter-shoot').disabled"),'beauty and stickers');
   await cdp.evaluate(`(async()=>{
     const {Engine}=await import('./resources/js/beauty/engine.mjs?v=1'),map=Engine.prototype.mapFaces;

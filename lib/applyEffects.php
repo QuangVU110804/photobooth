@@ -17,7 +17,7 @@ function orientPhotoPixels(GdImage $image, int $orientation): GdImage {
     return $image;
 }
 
-function editSingleImage($config, $imageResource, $image_filter, array $polygons = [], array $beauty = []) {
+function editSingleImage($config, $imageResource, array $polygons = [], array $beauty = []) {
     $imageModified = false;
     // Only jpg/jpeg are supported
     if (!$imageResource) {
@@ -40,12 +40,6 @@ function editSingleImage($config, $imageResource, $image_filter, array $polygons
         } elseif ($config['picture']['flip'] === 'both') {
             imageflip($imageResource, IMG_FLIP_BOTH);
         }
-        $imageModified = true;
-    }
-
-    // apply filter
-    if ($image_filter) {
-        applyFilter($image_filter, $imageResource);
         $imageModified = true;
     }
 
