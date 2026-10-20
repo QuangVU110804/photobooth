@@ -38,12 +38,16 @@ export async function checkBeautifier({cdp,check,waitFor,openStage,logs,fixture,
   check(gpu.bounded,'Oversized stills fail before resizing or allocating export buffers');
   check(gpu.reused,'GPU resources can be recreated on the next visit');
   await openStage();
-  check(await cdp.evaluate("document.querySelectorAll('[data-beauty]').length===21&&document.querySelectorAll('[data-beauty-preset]').length===6&&document.querySelectorAll('[data-beauty-swatch]').length===10"),'UI exposes all 21 controls, 6 presets and 10 colors');
+  check(await cdp.evaluate("document.querySelectorAll('[data-beauty]').length===21&&Array.from(document.querySelectorAll('[data-beauty-preset]'),b=>b.dataset.beautyPreset).join(',')==='off,natural,glow,porcelain'&&document.querySelectorAll('[data-beauty-swatch]').length===10"),'UI exposes all 21 controls, 4 presets without Doll/Glam and 10 colors');
+  check(await cdp.evaluate("document.getElementById('hmu-beauty-title').closest('summary').parentElement.matches('details.hmu-filter-section:not([open])')"),'Beauty uses the same collapsed list section as other effects');
+  await cdp.evaluate("document.getElementById('hmu-beauty-title').closest('summary').click()");
+  check(await cdp.evaluate("Array.from(document.querySelectorAll('.hmu-beauty-group input[type=range]')).every(input=>getComputedStyle(input).accentColor==='rgb(198, 23, 84)')"),'All beauty sliders use #c61754');
   check(await cdp.evaluate("!hmuFilterStage.hasEffects&&document.getElementById('hmu-beauty-surface').hidden"),'New visitor starts Off');
-  await cdp.evaluate("document.querySelector('[data-beauty-preset=doll]').click()");
+  await cdp.evaluate("document.querySelector('[data-beauty-preset=natural]').click()");
   await waitFor(()=>cdp.evaluate("!document.querySelector('[data-beauty=smooth]').disabled&&!document.getElementById('hmu-beauty-surface').hidden"),'full GPU preview ready',45000);
   await waitFor(()=>cdp.evaluate("document.getElementById('hmu-filter-status').textContent.includes('Hiệu ứng đang')"),'face tracking');
-  check(await cdp.evaluate("document.querySelector('[data-beauty=slim]').value==='58'&&document.querySelector('[data-beauty=eyes]').value==='46'"),'Doll loads upstream face geometry settings');
+  await cdp.evaluate("document.querySelectorAll('.hmu-beauty-section').forEach(section=>section.open=true);for(const [key,value] of [['slim',58],['eyes',46]]){const input=document.querySelector('[data-beauty='+key+']');input.value=value;input.dispatchEvent(new Event('input'));}");
+  check(await cdp.evaluate("document.querySelector('[data-beauty=slim]').value==='58'&&document.querySelector('[data-beauty=eyes]').value==='46'"),'Manual face geometry controls remain available without Doll/Glam shortcuts');
   await cdp.evaluate("document.getElementById('hmu-beauty-split').click();document.getElementById('hmu-beauty-split-range').value=35;document.getElementById('hmu-beauty-split-range').dispatchEvent(new Event('input'))");
   check(await cdp.evaluate("!document.getElementById('hmu-beauty-split-range').parentElement.hidden&&document.getElementById('hmu-beauty-split').getAttribute('aria-pressed')==='true'"),'Split view is adjustable');
   await cdp.evaluate("document.getElementById('hmu-beauty-mask').click()");
@@ -74,7 +78,7 @@ export async function checkBeautifier({cdp,check,waitFor,openStage,logs,fixture,
   check(JSON.parse(exported.faceEffects)[exported.file].length>0,'Warped still keeps the selected face sticker');
   check(await cdp.evaluate("beautyVisibilityDuringEncode&&beautyStillMappedFaces>0"),'Changing tab during encoding preserves still-warped sticker anchors');
   check((await fs.stat(fixture+'/images/'+exported.file)).size>0,'GPU result reaches the real saved JPG');
-  await verifyExport(exported,'beautifier-doll');
+  await verifyExport(exported,'beautifier-custom');
   await cdp.evaluate("document.querySelector('.newpic').click()");
   await waitFor(()=>cdp.evaluate("hmuFilterStage.active&&!document.getElementById('hmu-filter-shoot').disabled"),'next session');
   check(await cdp.evaluate("!hmuFilterStage.hasEffects&&document.querySelector('[data-beauty=slim]').value==='0'"),'All geometry resets for the next visitor');

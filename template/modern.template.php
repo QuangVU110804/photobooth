@@ -7,6 +7,9 @@
 				</a>
 				<nav class="hmu-nav" aria-label="Điều hướng chính">
 					<a class="hmu-nav-link is-current" href="#start" aria-current="page">Trang chủ</a>
+					<?php if ($config['picture']['enabled'] && !$config['button']['force_buzzer']): ?>
+					<button type="button" id="hmu-guide-start" class="hmu-nav-link hmu-guide-start rotaryfocus"><i class="fa fa-question-circle" aria-hidden="true"></i> Hướng dẫn</button>
+					<?php endif; ?>
 					<?php if ($config['picture']['enabled']): ?>
 					<a class="hmu-nav-link takePic" href="#capture"><i class="<?php echo $config['icons']['take_picture']; ?>" aria-hidden="true"></i> Chụp ảnh</a>
 					<?php endif; ?>
@@ -100,3 +103,8 @@
 			<a id="cups-button" class="<?php echo $btnClass; ?> cups-button rotaryfocus" href="#" target="newwin"><i class="<?php echo $config['icons']['cups']; ?>" aria-hidden="true"></i> <span>CUPS</span></a>
 			<?php endif; ?>
 		</section>
+		<div id="hmu-guide-status" class="hmu-guide-status" role="status" aria-live="polite"></div>
+		<aside id="hmu-guide-wait" class="hmu-guide-wait" aria-label="Hướng dẫn camera" hidden>
+			<p>Cho phép truy cập camera khi trình duyệt hỏi. Hướng dẫn sẽ tiếp tục khi camera sẵn sàng; bạn có thể chọn lại nguồn camera trên màn hình.</p>
+			<button type="button" id="hmu-guide-stop">Dừng hướng dẫn</button>
+		</aside>

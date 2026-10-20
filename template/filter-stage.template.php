@@ -66,20 +66,20 @@
                     </details>
                 </section>
                 <section class="hmu-filter-group hmu-beauty-group" aria-labelledby="hmu-beauty-title">
-                    <div class="hmu-filter-card-heading">
-                        <span class="hmu-filter-card-icon"><i class="fa fa-magic" aria-hidden="true"></i></span>
-                        <div><h2 id="hmu-beauty-title">Làm đẹp &amp; Chỉnh ảnh</h2><p>21 tinh chỉnh · 6 phong cách</p></div>
-                    </div>
-                    <div id="hmu-beauty-controls"></div>
-                    <div class="hmu-beauty-actions">
-                        <button id="hmu-beauty-compare" type="button" aria-pressed="false" disabled>Giữ để xem ảnh trước</button>
-                        <button id="hmu-beauty-split" type="button" aria-pressed="false" disabled>Chia đôi</button>
-                        <button id="hmu-beauty-mask" type="button" aria-pressed="false" disabled>Vùng tác động</button>
-                        <button id="hmu-beauty-mirror" type="button" aria-pressed="false">Lật gương</button>
-                        <button id="hmu-beauty-reset" type="button" disabled>Đặt lại</button>
-                    </div>
-                    <label class="hmu-beauty-split-label" for="hmu-beauty-split-range" hidden>Vị trí so sánh<input id="hmu-beauty-split-range" type="range" min="0" max="100" value="50"></label>
-                    <p id="hmu-beauty-help" class="hmu-beauty-help" role="status">Chọn một phong cách hoặc mở nhóm để tự điều chỉnh.</p>
+                    <details class="hmu-filter-section">
+                        <summary class="rotaryfocus"><h2 id="hmu-beauty-title">Làm đẹp &amp; Chỉnh ảnh</h2></summary>
+                        <p class="hmu-filter-section-description">21 tinh chỉnh · 4 phong cách</p>
+                        <div id="hmu-beauty-controls"></div>
+                        <div class="hmu-beauty-actions">
+                            <button id="hmu-beauty-compare" type="button" aria-pressed="false" disabled>Giữ để xem ảnh trước</button>
+                            <button id="hmu-beauty-split" type="button" aria-pressed="false" disabled>Chia đôi</button>
+                            <button id="hmu-beauty-mask" type="button" aria-pressed="false" disabled>Vùng tác động</button>
+                            <button id="hmu-beauty-mirror" type="button" aria-pressed="false">Lật gương</button>
+                            <button id="hmu-beauty-reset" type="button" disabled>Đặt lại</button>
+                        </div>
+                        <label class="hmu-beauty-split-label" for="hmu-beauty-split-range" hidden>Vị trí so sánh<input id="hmu-beauty-split-range" type="range" min="0" max="100" value="50"></label>
+                        <p id="hmu-beauty-help" class="hmu-beauty-help" role="status">Chọn một phong cách hoặc mở nhóm để tự điều chỉnh.</p>
+                    </details>
                 </section>
                 <section class="hmu-filter-group hmu-filter-group-face" aria-labelledby="hmu-face-title">
                     <details class="hmu-filter-section">

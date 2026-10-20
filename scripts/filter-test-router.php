@@ -18,7 +18,7 @@ if (str_starts_with($route, '_filter-test-data/')) {
     if (!$file || !str_starts_with($file, realpath($testRoot) . DIRECTORY_SEPARATOR)) { http_response_code(404); exit; }
     header('Content-Type: image/jpeg'); readfile($file); exit;
 }
-if (!in_array($route, ['index.php', '', 'api/config.php', 'api/setFrame.php', 'api/framePreview.php', 'api/takePic.php', 'api/applyEffects.php', 'api/deletePhoto.php', 'api/previewCamera.php'], true)) return false;
+if (!in_array($route, ['index.php', '', 'api/config.php', 'api/setFrame.php', 'api/framePreview.php', 'api/takePic.php', 'api/applyEffects.php', 'api/deletePhoto.php', 'api/previewCamera.php', 'api/qrcode.php'], true)) return false;
 if ($route === 'api/setFrame.php') {
     // Frame writes are the external boundary: don't overwrite the real active frame.
     header('Content-Type: application/json');
@@ -76,6 +76,15 @@ $config['textonpicture']['enabled'] = false;
 $config['filters']['enabled'] = true;
 $config['filters']['disabled'] = [];
 $config['qr']['enabled'] = false;
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide') $config['qr']['enabled'] = true;
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide-no-colors') $config['filters']['enabled'] = false;
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide-keyboard') $config['picture']['key'] = '13';
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide-space') $config['picture']['key'] = '32';
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide-hidden-result') { $config['qr']['enabled'] = true; $config['ui']['result_buttons'] = false; }
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide-capture-fail') {
+    $config['preview']['camTakesPic'] = false;
+    $config['take_picture']['cmd'] = escapeshellarg(PHP_BINARY) . ' -r ' . escapeshellarg('exit(1);') . ' %s';
+}
 $config['print']['auto'] = false;
 $config['pre_photo']['cmd'] = '';
 $config['post_photo']['cmd'] = '';

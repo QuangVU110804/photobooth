@@ -11,6 +11,7 @@
       const B=root.HmuBeautySettings,presets=document.createElement('div');presets.className='hmu-beauty-presets';
       presets.setAttribute('role','group');presets.setAttribute('aria-label','Mẫu làm đẹp');
       for(const preset of B.PRESETS) {
+        if(['doll','glam'].includes(preset.id))continue;
         const button=document.createElement('button');button.type='button';button.dataset.beautyPreset=preset.id;
         button.textContent=preset.name;button.addEventListener('click',()=>onChange(B.preset(preset.id)));presets.append(button);
       }

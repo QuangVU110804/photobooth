@@ -17,7 +17,8 @@
     "format:phptest": "prettier test/*.php --write --plugin=@prettier/plugin-php",
     "format:css": "prettier resources/css/*.css --write",
     "test": "node scripts/run-project-tests.cjs",
-    "test:browser": "node scripts/test-filter-stage-browser.mjs --beauty-only && node scripts/test-filter-stage-browser.mjs && node scripts/test-photo-receipt-browser.mjs",
+    "test:guide": "node scripts/test-filter-stage-browser.mjs --guide-only",
+    "test:browser": "npm run test:guide && node scripts/test-filter-stage-browser.mjs --beauty-only && node scripts/test-filter-stage-browser.mjs && node scripts/test-photo-receipt-browser.mjs",
     "watch": "npm run watch:pipe",
     "watch:pipe": "powershell -ExecutionPolicy Bypass -File ./scripts/watch-pipeline.ps1",
     "watch:php": "php scripts/run-tests.php --watch --heal"
@@ -44,6 +45,7 @@
   ],
   "dependencies": {
     "@andreasremdt/simple-translator": "^2.0.4",
+    "driver.js": "1.10.2",
     "font-awesome": "^4.7.0",
     "github-markdown-css": "^5.6.1",
     "gulp": "^4.0.2",

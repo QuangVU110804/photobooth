@@ -147,6 +147,14 @@ try {
   };
   const openStage=async()=>{await cdp.evaluate("document.querySelector('.takePic').click()");await waitFor(()=>cdp.evaluate("hmuFilterStage.active && !document.getElementById('hmu-filter-shoot').disabled"),'stage camera');};
   await load();
+  if (process.argv.includes('--guide-only')) {
+    const {checkGuideTour}=await import('./guide-tour-browser-checks.mjs');
+    const screenshot=async(name)=>{await fs.mkdir(path.join(root,'reports'),{recursive:true});const shot=await cdp.send('Page.captureScreenshot',{format:'png'});await fs.writeFile(path.join(root,'reports',`${name}.png`),Buffer.from(shot.data,'base64'));};
+    await checkGuideTour({cdp,check,waitFor,load,logs,base,screenshot});
+    check(cdp.errors.length===0,`No guide browser errors: ${cdp.errors.join('; ')}`);
+    check(!/PHP (?:Warning|Fatal error|Notice|Deprecated)/i.test(serverLog),'No guide PHP diagnostics');
+    console.log(`${checks} spotlight guide checks passed`);return;
+  }
   if (process.argv.includes('--beauty-only')) {
     const {checkBeautifier}=await import('./beautifier-browser-checks.mjs');
     await checkBeautifier({cdp,check,waitFor,openStage,logs,fixture,root,fs,base,verifyExport});
@@ -492,6 +500,13 @@ try {
   console.log(`${checks} real camera/browser/PHP flow checks passed`);
   })();
 } catch(error) {
+  if(cdp && process.argv.includes('--guide-only')) {
+    console.error('Guide diagnostics:', await cdp.evaluate("({phase:document.body.dataset.hmuGuideStep,active:document.activeElement?.outerHTML.slice(0,150),popover:document.querySelector('.driver-popover')?.outerHTML.slice(0,1200),camera:document.getElementById('hmu-filter-stage')?.hidden})").catch(()=>null));
+    console.error('Guide geometry:',await cdp.evaluate("({grid:document.getElementById('kioskFrameSelector')?.getBoundingClientRect().toJSON(),popover:document.querySelector('.driver-popover')?.getBoundingClientRect().toJSON(),scroll:document.getElementById('start')?.scrollTop,height:document.getElementById('start')?.scrollHeight,padding:document.querySelector('.hmu-main')&&getComputedStyle(document.querySelector('.hmu-main')).paddingBottom,viewport:[innerWidth,innerHeight]})").catch(()=>null));
+    await fs.mkdir(path.join(root,'reports'),{recursive:true});
+    const shot=await cdp.send('Page.captureScreenshot',{format:'png'}).catch(()=>null);
+    if(shot) await fs.writeFile(path.join(root,'reports/guide-tour-failure.png'),Buffer.from(shot.data,'base64'));
+  }
   if(cdp) console.error('Browser diagnostics:',await cdp.evaluate("({captureError:window.lastCaptureError,status:document.getElementById('hmu-filter-status')?.textContent,loading:document.querySelector('.loading')?.textContent,body:document.body.innerText.slice(-600),errors:[]})").catch(()=>null),cdp.errors);
   console.error(serverLog.split('\n').filter(line=>/PHP|POST|_filter-test-data/.test(line)).join('\n'));throw error;
 } finally {
