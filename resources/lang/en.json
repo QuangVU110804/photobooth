@@ -159,6 +159,8 @@
   "general:ui_folders_lang": "Path to language resources",
   "general:ui_language": "Choose Language",
   "general:ui_notification_timeout": "Notification time",
+  "general:webserver_public_url": "Public URL / Tunnel URL (including installation subfolder)",
+  "manual:general:webserver_public_url": "Use the public HTTPS address of this installation, for example https://booth.example/photobooth. All photo receipt QR codes use this address. PHOTOBOOTH_PUBLIC_URL overrides this setting. Leave blank to use config/photo-receipt.local.php or automatic detection.",
   "general:webserver_ip": "IP address of the Photobooth web server",
   "general:webserver_ssid": "Wireless network name (SSID) used to access the photobooth",
   "get_request": "GET request",

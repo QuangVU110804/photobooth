@@ -41,6 +41,7 @@ function initPhotoSwipeFromDOM(gallerySelector) {
     }).get();
   };
   var onThumbnailClick = function onThumbnailClick(ev) {
+    if (window.hmuGallerySelection && window.hmuGallerySelection.active) return;
     ev.preventDefault();
     var element = $(ev.target).closest('a');
     var index = $(gallerySelector).find('>a').index(element);
@@ -69,12 +70,14 @@ function initPhotoSwipeFromDOM(gallerySelector) {
       closeOnScroll: config.pswp.closeOnScroll,
       closeOnOutsideClick: config.pswp.closeOnOutsideClick,
       preventSwiping: config.pswp.preventSwiping,
-      pinchToClose: config.pswp.pinchToClose,
       closeOnVerticalDrag: config.pswp.closeOnVerticalDrag,
       tapToToggleControls: config.pswp.tapToToggleControls,
       animateTransitions: config.pswp.animateTransitions,
       shareEl: false,
-      zoomEl: config.pswp.zoomEl,
+      zoomEl: false,
+      getDoubleTapZoom: function (isMouseClick, item) { return item.initialZoomLevel; },
+      maxSpreadZoom: 1,
+      pinchToClose: false,
       fullscreenEl: config.pswp.fullscreenEl,
       counterEl: config.pswp.counterEl,
       history: config.pswp.history,
@@ -84,6 +87,17 @@ function initPhotoSwipeFromDOM(gallerySelector) {
 
     // Pass data to PhotoSwipe and initialize it
     gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, options);
+    // Public gallery methods, double tap and pinch all retain the fitted size.
+    var originalZoomTo = gallery.zoomTo;
+    gallery.zoomTo = function (destination, center, speed, easing, update) {
+      return originalZoomTo.call(gallery, gallery.currItem.initialZoomLevel, center, speed, easing, update);
+    };
+    gallery.listen('initialZoomInEnd', function () {
+      if (gallery.currItem) gallery.options.maxSpreadZoom = gallery.currItem.initialZoomLevel;
+    });
+    gallery.listen('afterChange', function () {
+      if (gallery.currItem) gallery.options.maxSpreadZoom = gallery.currItem.initialZoomLevel;
+    });
 
     // Slideshow not running from the start
     setSlideshowState(ssButtonClass, false);

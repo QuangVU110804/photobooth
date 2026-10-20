@@ -13,11 +13,18 @@ function photoReceiptUrl(string $filename): string {
     if (photoReceiptFilename($filename) === null) {
         throw new InvalidArgumentException('Invalid photo filename');
     }
+    return photoReceiptBaseUrl() . '/photo.php?image=' . rawurlencode($filename);
+}
+
+function photoReceiptBaseUrl(): string {
+    global $config;
     // Include the installation subfolder when overriding this public base URL.
     $base = getenv('PHOTOBOOTH_PUBLIC_URL');
     if ($base === false || $base === '') {
         $localSettings = __DIR__ . '/../config/photo-receipt.local.php';
-        if (is_file($localSettings)) {
+        if (!empty($config['webserver']['public_url'])) {
+            $base = $config['webserver']['public_url'];
+        } elseif (is_file($localSettings)) {
             $base = require $localSettings;
         } elseif (function_exists('getPhotoboothUrl')) {
             $base = getPhotoboothUrl();
@@ -32,7 +39,7 @@ function photoReceiptUrl(string $filename): string {
         isset($parts['query']) || isset($parts['fragment'])) {
         throw new RuntimeException('PHOTOBOOTH_PUBLIC_URL must be an absolute HTTP(S) installation URL');
     }
-    return rtrim($base, '/') . '/photo.php?image=' . rawurlencode($filename);
+    return rtrim($base, '/');
 }
 
 function findPhotoReceiptImage(string $directory, string $filename): ?array {

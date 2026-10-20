@@ -112,7 +112,7 @@ var photoBooth = function () {
     initRemoteBuzzerFromDOM();
     rotaryController.focusSet('#start');
     initPhotoSwipeFromDOM('#galimages');
-    if (config.ui.shutter_animation && config.ui.shutter_cheese_img !== '') {
+    if (config.ui.shutter_animation && config.ui.shutter_cheese_img && config.ui.shutter_cheese_img !== 'none') {
       blocker.css('background-image', 'url(' + config.ui.shutter_cheese_img + ')');
     }
   };
@@ -134,15 +134,22 @@ var photoBooth = function () {
   api.stopPreviewAndCaptureFromVideo = function () {
     if (config.preview.camTakesPic) {
       if (photoboothPreview.stream) {
-        videoSensor.width = videoView.videoWidth;
-        videoSensor.height = videoView.videoHeight;
-        videoSensor.getContext('2d').drawImage(videoView, 0, 0);
+        var sourceVideo = window.hmuFilterStage && window.hmuFilterStage.countingDown ? window.hmuFilterStage.captureVideo : videoView;
+        if (!sourceVideo.videoWidth || !sourceVideo.videoHeight || !photoboothPreview.stream.getVideoTracks().some(function (track) { return track.readyState === 'live'; })) {
+          api.errorPic({ error: 'Camera chưa sẵn sàng hoặc đã ngắt kết nối. Hãy chọn lại camera.' });
+          return false;
+        }
+        videoSensor.width = sourceVideo.videoWidth;
+        videoSensor.height = sourceVideo.videoHeight;
+        videoSensor.getContext('2d').drawImage(sourceVideo, 0, 0);
       }
     }
+    if (window.hmuFilterStage) window.hmuFilterStage.endCountdown();
     if (!config.preview.killcmd || config.preview.camTakesPic) {
       photoboothTools.console.logDev('Preview: core: stopping preview from stopPreviewAndCaptureFromVideo.');
       photoboothPreview.stopPreview();
     }
+    return true;
   };
   api.shutter = {
     start: function start() {
@@ -188,7 +195,7 @@ var photoBooth = function () {
       photoboothTools.console.log(cmd, 'result: ', result);
     });
   };
-  api.thrill = function (photoStyle) {
+  api.thrill = async function (photoStyle) {
     var retry = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
     if (photoStyle !== PhotoStyle.PHOTO && photoStyle !== PhotoStyle.CHROMA) return;
     if (api.takingPic) {
@@ -220,7 +227,10 @@ var photoBooth = function () {
       photoStyle = PhotoStyle.CHROMA;
     }
     photoboothTools.console.log('PhotoStyle: ' + photoStyle);
-    photoboothPreview.startVideo(CameraDisplayMode.COUNTDOWN, retry);
+    if (window.hmuFilterStage && photoStyle === PhotoStyle.PHOTO) {
+      try { await window.hmuFilterStage.startCountdown(retry); }
+      catch (error) { api.errorPic({ error: 'Không mở được camera. Hãy kiểm tra quyền truy cập và chọn lại camera.' }); return; }
+    } else photoboothPreview.startVideo(CameraDisplayMode.COUNTDOWN, retry);
     if (config.preview.mode !== PreviewMode.NONE.valueOf() && (config.preview.style === PreviewStyle.CONTAIN.valueOf() || config.preview.style === PreviewStyle.SCALE_DOWN.valueOf()) && config.preview.showFrame) {
       if (photoStyle === PhotoStyle.PHOTO && config.picture.take_frame) {
         pictureFrame.show();
@@ -254,7 +264,7 @@ var photoBooth = function () {
   };
   api.cheese = function (photoStyle) {
     cheese.empty();
-    if (config.ui.shutter_animation && config.ui.shutter_cheese_img !== '') {
+    if (config.ui.shutter_animation && config.ui.shutter_cheese_img && config.ui.shutter_cheese_img !== 'none') {
       return;
     } else {
       cheese.text(photoboothTools.getTranslation('cheese'));
@@ -265,12 +275,13 @@ var photoBooth = function () {
   };
   api.takePic = function (photoStyle, retry) {
     remoteBuzzerClient.inProgress(true);
-    api.stopPreviewAndCaptureFromVideo();
+    if (api.stopPreviewAndCaptureFromVideo() === false) return;
     var data = {
       filter: imgFilter,
       style: photoStyle.valueOf(),
       canvasimg: videoSensor.toDataURL('image/jpeg')
     };
+    if (window.hmuFilterStage) data.captureSource = window.hmuFilterStage.captureSource;
     if (photoStyle === PhotoStyle.CHROMA) {
       data.file = chromaFile;
     }
@@ -318,11 +329,13 @@ var photoBooth = function () {
         photoboothTools.console.logDev('ERROR: Taking picture failed. Retrying. Retry: ' + retry + ' / ' + config.picture.retry_on_error);
         api.retryTakePic(data.style, retry);
       } else {
-        api.errorPic(result);
+        api.errorPic(xhr.responseJSON || { error: 'Không chụp được ảnh. Kiểm tra kết nối camera rồi thử lại.' });
       }
     });
   };
   api.errorPic = function (data) {
+    photoboothPreview.stopVideo();
+    if (window.hmuFilterStage) window.hmuFilterStage.finish();
     setTimeout(function () {
       spinner.hide();
       loading.empty();
@@ -330,10 +343,10 @@ var photoBooth = function () {
       idVideoView.hide();
       idVideoSensor.hide();
       pictureFrame.hide();
-      loader.addClass('error');
+      loader.addClass('open error');
       loading.append($('<p>').text(photoboothTools.getTranslation('error')));
       photoboothTools.console.log('An error occurred:', data.error);
-      if (config.dev.loglevel > 1) {
+      if (data && data.error) {
         loading.append($('<p class="text-muted">').text(data.error));
       }
       api.takingPic = false;
@@ -351,11 +364,13 @@ var photoBooth = function () {
     }, 500);
   };
   api.processPic = function (photoStyle, result) {
-    if (window.hmuFilterStage && photoStyle !== PhotoStyle.CHROMA && window.hmuFilterStage.face !== 'none' && !result.faceEffectsReady) {
+    if (window.hmuFilterStage && photoStyle !== PhotoStyle.CHROMA && window.hmuFilterStage.hasEffects && !result.faceEffectsReady) {
       spinner.show();
       loading.text('Đang đặt hiệu ứng lên ảnh…');
       window.hmuFilterStage.prepareEffects(photoStyle, result.file).then(function (effects) {
         result.faceEffects = JSON.stringify(effects);
+        if (window.hmuFilterStage.preparedBeauty) result.beautyEffects = JSON.stringify(window.hmuFilterStage.preparedBeauty);
+        if (window.hmuFilterStage.preparedBeautyImage) result.beautyImage = window.hmuFilterStage.preparedBeautyImage;
         result.faceEffectsReady = true;
         api.processPic(photoStyle, result);
       }).catch(function (error) { api.errorPic({ error: error.message }); });
@@ -375,6 +390,8 @@ var photoBooth = function () {
     }
     var effectsData = { file: result.file, filter: imgFilter, style: photoStyle };
     if (result.faceEffects) effectsData.faceEffects = result.faceEffects;
+    if (result.beautyEffects) effectsData.beautyEffects = result.beautyEffects;
+    if (result.beautyImage) effectsData.beautyImage = result.beautyImage;
     if (window.hmuFilterStage && photoStyle !== PhotoStyle.CHROMA && window.hmuFilterStage.frame) effectsData.frame = window.hmuFilterStage.frame;
     $.ajax({
       method: 'POST',
@@ -561,6 +578,7 @@ var photoBooth = function () {
     }, 300);
   };
   api.closeGallery = function () {
+    if (window.hmuGallerySelection) window.hmuGallerySelection.cancel();
     if (typeof globalGalleryHandle !== 'undefined') {
       globalGalleryHandle.close();
     }

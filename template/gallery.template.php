@@ -8,6 +8,16 @@
 			<div class="hmu-gallery-heading"><h1>Thư viện ảnh</h1><p>Những khoảnh khắc đáng nhớ của bạn.</p></div>
 			<a href="#" aria-label="Đóng thư viện" title="Đóng thư viện" class="<?php echo $btnClass; ?> gallery__close close_gal rotaryfocus"><i class="<?php echo $config['icons']['close']; ?>" aria-hidden="true"></i></a>
 		</div>
+        <?php if ($config['gallery']['allow_delete']): ?>
+        <div class="hmu-gallery-actions" role="group" aria-label="Chọn và xóa ảnh">
+            <button type="button" id="hmu-gallery-select" class="rotaryfocus">Chọn ảnh</button>
+            <button type="button" id="hmu-gallery-all" class="rotaryfocus" hidden>Chọn tất cả</button>
+            <button type="button" id="hmu-gallery-clear" class="rotaryfocus" hidden>Bỏ chọn</button>
+            <button type="button" id="hmu-gallery-delete" class="rotaryfocus" hidden disabled>Xóa ảnh đã chọn (0)</button>
+            <button type="button" id="hmu-gallery-cancel" class="rotaryfocus" hidden>Hủy</button>
+            <p id="hmu-gallery-status" role="status" aria-live="polite"></p>
+        </div>
+        <?php endif; ?>
 		<div class="gallery__body" id="galimages">
 			<?php if (empty($imagelist)): ?>
 			<div class="hmu-gallery-empty"><span class="hmu-gallery-empty-icon" aria-hidden="true"><i class="fa fa-camera"></i></span><h2>Chưa có khoảnh khắc nào được lưu</h2><p>Hãy bắt đầu buổi chụp đầu tiên của bạn!</p><?php if ($config['picture']['enabled'] && !$config['button']['force_buzzer']): ?><a href="#" class="hmu-button hmu-button-primary takePic"><i class="<?php echo $config['icons']['take_picture']; ?>" aria-hidden="true"></i> Chụp ảnh ngay</a><?php endif; ?></div>

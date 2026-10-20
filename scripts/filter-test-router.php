@@ -18,7 +18,7 @@ if (str_starts_with($route, '_filter-test-data/')) {
     if (!$file || !str_starts_with($file, realpath($testRoot) . DIRECTORY_SEPARATOR)) { http_response_code(404); exit; }
     header('Content-Type: image/jpeg'); readfile($file); exit;
 }
-if (!in_array($route, ['index.php', '', 'api/config.php', 'api/setFrame.php', 'api/framePreview.php', 'api/takePic.php', 'api/applyEffects.php', 'api/deletePhoto.php'], true)) return false;
+if (!in_array($route, ['index.php', '', 'api/config.php', 'api/setFrame.php', 'api/framePreview.php', 'api/takePic.php', 'api/applyEffects.php', 'api/deletePhoto.php', 'api/previewCamera.php', 'api/qrcode.php'], true)) return false;
 if ($route === 'api/setFrame.php') {
     // Frame writes are the external boundary: don't overwrite the real active frame.
     header('Content-Type: application/json');
@@ -56,10 +56,35 @@ $config['picture']['rotation'] = '0';
 $config['picture']['polaroid_effect'] = false;
 $config['picture']['take_frame'] = false;
 $config['picture']['retry_on_error'] = 0;
+if (($_COOKIE['filterTestMode'] ?? '') === 'external-url') {
+    $config['preview']['mode'] = 'url';
+    $config['preview']['camTakesPic'] = false;
+    $config['preview']['url'] = '/photobooth/scripts/fixtures/filter-face.jpg';
+}
+if (($_COOKIE['filterTestMode'] ?? '') === 'external-retry') {
+    $hardware = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($testRoot . '/hardware.php');
+    $config['preview']['mode'] = 'device_cam';
+    $config['preview']['camTakesPic'] = false;
+    $config['preview']['cmd'] = $hardware . ' start';
+    $config['preview']['killcmd'] = $hardware . ' stop';
+    $config['preview']['simpleExec'] = true;
+    $config['take_picture']['cmd'] = $hardware . ' capture %s';
+    $config['picture']['retry_on_error'] = 1;
+    $config['picture']['retry_timeout'] = '.01';
+}
 $config['textonpicture']['enabled'] = false;
 $config['filters']['enabled'] = true;
 $config['filters']['disabled'] = [];
 $config['qr']['enabled'] = false;
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide') $config['qr']['enabled'] = true;
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide-no-colors') $config['filters']['enabled'] = false;
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide-keyboard') $config['picture']['key'] = '13';
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide-space') $config['picture']['key'] = '32';
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide-hidden-result') { $config['qr']['enabled'] = true; $config['ui']['result_buttons'] = false; }
+if (($_COOKIE['filterTestMode'] ?? '') === 'guide-capture-fail') {
+    $config['preview']['camTakesPic'] = false;
+    $config['take_picture']['cmd'] = escapeshellarg(PHP_BINARY) . ' -r ' . escapeshellarg('exit(1);') . ' %s';
+}
 $config['print']['auto'] = false;
 $config['pre_photo']['cmd'] = '';
 $config['post_photo']['cmd'] = '';
@@ -79,7 +104,8 @@ if ($route === 'api/config.php') {
 }
 if (str_starts_with($route, 'api/')) {
     if ($route === 'api/framePreview.php') { require $root . '/' . $route; exit; }
-    $log = ['route' => $route, 'filter' => $_POST['filter'] ?? null, 'style' => $_POST['style'] ?? null, 'file' => $_POST['file'] ?? null, 'frame' => $_POST['frame'] ?? null, 'faceEffects' => $_POST['faceEffects'] ?? null];
+    $log = ['route' => $route, 'filter' => $_POST['filter'] ?? null, 'style' => $_POST['style'] ?? null, 'file' => $_POST['file'] ?? null, 'frame' => $_POST['frame'] ?? null, 'faceEffects' => $_POST['faceEffects'] ?? null, 'beautyEffects' => $_POST['beautyEffects'] ?? null];
+    $log['beautyImageBytes'] = isset($_POST['beautyImage']) ? strlen($_POST['beautyImage']) : 0;
     file_put_contents($testRoot . '/requests.jsonl', json_encode($log) . "\n", FILE_APPEND);
     chdir($root . '/api'); require $root . '/' . $route;
 } else { chdir($root); require $root . '/index.php'; }

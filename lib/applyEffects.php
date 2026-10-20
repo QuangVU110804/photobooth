@@ -1,14 +1,31 @@
 <?php
 
 require_once __DIR__ . '/face-effects.php';
+require_once __DIR__ . '/skin-beauty.php';
 
-function editSingleImage($config, $imageResource, $image_filter, array $polygons = []) {
+/** Match browser-decoded landmark coordinates without changing the retained JPEG. */
+function orientPhotoPixels(GdImage $image, int $orientation): GdImage {
+    if (in_array($orientation, [2, 5, 7], true)) imageflip($image, IMG_FLIP_HORIZONTAL);
+    elseif ($orientation === 4) imageflip($image, IMG_FLIP_VERTICAL);
+    $angle = [3=>180, 5=>90, 6=>-90, 7=>-90, 8=>90][$orientation] ?? 0;
+    if ($angle !== 0) {
+        $rotated = imagerotate($image, $angle, 0);
+        if ($rotated === false) throw new RuntimeException('Could not normalize photo orientation');
+        imagedestroy($image);
+        return $rotated;
+    }
+    return $image;
+}
+
+function editSingleImage($config, $imageResource, $image_filter, array $polygons = [], array $beauty = []) {
     $imageModified = false;
     // Only jpg/jpeg are supported
     if (!$imageResource) {
         $errormsg = basename($_SERVER['PHP_SELF']) . ': Could not read jpeg file. Are you taking raws?';
         logErrorAndDie($errormsg);
     }
+
+    if ($beauty) $imageModified = applySkinBeauty($imageResource, $beauty);
 
     if ($polygons) {
         applyFaceEffects($imageResource, $polygons);
@@ -76,6 +93,7 @@ function compressImage($config, $imageModified, $imageResource, $filename_tmp, $
         // preserve jpeg meta data
         if ($config['picture']['preserve_exif_data'] && $config['exiftool']['cmd']) {
             $cmd = sprintf($config['exiftool']['cmd'], escapeshellarg($filename_tmp), escapeshellarg($filename_photo));
+            if (!empty($config['picture']['orientation_normalized'])) $cmd .= ' -Orientation=1 -n';
             $cmd .= ' 2>&1'; //Redirect stderr to stdout, otherwise error messages get lost.
 
             exec($cmd, $output, $returnValue);

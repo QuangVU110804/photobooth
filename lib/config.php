@@ -211,8 +211,9 @@ if (empty($config['webserver']['ip'])) {
     $config['webserver']['ip'] = getPhotoboothIp();
 }
 
-if (empty($config['qr']['url'])) {
-    $config['qr']['url'] = getPhotoboothUrl() . '/api/download.php?image=';
-}
+require_once __DIR__ . '/photo-receipt.php';
+// All sharing surfaces use the same public installation address.
+try { $config['qr']['url'] = photoReceiptBaseUrl() . '/photo.php?image='; }
+catch (RuntimeException $error) { $config['qr']['url'] = ''; }
 
 $config['photobooth']['version'] = getPhotoboothVersion();

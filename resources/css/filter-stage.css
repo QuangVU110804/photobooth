@@ -19,9 +19,47 @@
   scroll-padding-block: 24px 140px;
 }
 .hmu-filter-stage[hidden] { display: none !important; }
+.hmu-beauty-group .hmu-filter-card-icon { background: #fff8e7; color: #926006; }
+.hmu-beauty-control { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; align-items: center; margin-top: 10px; }
+.hmu-beauty-control label { font-size: .875rem; font-weight: 600; }
+.hmu-beauty-control output { color: var(--preview-blue); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.hmu-beauty-control input { grid-column: 1 / -1; width: 100%; min-height: 44px; margin: 0; cursor: pointer; accent-color: #c61754; touch-action: pan-y; }
+.hmu-beauty-control input:disabled { cursor: default; opacity: .5; }
+.hmu-beauty-control input:focus-visible { outline: 3px solid #c61754; outline-offset: 2px; border-radius: 5px; }
+.hmu-beauty-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.hmu-beauty-actions button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--preview-border); border-radius: 10px; background: #fff; color: var(--preview-ink); font-size: .75rem; }
+.hmu-beauty-actions button[aria-pressed="true"] { background: #eaf3ff; border-color: var(--preview-blue); }
+.hmu-beauty-help { margin: 12px 0 0; font-size: .75rem; line-height: 1.6; color: var(--preview-muted); }
+.hmu-beauty-presets { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-bottom: 16px; }
+.hmu-beauty-presets button { min-height: 44px; padding: 8px 4px; border: 1px solid var(--preview-border); border-radius: 10px; background: #fff; color: var(--preview-ink); font-size: .75rem; }
+.hmu-beauty-presets button[aria-pressed="true"] { border-color: var(--preview-blue); background: #edf5ff; color: var(--preview-blue); box-shadow: inset 0 0 0 1px var(--preview-blue); }
+.hmu-beauty-section { border-top: 1px solid var(--preview-border); padding: 12px 0; }
+.hmu-beauty-section summary { cursor: pointer; min-height: 32px; font-size: .875rem; font-weight: 650; color: var(--preview-ink); }
+.hmu-beauty-section summary:focus-visible { outline: 3px solid var(--preview-blue); outline-offset: 2px; }
+.hmu-beauty-swatches { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 0 10px; }
+.hmu-beauty-swatches button { width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--preview-border); }
+.hmu-beauty-swatches button[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--preview-blue); }
+.hmu-beauty-split-label { display: block; margin-top: 12px; color: var(--preview-muted); font-size: .8125rem; }
+.hmu-beauty-split-label[hidden] { display: none; }
+.hmu-beauty-split-label input { width: 100%; min-height: 44px; accent-color: #c61754; }
+#hmu-beauty-surface[hidden] { display: none !important; }
+#hmu-beauty-surface { z-index: 2; }
+#hmu-filter-overlay { z-index: 3; }
+.hmu-camera-settings h2 { margin: 0 0 12px; font-size: 1rem; }
+.hmu-camera-settings label { display: block; margin: 12px 0 6px; font-size: .875rem; }
+.hmu-camera-settings select { width: 100%; min-height: 46px; padding: 10px; border: 1px solid var(--preview-border); border-radius: 10px; background: #fff; color: var(--preview-ink); font: inherit; }
+.hmu-camera-settings p { margin-top: 12px; font-size: .8125rem; color: var(--preview-muted); }
+.hmu-preview-frame { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; object-fit: fill; pointer-events: none; }
+#hmu-countdown-preview[hidden], .hmu-preview-frame[hidden] { display: none !important; }
+#hmu-countdown-preview { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #101828; }
+#hmu-countdown-preview .hmu-filter-camera { position: relative; width: min(100vw, calc(100dvh * var(--hmu-camera-ratio, 1.7778))); height: auto; max-height: 100%; aspect-ratio: var(--hmu-camera-ratio, 1.7778); margin: 0; border: 0; border-radius: 0; overflow: hidden; }
+#hmu-countdown-preview .hmu-filter-surface { position: absolute; inset: 0; width: 100%; height: 100%; }
+#hmu-countdown-preview .hmu-filter-surface :is(video, img, canvas) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+#hmu-countdown-preview canvas { z-index: 1; }
+.hmu-counting-down #counter, .hmu-counting-down .cheese { z-index: 4; pointer-events: none; text-shadow: 0 2px 12px #000; }
 .hmu-filter-stage *, .hmu-filter-stage *::before, .hmu-filter-stage *::after { box-sizing: border-box; }
 .hmu-filter-stage button { font: inherit; cursor: pointer; touch-action: manipulation; transition: background-color 160ms, border-color 160ms, box-shadow 160ms; }
-.hmu-filter-stage :is(button, h1):focus-visible { outline: 3px solid var(--preview-blue); outline-offset: 4px; }
+.hmu-filter-stage :is(button, select, h1):focus-visible { outline: 3px solid var(--preview-blue); outline-offset: 4px; }
 .hmu-filter-stage button:disabled { opacity: .5; cursor: default; }
 .hmu-filter-stage h1, .hmu-filter-stage h2, .hmu-filter-stage p { font-family: inherit; }
 .hmu-filter-topbar { border-bottom: 1px solid var(--preview-border); background: #fff; }
@@ -82,6 +120,11 @@
 .hmu-filter-preview-tip i { color: #a86c04; font-size: 18px; }
 .hmu-filter-settings { display: grid; gap: 16px; }
 .hmu-filter-group { min-width: 0; margin: 0; padding: 20px; border: 1px solid var(--preview-border); border-radius: 24px; background: #fff; box-shadow: 0 3px 6px #112b4604, 0 8px 24px #112b4605; }
+.hmu-filter-section > summary { min-height: 44px; padding: 10px 0; cursor: pointer; font-size: .875rem; font-weight: 650; }
+.hmu-filter-section > summary h2 { display: inline; margin: 0; font-size: inherit; font-weight: inherit; }
+.hmu-filter-section > summary:focus-visible { outline: 3px solid var(--preview-blue); outline-offset: 2px; border-radius: 4px; }
+.hmu-filter-section[open] > summary { margin-bottom: 12px; border-bottom: 1px solid var(--preview-border); }
+.hmu-filter-section-description { margin: 0 0 12px; color: var(--preview-muted); font-size: .75rem; line-height: 1.5; }
 .hmu-filter-card-heading { display: flex; align-items: center; gap: 10px; min-width: 0; margin-bottom: 16px; }
 .hmu-filter-card-heading > div { flex: 1; min-width: 0; }
 .hmu-filter-card-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 12px; background: #edf5ff; color: var(--preview-blue); font-size: 18px; }
@@ -110,6 +153,11 @@
 .hmu-filter-option[data-face="blush"]::before { background: #fff0f3 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ec4772'%3E%3Cpath d='M12 20 3.8 12a5 5 0 0 1 7.1-7l1.1 1.1L13.1 5a5 5 0 0 1 7.1 7Z'/%3E%3C/svg%3E") center / 21px no-repeat; }
 .hmu-filter-option[data-face] strong, .hmu-filter-option[data-face] span { grid-column: 2; }
 .hmu-filter-option[data-face="none"] { grid-column: 1 / -1; }
+.hmu-filter-options-list { grid-template-columns: minmax(0, 1fr); }
+.hmu-filter-options-list .hmu-filter-option { display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 12px; align-content: center; min-height: 64px; padding: 12px 28px 12px 12px; text-align: left; }
+.hmu-filter-options-list .hmu-filter-option::before { grid-column: 1; grid-row: 1 / 3; align-self: center; width: 36px; height: 36px; margin: 0; }
+.hmu-filter-options-list .hmu-filter-option strong, .hmu-filter-options-list .hmu-filter-option span { grid-column: 2; }
+.hmu-filter-options-list .hmu-filter-option[data-color][aria-pressed="true"]::after { top: calc(50% - 4px); right: 12px; }
 .hmu-filter-timer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 18px 20px; border: 1px solid var(--preview-border); border-radius: 22px; background: #fff; box-shadow: 0 3px 6px #112b4604, 0 8px 24px #112b4605; }
 .hmu-filter-timer > .hmu-filter-card-icon { background: #fff8e7; color: #a86c04; }
 .hmu-filter-timer-copy { flex: 1; min-width: 120px; }
@@ -136,6 +184,11 @@ body.hmu-filter-open { overflow: hidden; }
 body.hmu-filter-open #video--view { visibility: hidden; }
 @media (min-width: 1500px) {
   .hmu-filter-workspace { gap: 40px; }
+}
+@media (min-width: 900px) {
+  .hmu-filter-preview { position: sticky; top: 20px; align-self: start; }
+  .hmu-filter-viewfinder { min-height: 0; }
+  .hmu-filter-camera { width: min(100%, calc((100dvh - 250px) * var(--hmu-camera-ratio, 1.7778))); }
 }
 @media (max-width: 1199px) {
   .hmu-filter-topbar-inner { gap: 16px; }

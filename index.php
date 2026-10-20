@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 session_start();
 
 require_once 'lib/config.php';
@@ -85,11 +85,15 @@ if (
 
 
 
-<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=7"/>
+<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=8"/>
 <link rel="stylesheet" href="vendor/cssgram/inkwell.min.css"/>
 <link rel="stylesheet" href="vendor/cssgram/reyes.min.css"/>
 <link rel="stylesheet" href="vendor/cssgram/moon.min.css"/>
-<link rel="stylesheet" href="resources/css/filter-stage.css?v=2"/>
+<link rel="stylesheet" href="resources/css/filter-stage.css?v=7"/>
+<?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
+<link rel="stylesheet" href="node_modules/driver.js/dist/driver.css?v=1.10.2"/>
+<link rel="stylesheet" href="resources/css/guide-tour.css?v=1"/>
+<?php endif; ?>
 </head>
 
 <body class="deselect">
@@ -99,7 +103,7 @@ if (
 <?php endif; ?>
 
 <video id="video--view" class="<?php echo $config['preview']['flip']; ?> <?php echo $config['preview']['style']; ?>"
-       autoplay playsinline></video>
+       autoplay muted playsinline></video>
 <div id="blocker"></div>
 <div id="aperture"></div>
 <div id="wrapper">
@@ -126,6 +130,7 @@ if (
 
     <!-- Loader -->
     <div class="stages" id="loader">
+        <div id="hmu-countdown-preview" hidden aria-label="Camera với khung và hiệu ứng đã chọn"></div>
         <div class="loaderInner">
             <div class="spinner">
                 <i class="<?php echo $config['icons']['spinner']; ?>"></i>
@@ -221,22 +226,32 @@ if (
 </div>
 
 <script src="node_modules/whatwg-fetch/dist/fetch.umd.js"></script>
+<script src="resources/js/kiosk-zoom.js?v=1"></script>
 <script type="text/javascript" src="api/config.php?v=<?php echo $config['photobooth']['version']; ?>"></script>
 <script type="text/javascript" src="resources/js/adminshortcut.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
 <script type="text/javascript" src="node_modules/jquery/dist/jquery.min.js"></script>
 <script type="text/javascript" src="vendor/PhotoSwipe/dist/photoswipe.min.js"></script>
 <script type="text/javascript" src="vendor/PhotoSwipe/dist/photoswipe-ui-default.min.js"></script>
 <script type="text/javascript" src="resources/js/tools.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
-<script type="text/javascript" src="resources/js/photoinit.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-<script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
-<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
-<script src="resources/js/filter-session.js?v=2"></script>
-<script src="resources/js/filter-stage.js?v=3"></script>
-<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-1"></script>
+<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
+<script type="text/javascript" src="resources/js/photoinit.js?v=<?php echo $config['photobooth']['version']; ?>&gallery=2"></script>
+<script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
+<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
+<script src="resources/js/beauty-settings.js?v=1"></script>
+<script src="resources/js/filter-session.js?v=4"></script>
+<script src="resources/js/face-stickers.js?v=3"></script>
+<script src="resources/js/skin-beauty.js?v=2"></script>
+<script src="resources/js/beauty-panel.js?v=2"></script>
+<script src="resources/js/filter-stage.js?v=7"></script>
+<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2&beauty=2"></script>
 <script src="node_modules/@andreasremdt/simple-translator/dist/umd/translator.min.js"></script>
 <script type="text/javascript" src="resources/js/i18n.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
 <script type="text/javascript" src="resources/js/hmu-frames.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-2"></script>
+<script src="resources/js/gallery-selection.js?v=2"></script>
+<?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
+<script src="node_modules/driver.js/dist/driver.js.iife.js?v=1.10.2"></script>
+<script src="resources/js/guide-tour.js?v=1"></script>
+<?php endif; ?>
 
 <?php require_once('lib/services_start.php'); ?>
 </body>

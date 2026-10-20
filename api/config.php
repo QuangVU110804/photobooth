@@ -1,5 +1,6 @@
 <?php
 header('Content-Type: application/javascript');
+header('Cache-Control: no-store');
 
 require '../lib/config.php';
 

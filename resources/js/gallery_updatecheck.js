@@ -36,6 +36,7 @@ function dbUpdated() {
 }
 var checkForUpdates = function checkForUpdates() {
   if (document.hidden || statusRequestPending) return;
+  if (typeof window !== 'undefined' && window.hmuGallerySelection && window.hmuGallerySelection.active) return;
   if (photoBooth.isTimeOutPending()) {
     // If there is user interaction, do not check for updates
     photoboothTools.console.logDev('Timeout pending, waiting to refresh the standalone gallery');
@@ -48,7 +49,7 @@ var checkForUpdates = function checkForUpdates() {
     success: function success(result) {
       // Interaction can begin while the request is in flight. Leave the
       // baseline untouched so the next idle poll can still detect the change.
-      if (document.hidden || photoBooth.isTimeOutPending()) return;
+      if (document.hidden || photoBooth.isTimeOutPending() || (typeof window !== 'undefined' && window.hmuGallerySelection && window.hmuGallerySelection.active)) return;
       if (!result || !Number.isFinite(result.dbsize) || result.dbsize < 0) return;
       var currentDBSize = result.dbsize;
       if (lastDBSize != currentDBSize && lastDBSize != -1) {
