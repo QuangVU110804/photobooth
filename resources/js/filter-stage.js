@@ -2,15 +2,8 @@
   'use strict';
   const stage = document.getElementById('hmu-filter-stage');
   if (!stage || !document.getElementById('kioskFrameSelector')) return;
-  const colors = [
-    ['plain', 'Ảnh gốc', 'Tự nhiên', ''],
-    ['cssgram-inkwell', 'Inkwell', 'Đen trắng', 'inkwell'],
-    ['cssgram-reyes', 'Reyes', 'Ấm nhẹ', 'reyes'],
-    ['cssgram-moon', 'Moon', 'Hoài niệm', 'moon']
-  ].filter(([id]) => id === 'plain' || (config.filters.enabled && !config.filters.disabled.includes(id)));
   const faces = [['none', 'Không hiệu ứng', 'Tự nhiên'], ['glasses', 'Kính thời trang', 'Theo khuôn mặt'], ['blush', 'Má hồng', 'Theo khuôn mặt']];
-  const defaultColor = colors.some(([id]) => id === config.filters.defaults) ? config.filters.defaults : 'plain';
-  const session = new window.HmuCaptureSession(defaultColor);
+  const session = new window.HmuCaptureSession();
   const video = document.getElementById('hmu-filter-video');
   const ipcam = document.getElementById('hmu-filter-ipcam');
   const surface = document.getElementById('hmu-filter-surface');
@@ -79,7 +72,7 @@
     releaseBeauty(); beautyAvailable = false; beautyLoading = false;
     // Fail closed for beauty; sticker and camera state remain usable.
     if (session.phase === 'selecting') session.selectBeauty(beautySettings.preset('off'));
-    beautyHelp.textContent = 'Làm đẹp chưa khả dụng trên thiết bị này. Bạn vẫn có thể chọn màu ảnh và sticker.';
+    beautyHelp.textContent = 'Làm đẹp chưa khả dụng trên thiết bị này. Bạn vẫn có thể chọn sticker và chụp ảnh.';
     update();
   }
   function startBeautyPreview() {
@@ -113,7 +106,7 @@
     stopLoop(); stopBeautyPreview(); lastFaces = []; finalBeauty = null;
     beautyCompared = false; session.selectBeauty(settings);
     updateBeautyMask([]); beautyLoading = hasBeauty(); update();
-    if (!hasBeauty()) { releaseBeauty(); beautyHelp.textContent = 'Mặc định tắt. Có thể dùng cùng màu ảnh và sticker.'; schedulePreview(); return; }
+    if (!hasBeauty()) { releaseBeauty(); beautyHelp.textContent = 'Mặc định tắt. Có thể dùng cùng sticker.'; schedulePreview(); return; }
     beautyHelp.textContent = 'Đang chuẩn bị làm đẹp da…';
     try {
       await ensureWorker();
@@ -135,15 +128,14 @@
         stickerEffects.set(effect.id, effect);
         const item = [effect.id, effect.title, 'Sticker theo khuôn mặt']; faces.push(item); return item;
       });
-      makeButtons(items, document.getElementById('hmu-face-filters'), 'face'); update();
+      makeButtons(items, document.getElementById('hmu-face-filters')); update();
     }).catch(() => { catalogPromise = null; /* Existing effects remain available. */ });
   }
 
   function update() {
-    surface.className = 'hmu-filter-surface ' + (colors.find(([id]) => id === session.color)?.[3] || '');
+    surface.className = 'hmu-filter-surface';
     if (config.preview.flip === 'flip-horizontal') surface.classList.add('mirror-x');
     if (config.preview.flip === 'flip-vertical') surface.classList.add('mirror-y');
-    for (const button of stage.querySelectorAll('[data-color]')) button.setAttribute('aria-pressed', String(button.dataset.color === session.color));
     for (const button of stage.querySelectorAll('[data-face]')) {
       button.setAttribute('aria-pressed', String(button.dataset.face === session.face));
       button.disabled = beautyLoading || (button.dataset.face !== 'none' && (!faceAvailable || faceLoading || unavailableStickers.has(button.dataset.face)));
@@ -159,20 +151,19 @@
     beautyCompare.setAttribute('aria-pressed', String(beautyCompared));
     beautyCompare.textContent = 'Giữ để xem ảnh trước';
     for (const button of stage.querySelectorAll('button, select')) button.classList.toggle('rotaryfocus', !button.disabled);
-    document.getElementById('hmu-filter-choice').textContent = `${colors.find(([id]) => id === session.color)?.[1]} · ${faces.find(([id]) => id === session.face)?.[1]}` + (hasBeauty() ? ` · ${beautySettings.PRESETS.find(p=>p.id===session.beauty.preset)?.name || 'Làm đẹp tùy chỉnh'}` : '');
+    document.getElementById('hmu-filter-choice').textContent = `${faces.find(([id]) => id === session.face)?.[1]}` + (hasBeauty() ? ` · ${beautySettings.PRESETS.find(p=>p.id===session.beauty.preset)?.name || 'Làm đẹp tùy chỉnh'}` : '');
     draw(lastFaces);
   }
-  function makeButtons(items, container, kind) {
+  function makeButtons(items, container) {
     for (const [id, title, description] of items) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'hmu-filter-option';
-      button.dataset[kind] = id;
+      button.dataset.face = id;
       const label = document.createElement('strong'); label.textContent = title;
       const detail = document.createElement('span'); detail.textContent = description;
       button.append(label, detail);
       button.addEventListener('click', async () => {
-        if (kind === 'color') { session.select(id, session.face); update(); return; }
         const choiceToken = ++faceChoiceRevision;
         stopLoop(); lastFaces = []; updateBeautyMask([]); draw([]);
         if (id === 'none') { stickerCache?.clear(); stickerImages = null; }
@@ -183,7 +174,7 @@
           try { await ensureWorker(); }
           catch (error) {
             if (token !== revision || choiceToken !== faceChoiceRevision) return;
-            faceAvailable = false; status.textContent = 'Chưa thể bật hiệu ứng khuôn mặt. Bạn vẫn có thể chọn màu ảnh.';
+            faceAvailable = false; status.textContent = 'Chưa thể bật hiệu ứng khuôn mặt. Bạn vẫn có thể chụp ảnh.';
             faceLoading = false; update(); return;
           }
           if (token !== revision || choiceToken !== faceChoiceRevision) return;
@@ -195,15 +186,15 @@
               stickerImages = images;
             } catch (error) {
               if (token !== revision || choiceToken !== faceChoiceRevision) return;
-              unavailableStickers.add(id); faceLoading = false; session.select(session.color, 'none');
+              unavailableStickers.add(id); faceLoading = false; session.select('none');
               status.textContent = 'Không tải được sticker này. Hãy chọn hiệu ứng khác.';
               update(); schedulePreview(); return;
             }
           }
           faceLoading = false;
         }
-        session.select(session.color, id);
-        status.textContent = id === 'none' ? 'Camera đã sẵn sàng. Chọn màu ảnh và tạo dáng nhé.' : 'Hiệu ứng đang theo khuôn mặt của bạn.';
+        session.select(id);
+        status.textContent = id === 'none' ? 'Camera đã sẵn sàng. Tạo dáng và chụp ảnh nhé.' : 'Hiệu ứng đang theo khuôn mặt của bạn.';
         update(); schedulePreview(); startBeautyPreview();
       });
       container.append(button);
@@ -317,7 +308,7 @@
           if (anchors && token === revision && choiceToken === faceChoiceRevision && canPreview()) { lastFaces = anchors; updateBeautyMask(anchors); draw(anchors); status.textContent = anchors.length ? 'Hiệu ứng đang theo khuôn mặt của bạn.' : 'Chưa thấy khuôn mặt. Hãy nhìn vào camera.'; }
         }
       } catch (error) {
-        if (token === revision && canPreview()) { faceAvailable = false; session.select(session.color, 'none'); if (hasBeauty()) failBeauty(); status.textContent = 'Hiệu ứng khuôn mặt chưa khả dụng. Màu ảnh vẫn hoạt động.'; update(); }
+        if (token === revision && canPreview()) { faceAvailable = false; session.select('none'); if (hasBeauty()) failBeauty(); status.textContent = 'Hiệu ứng khuôn mặt chưa khả dụng. Bạn vẫn có thể chụp ảnh.'; update(); }
       } finally {
         if (previewPending === pending) previewPending = null;
         schedulePreview();
@@ -382,7 +373,7 @@
       if (token !== revision) return;
       status.textContent = config.preview.camTakesPic && !config.dev.demo_images
         ? 'Không mở được camera. Kiểm tra quyền camera rồi quay lại để thử lại.'
-        : 'Chưa mở được camera xem trước. Bạn vẫn có thể chọn màu và chụp bằng máy ảnh đã cấu hình.';
+        : 'Chưa mở được camera xem trước. Bạn vẫn có thể chụp bằng máy ảnh ngoài đã cấu hình.';
     }
     if (token === revision) {
       update();
@@ -398,7 +389,6 @@
       if (!permitted && previousPhase === 'idle' && session.phase === 'selecting') open();
       return !permitted;
     },
-    get color() { return session.color; },
     get face() { return session.face; },
     get hasEffects() { return session.face !== 'none' || hasBeauty(); },
     get preparedBeauty() { return finalBeauty; },
@@ -459,8 +449,7 @@
   if (window.ResizeObserver) new ResizeObserver(() => {
     if (!stage.hidden) stage.style.paddingBottom = `${stage.querySelector('.hmu-filter-confirm').getBoundingClientRect().height + 24}px`;
   }).observe(stage.querySelector('.hmu-filter-confirm'));
-  makeButtons(colors, document.getElementById('hmu-color-filters'), 'color');
-  makeButtons(faces, document.getElementById('hmu-face-filters'), 'face');
+  makeButtons(faces, document.getElementById('hmu-face-filters'));
   beautyReset.addEventListener('click', () => changeBeauty({values:beautySettings.defaults(),colors:{...beautySettings.DEFAULT_COLORS},preset:'custom'}));
   const compareState = value => {
     beautyCompared=value;beautyCompare.setAttribute('aria-pressed',String(value));

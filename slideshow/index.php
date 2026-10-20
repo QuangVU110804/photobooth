@@ -2,7 +2,6 @@
 
 require_once('../lib/config.php');
 require_once('../lib/db.php');
-require_once('../lib/filter.php');
 
 if ($config['database']['enabled']) {
 	$images = getImagesFromDB();

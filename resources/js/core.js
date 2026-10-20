@@ -31,7 +31,6 @@ var photoBooth = function () {
     gallery = $('#gallery'),
     cheese = $('.cheese'),
     resultPage = $('#result'),
-    mySideNav = $('#mySidenav'),
     ipcamView = $('#ipcam--view'),
     galimages = $('#galimages'),
     loading = $('.loading'),
@@ -60,7 +59,6 @@ var photoBooth = function () {
     notificationTimeout = config.ui.notification_timeout * 1000;
   var timeOut,
     chromaFile = '',
-    imgFilter = config.filters.defaults,
     command,
     startTime,
     endTime,
@@ -114,21 +112,6 @@ var photoBooth = function () {
     initPhotoSwipeFromDOM('#galimages');
     if (config.ui.shutter_animation && config.ui.shutter_cheese_img && config.ui.shutter_cheese_img !== 'none') {
       blocker.css('background-image', 'url(' + config.ui.shutter_cheese_img + ')');
-    }
-  };
-  api.navbar = {
-    open: function open() {
-      mySideNav.addClass('sidenav--open');
-      rotaryController.focusSet('#mySidenav');
-    },
-    close: function close() {
-      mySideNav.removeClass('sidenav--open');
-    },
-    toggle: function toggle() {
-      mySideNav.toggleClass('sidenav--open');
-      if (mySideNav.hasClass('sidenav--open')) {
-        rotaryController.focusSet('#mySidenav');
-      }
     }
   };
   api.stopPreviewAndCaptureFromVideo = function () {
@@ -204,13 +187,7 @@ var photoBooth = function () {
     }
     if (window.hmuFilterStage && !chromaFile && photoStyle !== PhotoStyle.CHROMA) {
       if (window.hmuFilterStage.request(photoStyle, retry > 0)) return;
-      imgFilter = window.hmuFilterStage.color;
-    } else if (retry === 0) {
-      imgFilter = config.filters.defaults;
-      $('#mySidenav .activeSidenavBtn').removeClass('activeSidenavBtn');
-      $('#' + imgFilter).addClass('activeSidenavBtn');
     }
-    api.navbar.close();
     api.reset();
     api.closeGallery();
     api.showResultInner(false);
@@ -277,7 +254,6 @@ var photoBooth = function () {
     remoteBuzzerClient.inProgress(true);
     if (api.stopPreviewAndCaptureFromVideo() === false) return;
     var data = {
-      filter: imgFilter,
       style: photoStyle.valueOf(),
       canvasimg: videoSensor.toDataURL('image/jpeg')
     };
@@ -309,7 +285,7 @@ var photoBooth = function () {
       totalTime = endTime - startTime;
       photoboothTools.console.log('Took ' + data.style, result);
       photoboothTools.console.logDev('Taking picture took ' + totalTime + 'ms');
-      // Keep the confirmed filter through capture processing and retries.
+      // Keep confirmed beauty and sticker choices through processing and retries.
       if (result.error) {
         photoboothTools.console.logDev('Error while taking picture.');
         if (config.picture.retry_on_error > 0 && retry < config.picture.retry_on_error) {
@@ -388,7 +364,7 @@ var photoBooth = function () {
       };
       preloadImage.src = tempImageUrl;
     }
-    var effectsData = { file: result.file, filter: imgFilter, style: photoStyle };
+    var effectsData = { file: result.file, style: photoStyle };
     if (result.faceEffects) effectsData.faceEffects = result.faceEffects;
     if (result.beautyEffects) effectsData.beautyEffects = result.beautyEffects;
     if (result.beautyImage) effectsData.beautyImage = result.beautyImage;
@@ -502,7 +478,7 @@ var photoBooth = function () {
     var preloadImage = new Image();
     preloadImage.onload = function () {
       resultPage.css({
-        'background-image': "url(".concat(imageUrl, "?filter=").concat(imgFilter, ")")
+        'background-image': "url(".concat(imageUrl, ")")
       });
       resultPage.attr('data-img', filename);
       startPage.hide();
@@ -511,9 +487,7 @@ var photoBooth = function () {
       loader.removeClass('open');
       loader.css('background-image', 'url()');
       loader.removeClass('showBackgroundImage');
-      if (!mySideNav.hasClass('sidenav--open')) {
-        rotaryController.focusSet('#result');
-      }
+      rotaryController.focusSet('#result');
     };
     preloadImage.src = imageUrl;
     if (config.post_photo.cmd) {
@@ -663,34 +637,13 @@ var photoBooth = function () {
       sendMail.addClass('mail-active').fadeIn('fast');
     }
   };
-  $('.imageFilter').on('click', function (e) {
-    e.preventDefault();
-    api.navbar.toggle();
-  });
-  $('.sidenav > div').on('click', function () {
-    $('.sidenav > div').removeAttr('class');
-    $(this).addClass('activeSidenavBtn');
-    imgFilter = $(this).attr('id');
-    var result = {
-      file: resultPage.attr('data-img')
-    };
-    photoboothTools.console.logDev('Applying filter: ' + imgFilter, result);
-    api.processPic(resultPage.attr('data-style') || PhotoStyle.PHOTO, result);
-    rotaryController.focusSet('#mySidenav');
-  });
   $('.takePic, .newpic').on('click', function (e) {
     e.preventDefault();
     api.thrill(PhotoStyle.PHOTO);
     $(this).blur();
   });
-  $('#mySidenav .closebtn').on('click', function (e) {
-    e.preventDefault();
-    api.navbar.close();
-    rotaryController.focusSet('#result');
-  });
   $('.gallery-button, .gallerybtn').on('click', function (e) {
     e.preventDefault();
-    api.navbar.close();
     api.openGallery($(this));
   });
   $('.gallery__close').on('click', function (e) {
@@ -746,9 +699,7 @@ var photoBooth = function () {
     sendMail.removeClass('mail-active').fadeOut('fast');
   });
   resultPage.on('click', function () {
-    if (!mySideNav.hasClass('sidenav--open')) {
-      rotaryController.focusSet('#result');
-    }
+    rotaryController.focusSet('#result');
   });
   qrBtn.on('click', function (e) {
     e.preventDefault();

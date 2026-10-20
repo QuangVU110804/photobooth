@@ -7,8 +7,6 @@
   const shoot = document.getElementById('hmu-filter-shoot');
   const result = document.getElementById('result');
   const loader = document.getElementById('loader');
-  const colors = document.getElementById('hmu-color-filters');
-  const colorSection = colors.closest('details');
   const qr = document.getElementById('qrCode');
   const status = document.getElementById('hmu-guide-status');
   const waiting = document.getElementById('hmu-guide-wait');
@@ -96,16 +94,8 @@
   function showCameraEntry() {
     paint('open-camera', document.querySelector('.hmu-actions .takePic'), '2 · Mở camera', 'Chạm “Chọn hiệu ứng và chụp”. Nếu trình duyệt hỏi quyền camera, hãy chọn Cho phép / Allow.');
   }
-  function showColorStep() {
-    if (!config.filters.enabled || colors.querySelectorAll('button').length < 2) return showShoot();
-    if (!colorSection.open) {
-      paint('open-colors', colorSection.querySelector('summary'), '3 · Mở bộ lọc màu', 'Chạm “Màu ảnh” để mở các lựa chọn. Làm đẹp và Hiệu ứng khuôn mặt cũng nằm ở các mục bên dưới để bạn khám phá thêm sau tour.');
-    } else {
-      paint('color', colors, '3 · Chọn màu ảnh', 'Chạm vào tông màu bạn thích, hoặc chọn “Ảnh gốc” để giữ màu tự nhiên.');
-    }
-  }
   function showShoot() {
-    paint('shoot', shoot, '4 · Tạo dáng và chụp', 'Chạm “Bắt đầu chụp ảnh”, nhìn vào camera và tạo dáng theo đếm ngược. Hướng dẫn sẽ ẩn khi chụp và tiếp tục khi ảnh sẵn sàng.');
+    paint('shoot', shoot, '3 · Tạo dáng và chụp', 'Chạm “Bắt đầu chụp ảnh”, nhìn vào camera và tạo dáng theo đếm ngược. Hướng dẫn sẽ ẩn khi chụp và tiếp tục khi ảnh sẵn sàng.');
   }
   function sync() {
     if (!running) return;
@@ -114,21 +104,20 @@
     }
     if (phase === 'camera') {
       if (stage.hidden) return stop();
-      if (!shoot.disabled) showColorStep();
-    } else if (['open-colors', 'color', 'shoot'].includes(phase)) {
+      if (!shoot.disabled) showShoot();
+    } else if (phase === 'shoot') {
       if (window.photoBooth?.takingPic) {
         captureBefore = result.getAttribute('data-img');
         release(); setPhase('capturing');
       } else if (stage.hidden) stop();
       else if (shoot.disabled) { release(); setPhase('camera'); }
-      else if ((phase === 'open-colors' && colorSection.open) || (phase === 'color' && !colorSection.open)) showColorStep();
     } else if (phase === 'capturing') {
       if (loader.classList.contains('error')) return stop('Lần chụp chưa thành công. Hãy xử lý thông báo trên màn hình và thử lại.');
       if (visible(result) && result.getAttribute('data-img') && result.getAttribute('data-img') !== captureBefore) {
         const target = result.querySelector('.qrbtn');
         if (!target || !config.qr.enabled || !config.ui.result_buttons) return stop('Ảnh đã sẵn sàng. Hướng dẫn chụp ảnh đã hoàn tất.');
         if (result.querySelector('.resultInner').classList.contains('show')) {
-          paint('qr', target, '5 · Nhận ảnh trên điện thoại', 'Chạm nút QR để mở mã nhận ảnh.');
+          paint('qr', target, '4 · Nhận ảnh trên điện thoại', 'Chạm nút QR để mở mã nhận ảnh.');
         }
       }
     } else if (phase === 'qr' && qr?.classList.contains('modal--show')) stop();
@@ -147,7 +136,7 @@
           if (description) description.textContent = 'Chưa lưu được khung. Hãy chạm chọn lại khung hoặc dùng nút × để dừng hướng dẫn.';
         }
       });
-    } else if (phase === 'color' && target.closest('[data-color]:not(:disabled)')) showShoot();
+    }
     sync();
   }
   function rememberShortcut(event) {
@@ -179,7 +168,7 @@
     document.addEventListener('click', onAction);
     document.addEventListener('keydown', onKey, true);
     observer = new MutationObserver(sync);
-    for (const node of [stage, result, result.querySelector('.resultInner'), loader, shoot, colorSection, qr]) {
+    for (const node of [stage, result, result.querySelector('.resultInner'), loader, shoot, qr]) {
       if (node) observer.observe(node, {attributes:true, attributeFilter:['hidden','style','class','disabled','data-img','open']});
     }
     showFrames();

@@ -301,41 +301,36 @@ if ($isCoreAffected) {
     }, $diagnostic);
 
     // ------------------------------------------------------------------
-    // STEP 4: Image Processing & Filter Logic Functional Verification
+    // STEP 4: Remaining Image Processing Functional Verification
     // ------------------------------------------------------------------
-    runPipelineStep("Image Filter Engine & GD Logic Smoke Test", function(DiagnosticEngine $diag) use ($rootDir) {
-        $filterFile = $rootDir . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'filter.php';
-        if (!file_exists($filterFile)) {
-            $diag->recordFailure("IMAGE_FILTER", $filterFile, 1, "Missing lib/filter.php", "SEV-1");
+    runPipelineStep("Face Effects, Flip & GD Resize Smoke Test", function(DiagnosticEngine $diag) use ($rootDir) {
+        $effectsFile = $rootDir . '/lib/applyEffects.php';
+        if (!extension_loaded('gd')) {
+            $diag->recordFailure("GD_ERROR", $effectsFile, 1, "GD extension is required for image processing", "SEV-1");
             return false;
         }
-
-        require_once $filterFile;
-
-        // Create 10x10 mock test image resource
-        $testImg = imagecreatetruecolor(10, 10);
-        if (!$testImg) {
-            $diag->recordFailure("GD_ERROR", $filterFile, 59, "GD extension unable to create image resource", "SEV-2");
-            return false;
-        }
-
-        // applyFilter modifies resource in-place
+        require_once $effectsFile;
+        require_once $rootDir . '/lib/resize.php';
+        $testImg = imagecreatetruecolor(100, 60);
+        $resized = null;
         try {
-            applyFilter(FILTER_PLAIN, $testImg);
-            applyFilter(FILTER_GRAYSCALE, $testImg);
-
-            if (!($testImg instanceof \GdImage) && !is_resource($testImg)) {
-                $diag->recordFailure("LOGIC_ASSERTION", $filterFile, 59, "applyFilter corrupted the GD image handle", "SEV-2");
-                imagedestroy($testImg);
-                return false;
+            imagefill($testImg, 0, 0, imagecolorallocate($testImg, 40, 100, 180));
+            $settings = ['picture' => ['flip' => 'horizontal', 'rotation' => '0', 'polaroid_effect' => false, 'take_frame' => false]];
+            [$testImg, $modified] = editSingleImage($settings, $testImg, [['points' => [[.1,.2],[.3,.2],[.3,.8],[.1,.8]], 'color' => 'ink']]);
+            if (!$modified || (imagecolorat($testImg, 80, 30) & 0xffffff) !== 0x12243a || (imagecolorat($testImg, 20, 30) & 0xffffff) !== 0x2864b4) {
+                throw new RuntimeException('Face geometry or horizontal flip changed source colors incorrectly');
             }
-
-            imagedestroy($testImg);
+            $resized = resizeImage($testImg, 50, 50);
+            if ($resized === $testImg || imagesx($resized) !== 50 || imagesy($resized) !== 30 || (imagecolorat($resized, 40, 15) & 0xffffff) !== 0x12243a) {
+                throw new RuntimeException('Resize lost dimensions, ownership or face pixels');
+            }
         } catch (\Throwable $e) {
-            $diag->recordFailure("IMAGE_FILTER_EXCEPTION", $e->getFile(), $e->getLine(), $e->getMessage(), "SEV-2");
+            $diag->recordFailure("IMAGE_PROCESSING_EXCEPTION", $e->getFile(), $e->getLine(), $e->getMessage(), "SEV-2");
             return false;
+        } finally {
+            if ($resized instanceof \GdImage) imagedestroy($resized);
+            imagedestroy($testImg);
         }
-
         return true;
     }, $diagnostic);
 

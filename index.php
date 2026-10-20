@@ -21,7 +21,6 @@ if (
     ((isset($_SESSION['auth']) && $_SESSION['auth'] === true) || !$config['protect']['index'])
 ) {
     require_once 'lib/db.php';
-    require_once 'lib/filter.php';
 
     if ($config['database']['enabled']) {
         $images = getImagesFromDB();
@@ -60,6 +59,7 @@ if (
 
     <!-- Fullscreen Mode on old iOS-Devices when starting photobooth from homescreen -->
     <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
 
     <link rel="stylesheet" href="node_modules/normalize.css/normalize.css"/>
@@ -86,10 +86,7 @@ if (
 
 
 <link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=8"/>
-<link rel="stylesheet" href="vendor/cssgram/inkwell.min.css"/>
-<link rel="stylesheet" href="vendor/cssgram/reyes.min.css"/>
-<link rel="stylesheet" href="vendor/cssgram/moon.min.css"/>
-<link rel="stylesheet" href="resources/css/filter-stage.css?v=7"/>
+<link rel="stylesheet" href="resources/css/filter-stage.css?v=8"/>
 <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
 <link rel="stylesheet" href="node_modules/driver.js/dist/driver.css?v=1.10.2"/>
 <link rel="stylesheet" href="resources/css/guide-tour.css?v=1"/>
@@ -110,22 +107,6 @@ if (
     <?php include('template/' . $config['ui']['style'] . '.template.php'); ?>
     <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
         <?php include('template/filter-stage.template.php'); ?>
-    <?php endif; ?>
-
-    <!-- image Filter Pane -->
-    <?php if ($config['filters']['enabled']): ?>
-        <div id="mySidenav" class="dragscroll sidenav rotarygroup">
-            <a href="#" class="<?php echo $btnClass; ?> closebtn rotaryfocus"><i class="<?php echo $config['icons']['close']; ?>"></i></a>
-
-            <?php foreach (AVAILABLE_FILTERS as $filter => $name): ?>
-                <?php if (!in_array($filter, $config['filters']['disabled'])): ?>
-                    <div id="<?= $filter ?>"
-                         class="filter <?php if ($config['filters']['defaults'] === $filter) echo 'activeSidenavBtn'; ?>">
-                        <a class="btn btn--small rotaryfocus" href="#"><?= $name ?></a>
-                    </div>
-                <?php endif; ?>
-            <?php endforeach; ?>
-        </div>
     <?php endif; ?>
 
     <!-- Loader -->
@@ -184,11 +165,6 @@ if (
 
                 <?php endif; ?>
 
-                <?php if ($config['filters']['enabled']): ?>
-                    <a href="#" class="<?php echo $btnClass; ?> imageFilter rotaryfocus"><i class="<?php echo $config['icons']['filter']; ?>"></i> <span
-                                data-i18n="selectFilter"></span></a>
-                <?php endif; ?>
-
                 <?php if ($config['picture']['allow_delete']): ?>
                     <a href="#" class="<?php echo $btnClass; ?> deletebtn <?php if ($config['delete']['no_request']) {
                         echo 'rotaryfocus';
@@ -233,24 +209,24 @@ if (
 <script type="text/javascript" src="vendor/PhotoSwipe/dist/photoswipe.min.js"></script>
 <script type="text/javascript" src="vendor/PhotoSwipe/dist/photoswipe-ui-default.min.js"></script>
 <script type="text/javascript" src="resources/js/tools.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
+<script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3"></script>
 <script type="text/javascript" src="resources/js/photoinit.js?v=<?php echo $config['photobooth']['version']; ?>&gallery=2"></script>
 <script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
 <script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
 <script src="resources/js/beauty-settings.js?v=1"></script>
-<script src="resources/js/filter-session.js?v=4"></script>
+<script src="resources/js/filter-session.js?v=5"></script>
 <script src="resources/js/face-stickers.js?v=3"></script>
 <script src="resources/js/skin-beauty.js?v=2"></script>
 <script src="resources/js/beauty-panel.js?v=2"></script>
-<script src="resources/js/filter-stage.js?v=7"></script>
-<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2&beauty=2"></script>
+<script src="resources/js/filter-stage.js?v=8"></script>
+<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3&beauty=2"></script>
 <script src="node_modules/@andreasremdt/simple-translator/dist/umd/translator.min.js"></script>
 <script type="text/javascript" src="resources/js/i18n.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
 <script type="text/javascript" src="resources/js/hmu-frames.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-2"></script>
 <script src="resources/js/gallery-selection.js?v=2"></script>
 <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
 <script src="node_modules/driver.js/dist/driver.js.iife.js?v=1.10.2"></script>
-<script src="resources/js/guide-tour.js?v=1"></script>
+<script src="resources/js/guide-tour.js?v=2"></script>
 <?php endif; ?>
 
 <?php require_once('lib/services_start.php'); ?>

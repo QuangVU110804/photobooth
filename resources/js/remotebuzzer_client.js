@@ -144,8 +144,10 @@ function initRemoteBuzzerFromDOM() {
     };
     api.focusSet = function (id) {
       if (this.enabled()) {
+        // Delayed gallery callbacks must keep rotary navigation in the open dialog.
+        if ($('#hmu-filter-stage').is(':visible')) id = '#hmu-filter-stage';
         this.focusRemove();
-        $(id).find('.rotaryfocus').first().addClass('focused');
+        $(id).find('.rotaryfocus:visible').not(':disabled').first().addClass('focused');
       }
     };
     api.focusRemove = function () {

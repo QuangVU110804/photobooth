@@ -138,11 +138,6 @@
 .hmu-filter-option span { display: block; margin-top: 3px; color: var(--preview-muted); font-size: .6875rem; line-height: 1.4; }
 .hmu-filter-option[aria-pressed="true"] { border-color: var(--preview-blue); background: #f3f8fd; box-shadow: inset 0 0 0 1px var(--preview-blue); }
 .hmu-filter-option[aria-pressed="true"] strong { color: var(--preview-blue); }
-.hmu-filter-option[data-color]::before { content: ""; display: block; width: 42px; height: 42px; margin: 0 auto 8px; border-radius: 50%; background: linear-gradient(35deg, #25c6ed, #6252ff); box-shadow: inset 0 0 0 1px #112b4608; }
-.hmu-filter-option[data-color="cssgram-inkwell"]::before { background: linear-gradient(40deg, #353535, #d8d8d8); }
-.hmu-filter-option[data-color="cssgram-reyes"]::before { background: linear-gradient(40deg, #ffbc67, #ffe5b3); }
-.hmu-filter-option[data-color="cssgram-moon"]::before { background: linear-gradient(40deg, #98a4b5, #e7e4e1); }
-.hmu-filter-option[data-color][aria-pressed="true"]::after { content: ""; position: absolute; top: 9px; right: 10px; width: 9px; height: 6px; border: solid var(--preview-blue); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
 .hmu-filter-option:hover:not(:disabled) { border-color: #8db2d8; background: #f3f8fd; }
 .hmu-filter-option:active:not(:disabled) { background: #e4f0fc; }
 .hmu-filter-group-face .hmu-filter-card-icon, .hmu-filter-group-face .hmu-filter-card-tag { color: #be1651; background: #fff0f5; }
@@ -157,7 +152,6 @@
 .hmu-filter-options-list .hmu-filter-option { display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 12px; align-content: center; min-height: 64px; padding: 12px 28px 12px 12px; text-align: left; }
 .hmu-filter-options-list .hmu-filter-option::before { grid-column: 1; grid-row: 1 / 3; align-self: center; width: 36px; height: 36px; margin: 0; }
 .hmu-filter-options-list .hmu-filter-option strong, .hmu-filter-options-list .hmu-filter-option span { grid-column: 2; }
-.hmu-filter-options-list .hmu-filter-option[data-color][aria-pressed="true"]::after { top: calc(50% - 4px); right: 12px; }
 .hmu-filter-timer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 18px 20px; border: 1px solid var(--preview-border); border-radius: 22px; background: #fff; box-shadow: 0 3px 6px #112b4604, 0 8px 24px #112b4605; }
 .hmu-filter-timer > .hmu-filter-card-icon { background: #fff8e7; color: #a86c04; }
 .hmu-filter-timer-copy { flex: 1; min-width: 120px; }

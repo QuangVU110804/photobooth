@@ -49,6 +49,19 @@ function effectsConfig($directory) {
 
 // Child processes execute the actual API with config already loaded, allowing
 // die() and HTTP status assertions without a server or production data writes.
+if (($argv[1] ?? '') === '--configuration') {
+    $app = $argv[2];
+    $_SERVER['DOCUMENT_ROOT'] = dirname($app);
+    $_SERVER['HTTP_HOST'] = 'localhost';
+    require $app . '/lib/config.php';
+    require $app . '/lib/configsetup.inc.php';
+    $fields = [];
+    foreach ($configsetup as $section) foreach ($section as $setting) {
+        if (is_array($setting) && isset($setting['name'])) $fields[] = $setting['name'];
+    }
+    echo json_encode(['filters' => array_key_exists('filters', $config), 'icon' => array_key_exists('filter', $config['icons']), 'fields' => $fields]);
+    exit;
+}
 if (($argv[1] ?? '') === '--endpoint') {
     $directory = $argv[2];
     $root = $argv[3];
@@ -130,6 +143,8 @@ copy($root . '/resources/face-effects/catalog.json', $directory . '/app/resource
 foreach (glob($root . '/resources/face-effects/stickers/*.png') as $source) copy($source, $directory . '/app/resources/face-effects/stickers/' . basename($source));
 foreach (['applyEffects.php', 'takePic.php'] as $endpoint) copy($root . '/api/' . $endpoint, $directory . '/app/api/' . $endpoint);
 copy($root . '/config/config.inc.php', $directory . '/app/config/config.inc.php');
+copy($root . '/package.json', $directory . '/app/package.json');
+file_put_contents($directory . '/app/config/my.config.inc.php', '<?php $config["filters"]=["enabled"=>true,"defaults"=>"cssgram-reyes"]; $config["icons"]["filter"]="retired-icon";');
 $frame = imagecreatetruecolor(120, 80);
 imagealphablending($frame, false); imagesavealpha($frame, true);
 imagefill($frame, 0, 0, imagecolorallocatealpha($frame, 0, 0, 0, 127));
@@ -143,41 +158,26 @@ $notPng = effectsSolid();
 imagejpeg($notPng, $directory . '/app/resources/img/frames/Not PNG.png', 100);
 imagedestroy($notPng);
 try {
+    $process = proc_open([PHP_BINARY, __FILE__, '--configuration', $directory . '/app'], [0 => ['pipe','r'], 1 => ['pipe','w'], 2 => ['pipe','w']], $pipes);
+    fclose($pipes[0]);
+    $configurationBody = stream_get_contents($pipes[1]); fclose($pipes[1]);
+    $configurationErrors = stream_get_contents($pipes[2]); fclose($pipes[2]);
+    $configurationExit = proc_close($process);
+    $loaded = json_decode($configurationBody, true);
+    effectsCheck($configurationExit === 0 && !preg_match('/Warning|Fatal error|Notice|Deprecated/i', $configurationBody . $configurationErrors), 'Merged legacy configuration and admin settings load without diagnostics');
+    effectsCheck(($loaded['filters'] ?? true) === false && ($loaded['icon'] ?? true) === false, 'Private legacy settings cannot reactivate or expose color filters');
+    effectsCheck(!array_intersect(['filters[enabled]', 'filters[defaults]', 'filters[disabled]', 'icons[filter]'], $loaded['fields'] ?? []), 'Admin settings expose no retired color controls');
     effectsConfig($directory);
-    require_once $root . '/lib/filter.php';
     require_once $root . '/lib/applyEffects.php';
     require_once $root . '/lib/applyFrame.php';
     require_once $root . '/lib/resize.php';
     require_once $root . '/lib/polaroid.php';
 
-    // Hand-calculated sRGB fixtures: SVG sepia matrix; CSS contrast about .5;
-    // CSS multiplicative brightness; Rec.709 gray; W3C soft-light piecewise
-    // polynomial/sqrt. Literal outputs catch swapped blend/filter order,
-    // incorrect luminance weights, additive brightness and missed clipping.
-    $pixels = [[0, 0, 0], [255, 255, 255], [40, 100, 180], [180, 60, 20], [250, 220, 150], [18, 36, 58]];
-    $expected = [
-        'cssgram-inkwell' => [[0,0,0], [255,255,255], [106,106,106], [95,95,95], [250,250,250], [30,30,30]],
-        'cssgram-reyes' => [[19,19,19], [236,236,236], [106,132,165], [173,107,74], [235,235,191], [62,70,77]],
-        'cssgram-moon' => [[54,54,54], [255,255,255], [117,117,117], [105,105,105], [255,255,255], [55,55,55]],
-    ];
-    foreach ($expected as $filter => $outputs) {
-        effectsCheck(isset(AVAILABLE_FILTERS[$filter]), "$filter is selectable");
-        foreach ($pixels as $i => $rgb) {
-            $image = effectsSolid($rgb, 1, 1);
-            applyFilter($filter, $image);
-            effectsCheck(effectsNear(effectsPixel($image, 0, 0), $outputs[$i]), "$filter maps " . json_encode($rgb) . ' to ' . json_encode($outputs[$i]) . ', got ' . json_encode(effectsPixel($image, 0, 0)));
-            imagedestroy($image);
-        }
-        $image = effectsSolid([40,100,180], 1, 1);
-        imagealphablending($image, false);
-        imagesetpixel($image, 0, 0, imagecolorallocatealpha($image, 40, 100, 180, 63));
-        applyFilter($filter, $image);
-        effectsCheck(imagecolorsforindex($image, imagecolorat($image, 0, 0))['alpha'] === 63, "$filter preserves source alpha");
-        imagedestroy($image);
-    }
+    // With optional edits off, pixel values and the unmodified flag survive.
+    $plainConfig = $config; $plainConfig['picture']['flip'] = 'off';
     $image = effectsSolid();
-    applyFilter('plain', $image);
-    effectsCheck(effectsPixel($image, 0, 0) === [40,100,180], 'Legacy plain filter remains unchanged');
+    [$image, $modified] = editSingleImage($plainConfig, $image);
+    effectsCheck(!$modified && effectsPixel($image, 0, 0) === [40,100,180], 'No-color pipeline preserves pixels without marking an edit');
     imagedestroy($image);
 
     $polygon = ['points' => [[.05,.2], [.35,.2], [.35,.8], [.05,.8]], 'color' => 'ink'];
@@ -218,13 +218,13 @@ try {
             imagedestroy($image);
         }
         $image = effectsSolid();
-        [$image, $modified] = editSingleImage($config, $image, 'cssgram-reyes', [$polygon]);
-        effectsCheck($modified && effectsNear(effectsPixel($image, 100, 40), [62,70,77]), 'Face geometry is filtered after raw horizontal flip');
-        effectsCheck(effectsNear(effectsPixel($image, 20, 40), [106,132,165]), 'Flip moves geometry away from original side');
+        [$image, $modified] = editSingleImage($config, $image, [$polygon]);
+        effectsCheck($modified && effectsPixel($image, 100, 40) === [18,36,58], 'Face geometry survives raw horizontal flip without color changes');
+        effectsCheck(effectsPixel($image, 20, 40) === [40,100,180], 'Flip moves geometry away from original side');
         imagedestroy($image);
         $plainConfig = $config; $plainConfig['picture']['flip'] = 'off';
         $image = effectsSolid();
-        [$image, $modified] = editSingleImage($plainConfig, $image, false, [$polygon]);
+        [$image, $modified] = editSingleImage($plainConfig, $image, [$polygon]);
         effectsCheck($modified && effectsPixel($image, 20, 40) === [18,36,58], 'Face-only edit marks image modified so compression persists it');
         imagedestroy($image);
     }
@@ -232,6 +232,18 @@ try {
     $rawImage = effectsSolid();
     imagejpeg($rawImage, $directory . '/tmp/shot.jpg', 100);
     imagedestroy($rawImage);
+    // Retired color requests must never create outputs or modify the retained raw.
+    foreach (['cssgram-reyes', 'cssgram-moon', 'grayscale', '', [], ['plain'], null, false] as $retiredFilter) {
+        $before = effectsSnapshot($directory);
+        [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo', 'filter' => $retiredFilter]);
+        effectsCheck($status === 400 && isset($body['error']), 'Retired or malformed color filter returns HTTP 400');
+        effectsCheck(effectsSnapshot($directory) === $before, 'Rejected color request performs no writes');
+    }
+    foreach ([[], ['filter' => 'plain']] as $compatibility) {
+        [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo'] + $compatibility, ['picture' => ['flip' => 'off']]);
+        effectsCheck($status === 200 && ($body['file'] ?? '') === 'shot.jpg', 'Omitted color field and legacy plain each succeed');
+        effectsCheck(hash_file('sha256', $directory . '/images/shot.jpg') === hash_file('sha256', $directory . '/tmp/shot.jpg'), 'No-color pipeline preserves JPEG bytes when no edits are requested');
+    }
     $before = effectsSnapshot($directory);
     foreach (['[]', '{', [], str_repeat(' ',65537) . '{}', json_encode(['unusedfile.jpg' => [$polygon]])] as $raw) {
         [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo', 'filter' => 'plain', 'faceEffects' => $raw]);
@@ -254,12 +266,12 @@ try {
     $before = effectsSnapshot($directory);
     [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo', 'filter' => 'plain', 'faceEffects' => json_encode(['shot.jpg' => [$polygon, $badPolygon]])]);
     effectsCheck($status === 400 && isset($body['error']) && effectsSnapshot($directory) === $before, 'Invalid later polygon rejects entire request before any geometry or writes');
-    [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo', 'filter' => 'cssgram-reyes', 'faceEffects' => json_encode($map)]);
+    [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo', 'faceEffects' => json_encode($map)]);
     effectsCheck($status === 200 && ($body['file'] ?? '') === 'shot.jpg', 'Single endpoint succeeds');
     if (is_file($directory . '/images/shot.jpg')) {
         $saved = imagecreatefromjpeg($directory . '/images/shot.jpg');
-        effectsCheck(effectsNear(effectsPixel($saved, 100, 40), [62,70,77], 4), 'Single endpoint persists filtered flipped face');
-        effectsCheck(effectsNear(effectsPixel($saved, 20, 40), [106,132,165], 4), 'Single endpoint persists CSSgram on background');
+        effectsCheck(effectsNear(effectsPixel($saved, 100, 40), [18,36,58], 4), 'Single endpoint persists flipped face');
+        effectsCheck(effectsNear(effectsPixel($saved, 20, 40), [40,100,180], 4), 'Single endpoint preserves background colors');
         imagedestroy($saved);
     } else effectsCheck(false, 'Single endpoint writes photo');
 
@@ -269,11 +281,11 @@ try {
         effectsCheck($status === 400 && isset($body['error']), 'Invalid session frame returns HTTP 400 JSON');
         effectsCheck(effectsSnapshot($directory) === $before, 'Invalid frame touches no images or copies');
     }
-    [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo', 'filter' => 'cssgram-reyes', 'faceEffects' => json_encode($map), 'frame' => 'Session Frame.png']);
+    [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo', 'faceEffects' => json_encode($map), 'frame' => 'Session Frame.png']);
     effectsCheck($status === 200, 'Session frame photo succeeds');
     $saved = imagecreatefromjpeg($directory . '/images/shot.jpg');
-    effectsCheck(effectsNear(effectsPixel($saved, 10, 10), [230,30,80], 4), 'Selected alpha frame applied after flip/color despite take_frame false');
-    effectsCheck(effectsNear(effectsPixel($saved, 100, 40), [62,70,77], 4), 'Transparent frame leaves face visible');
+    effectsCheck(effectsNear(effectsPixel($saved, 10, 10), [230,30,80], 4), 'Selected alpha frame applied after flip despite take_frame false');
+    effectsCheck(effectsNear(effectsPixel($saved, 100, 40), [18,36,58], 4), 'Transparent frame leaves face visible');
     imagedestroy($saved);
     [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo', 'filter' => 'plain']);
     $saved = imagecreatefromjpeg($directory . '/images/shot.jpg');
@@ -291,9 +303,9 @@ try {
     effectsCheck(isset($body['error']) && hash_file('sha256', $directory . '/images/disposable.jpg') === $finalHash, 'Repeat request without raw input cannot re-filter saved image');
 
     $image = effectsSolid(); imagejpeg($image, $directory . '/tmp/chroma.jpg', 100); imagedestroy($image);
-    [$status, $body] = effectsEndpoint($directory, ['file' => 'chroma.jpg', 'style' => 'chroma', 'filter' => 'cssgram-moon', 'faceEffects' => json_encode(['chroma.jpg' => [$polygon]])], ['live_keying' => ['show_all' => true], 'keying' => ['size' => '120px']]);
+    [$status, $body] = effectsEndpoint($directory, ['file' => 'chroma.jpg', 'style' => 'chroma', 'faceEffects' => json_encode(['chroma.jpg' => [$polygon]])], ['live_keying' => ['show_all' => true], 'keying' => ['size' => '120px']]);
     $saved = imagecreatefromjpeg($directory . '/images/chroma.jpg');
-    effectsCheck($status === 200 && effectsNear(effectsPixel($saved, 100, 40), [55,55,55], 4), 'Chroma style retains the same geometry/filter contract');
+    effectsCheck($status === 200 && effectsNear(effectsPixel($saved, 100, 40), [18,36,58], 4), 'Chroma style retains face geometry without color changes');
     imagedestroy($saved);
 
     // Beauty is independent of stickers; verify real exports and validation before writes.
@@ -379,12 +391,10 @@ try {
 
     if (in_array('--benchmark', $argv, true)) {
         foreach ([[1280,720], [1800,1200]] as [$width,$height]) {
-            foreach (array_keys($expected) as $filter) {
-                $image = effectsSolid([40,100,180], $width, $height);
-                $start = hrtime(true); applyFilter($filter, $image);
-                printf("BENCH %s %dx%d: %.3f s\n", $filter, $width, $height, (hrtime(true)-$start)/1e9);
-                imagedestroy($image);
-            }
+            $image = effectsSolid([40,100,180], $width, $height);
+            $start = hrtime(true); [$image] = editSingleImage($config, $image, [$polygon]);
+            printf("BENCH face/flip %dx%d: %.3f s\n", $width, $height, (hrtime(true)-$start)/1e9);
+            imagedestroy($image);
         }
     }
 } finally {

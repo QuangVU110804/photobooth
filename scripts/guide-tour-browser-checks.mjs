@@ -38,14 +38,12 @@ export async function checkGuideTour({ cdp, check, waitFor, load, logs, base, sc
   const openCamera = async () => {
     await click('.hmu-actions .takePic');
     await waitFor(() => evaluate("hmuFilterStage.active && !document.getElementById('hmu-filter-shoot').disabled"), 'camera is ready');
-    await waitFor(async () => ['open-colors','color'].includes(await phase()), 'guide color controls');
+    await at('shoot');
     check(await evaluate("document.getElementById('hmu-filter-stage').contains(document.querySelector('.driver-popover'))"), 'Camera spotlight instructions belong to the active accessible dialog');
   };
-  const chooseColor = async () => {
-    if (await phase() === 'open-colors') await click('[aria-labelledby="hmu-color-title"] summary');
-    await at('color');
-    check(await evaluate("document.getElementById('hmu-filter-stage').contains(document.querySelector('.driver-popover'))"), 'Color choice instructions remain inside the camera dialog');
-    await click('[data-color="plain"]'); await at('shoot');
+  const verifyShootStep = async () => {
+    await at('shoot');
+    check(await evaluate("!document.getElementById('hmu-color-filters')&&!document.querySelector('[data-color]')"), 'Guide proceeds to capture without retired color controls');
     check(await evaluate("document.getElementById('hmu-filter-stage').contains(document.querySelector('.driver-popover'))"), 'Capture instructions and close control remain inside the camera dialog');
     check(await evaluate("(()=>{const p=document.querySelector('.driver-popover');return p.offsetHeight-p.clientHeight<=2;})()"), 'Capture instructions have no horizontal scrollbar');
   };
@@ -66,15 +64,14 @@ export async function checkGuideTour({ cdp, check, waitFor, load, logs, base, sc
   await escape(); await at('idle');
   check(await evaluate("hmuFilterStage.active && !document.querySelector('.driver-overlay')"), 'Escape closes only the guide and leaves camera usable');
   await evaluate("document.getElementById('hmu-filter-back').click()");
-  await start(); await selectFrame(); await openCamera(); await chooseColor();
+  await start(); await selectFrame(); await openCamera(); await verifyShootStep();
   await click('.driver-popover-close-btn'); await at('idle');
   check(await evaluate("document.activeElement===document.getElementById('hmu-filter-shoot') && !document.getElementById('hmu-filter-shoot').disabled"), 'Closing restores focus to a usable capture button');
   await evaluate("document.getElementById('hmu-filter-back').click()");
 
   await start(); await selectFrame(); await openCamera();
-  // A target that exists inside a closed accordion must not advance the guide.
-  check(['open-colors','color'].includes(await phase()), 'Tour waits for a real color choice and handles an already open accordion');
-  await chooseColor();
+  check(await phase() === 'shoot', 'Camera readiness advances directly to the real capture button');
+  await verifyShootStep();
   await screenshot('guide-camera');
   const requestsBefore = (await logs()).filter(row => row.route === 'api/takePic.php').length;
   await click('#hmu-filter-shoot'); await at('capturing');
@@ -116,22 +113,22 @@ export async function checkGuideTour({ cdp, check, waitFor, load, logs, base, sc
   check(await phase() === 'camera' && await evaluate("document.getElementById('hmu-filter-shoot').disabled"), 'Permission denial waits without guiding the user to a disabled capture');
   check(await evaluate("document.getElementById('hmu-filter-stage').contains(document.getElementById('hmu-guide-wait'))&&!document.getElementById('hmu-guide-stop').disabled"), 'Camera wait instructions and stop control belong to the active accessible dialog');
   await evaluate("document.getElementById('hmu-camera-source').value='external';document.getElementById('hmu-camera-source').dispatchEvent(new Event('change'))");
-  await waitFor(async()=>['open-colors','color'].includes(await phase()), 'guide recovers with external camera');
+  await at('shoot');
   check(await evaluate("!document.getElementById('hmu-filter-shoot').disabled"), 'External capture remains available after device-camera permission denial');
   await escape(); await at('idle');
   check(await evaluate('hmuFilterStage.active'), 'Permission error can be escaped without trapping the application');
   await cdp.send('Page.removeScriptToEvaluateOnNewDocument', {identifier:denial.identifier});
 
-  await mode('guide-no-colors'); await start(); await selectFrame();
+  await mode('guide-no-qr'); await start(); await selectFrame();
   await click('.hmu-actions .takePic'); await at('shoot');
   await click('#hmu-filter-shoot'); await at('capturing'); await at('idle');
-  check(await evaluate("document.getElementById('result').getAttribute('data-img') && !document.querySelector('.driver-overlay')"), 'Disabled filters and QR complete without a missing-target trap');
+  check(await evaluate("document.getElementById('result').getAttribute('data-img') && !document.querySelector('.driver-overlay')"), 'Disabled QR completes without a missing-target trap');
 
-  await mode('guide-hidden-result'); await start(); await selectFrame(); await openCamera(); await chooseColor();
+  await mode('guide-hidden-result'); await start(); await selectFrame(); await openCamera(); await verifyShootStep();
   await click('#hmu-filter-shoot'); await at('capturing'); await at('idle');
   check(await evaluate("document.getElementById('result').getAttribute('data-img')&&!document.querySelector('.driver-overlay')"), 'Hidden result actions never strand a QR step');
 
-  await mode('guide-capture-fail'); await start(); await selectFrame(); await openCamera(); await chooseColor();
+  await mode('guide-capture-fail'); await start(); await selectFrame(); await openCamera(); await verifyShootStep();
   await click('#hmu-filter-shoot'); await at('capturing'); await at('idle');
   check(await evaluate("document.getElementById('loader').classList.contains('error')&&!document.querySelector('.driver-overlay')"), 'A real capture failure ends the guide and preserves the application error');
 

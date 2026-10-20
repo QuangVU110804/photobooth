@@ -5,7 +5,6 @@ require_once '../lib/face-effects.php';
 require_once __DIR__ . '/../lib/skin-beauty.php';
 require_once __DIR__ . '/../lib/beauty-upload.php';
 require_once __DIR__ . '/../lib/api.php';
-require_once __DIR__ . '/../lib/filter.php';
 require_once __DIR__ . '/../lib/frames.php';
 
 // Validate the complete request before reading captures or creating any edits.
@@ -14,9 +13,8 @@ try {
     $beautyEffects = parseBeautyEffects($_POST['beautyEffects'] ?? null);
     if (isset($_POST['beautyImage']) && (($_POST['style'] ?? null) !== 'photo' || $beautyEffects)) throw new InvalidArgumentException('Invalid GPU beauty capture');
     if ($beautyEffects && ($_POST['style'] ?? null) !== 'photo') throw new InvalidArgumentException('Skin beauty requires a photo capture');
-    if (!isset($_POST['filter'])) $_POST['filter'] = 'plain';
-    if (!is_string($_POST['filter']) || !array_key_exists($_POST['filter'], AVAILABLE_FILTERS)) {
-        throw new InvalidArgumentException('Invalid image filter');
+    if (array_key_exists('filter', $_POST) && $_POST['filter'] !== 'plain') {
+        throw new InvalidArgumentException('Photo color filters are no longer supported');
     }
     if (!faceEffectFilename($_POST['file'] ?? null)) {
         throw new InvalidArgumentException('Invalid raw capture filename');
@@ -60,7 +58,6 @@ try {
 }
 
 require_once '../lib/db.php';
-require_once '../lib/filter.php';
 require_once '../lib/polaroid.php';
 require_once '../lib/applyFrame.php';
 require_once '../lib/resize.php';
@@ -82,23 +79,10 @@ $file = $_POST['file'];
 
 $quality = 100;
 $imageModified = false;
-$image_filter = false;
 
 if (!isset($_POST['style'])) {
     $errormsg = basename($_SERVER['PHP_SELF']) . ': No style provided';
     logErrorAndDie($errormsg);
-}
-
-if (!isset($_POST['filter'])) {
-    $ErrorData = [
-        'warning' => 'No filter provided! Using plain image filter!',
-    ];
-    logError($ErrorData);
-    $image_filter = 'plain';
-}
-
-if (!empty($_POST['filter']) && $_POST['filter'] !== 'plain') {
-    $image_filter = $_POST['filter'];
 }
 
 $srcImages = [];
@@ -130,7 +114,7 @@ try {
             if ($rawBeauty) { applySkinBeauty($imageResource, $rawBeauty); $rawBeauty = []; }
             $imageResource = orientPhotoPixels($imageResource, $orientation);
         }
-        list($imageResource, $imageModified) = editSingleImage($config, $imageResource, $image_filter, $faceEffects[$image] ?? [], $rawBeauty);
+        list($imageResource, $imageModified) = editSingleImage($config, $imageResource, $faceEffects[$image] ?? [], $rawBeauty);
         if ($beautyBytes !== null || $normalizeOrientation) { $imageModified = true; $config['picture']['orientation_normalized'] = true; }
         unset($beautyBytes);
 

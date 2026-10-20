@@ -2,10 +2,8 @@
   'use strict';
   const Beauty = root.HmuBeautySettings || (typeof require === 'function' ? require('./beauty-settings.js') : null);
   class CaptureSession {
-    constructor(defaultColor) {
-      this.defaultColor = defaultColor || 'plain';
+    constructor() {
       this.phase = 'idle';
-      this.color = this.defaultColor;
       this.face = 'none';
       this.beauty = Beauty.preset('off');
       this.style = 'photo';
@@ -17,19 +15,17 @@
       if (this.phase === 'idle') {
         this.phase = 'selecting';
         this.style = style;
-        this.color = this.defaultColor;
         this.face = 'none';
         this.beauty = Beauty.preset('off');
       }
       return false;
     }
-    select(color, face) {
+    select(face) {
       if (this.phase !== 'selecting') return;
-      this.color = color;
       this.face = face;
     }
     confirm() {
-      if (this.phase !== 'selecting') throw new Error('Filter selection is not active');
+      if (this.phase !== 'selecting') throw new Error('Effect selection is not active');
       this.phase = 'confirmed';
     }
     selectBeauty(settings) {

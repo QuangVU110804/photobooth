@@ -1,23 +1,27 @@
 
 # Photobooth v4
 
-Install frontend dependencies with `npm ci --ignore-scripts --no-audit --no-fund` (Windows: `setup.bat`), then serve this directory with PHP and GD enabled. Runtime folders are created automatically. Configure the camera and select the modern UI in the admin panel to use the frame and face-effect selection flow.
+Install a supported Node.js LTS release (22 or 24; minimum 20.19.0) and npm 9.6.0 or newer, then install frontend dependencies with `npm ci --ignore-scripts --no-audit --no-fund` (Windows: `setup.bat`). Serve this directory with PHP and GD enabled. Runtime folders are created automatically. Configure the camera and select the modern UI in the admin panel to use the frame and face-effect selection flow.
+
+On Windows, `setup.bat -CheckOnly` checks Node/npm and the required frontend assets without reinstalling packages. Setup also accepts a portable Node distribution at `data/tmp/nodejs` containing both `node.exe` and `npm.cmd`, and reports the URL using XAMPP's configured Apache port. If the browser reports 404 for `node_modules` files or `$ is not defined`, complete setup and reload the page.
 
 Run `npm test` for PHP/API/JavaScript regression checks. Run `npm run test:browser` with Node 22+ and Chrome installed; set `PHOTOBOOTH_TEST_PHP` and `PHOTOBOOTH_TEST_BROWSER` when executables are outside the runner's defaults.
 
 The modern effect screen includes **Làm đẹp & Chỉnh ảnh**, with the reference's 21 controls: skin smoothing, texture, tone evening, blur radius and sharpening; face slimming, chin, eyes, nose and lips; eye brightening, under-eye correction, lipstick and blush; brightness, warmth, vibrance, contrast, glow, vignette and grain. Four presets (Off, Natural, Glow, Porcelain) and ten makeup colors are available in the panel; Glam and Doll remain in the settings module but are hidden from the panel. Each visitor starts Off. **Đặt lại** restores the reference slider defaults; choose Off to clear the effects. Hold comparison, adjustable split view, mask inspection and preview mirroring help inspect changes. Inspection modes are excluded from the saved photo.
 
-Beauty requires a device-camera preview, WebGL2 and the existing local face detector; an external camera can supply the final photo. Preview and still export share the same GPU shaders. The final capture is detected again, including its upright EXIF dimensions, and sticker anchors follow the reshaped face. Existing color filters, stickers, frames, output settings and original-photo retention then apply through the PHP pipeline.
+Beauty requires a device-camera preview, WebGL2 and the existing local face detector; an external camera can supply the final photo. Preview and still export share the same GPU shaders. The final capture is detected again, including its upright EXIF dimensions, and sticker anchors follow the reshaped face. Stickers, frames, output settings and original-photo retention then apply through the PHP pipeline.
 
-The shared detector supports up to four faces, preview is capped at a 960px long edge / 30fps, and inference runs at approximately 8fps. Shaders load only when beauty is enabled and release GPU resources when the session ends. This trial exports at the capture's original dimensions up to 16 MP and the device's texture-size limit; larger captures require reducing the camera resolution or choosing Off. One transient JPEG at quality 0.97 (maximum 24 MB binary / 32 MiB data URL) is submitted to PHP, without saving another intermediate file. PHP `post_max_size` must accommodate this request (40M on this installation). Beauty adds no npm dependencies or face models. GPU failure disables beauty while keeping camera, color and sticker selection available. Run `node scripts/test-filter-stage-browser.mjs --beauty-only` for real GPU/camera/export checks. The local modules derive from [CTBot000/face-beautifier at ca5ad40](https://github.com/ctbot000/face-beautifier/tree/ca5ad40b58e2d0133de6b22282b29000d3667046), MIT; attribution is in `LICENSE_NOTICE`.
+The shared detector supports up to four faces, preview is capped at a 960px long edge / 30fps, and inference runs at approximately 8fps. Shaders load only when beauty is enabled and release GPU resources when the session ends. This trial exports at the capture's original dimensions up to 16 MP and the device's texture-size limit; larger captures require reducing the camera resolution or choosing Off. One transient JPEG at quality 0.97 (maximum 24 MB binary / 32 MiB data URL) is submitted to PHP, without saving another intermediate file. PHP `post_max_size` must accommodate this request (40M on this installation). Beauty adds no npm dependencies or face models. GPU failure disables beauty while keeping camera and sticker selection available. Run `node scripts/test-filter-stage-browser.mjs --beauty-only` for real GPU/camera/export checks. The local modules derive from [CTBot000/face-beautifier at ca5ad40](https://github.com/ctbot000/face-beautifier/tree/ca5ad40b58e2d0133de6b22282b29000d3667046), MIT; attribution is in `LICENSE_NOTICE`.
 
-The modern home screen's **Hướng dẫn** button starts an optional, action-driven spotlight tour. Driver.js 1.10.2 is pinned in the npm lockfile and served locally; run `npm ci --ignore-scripts --no-audit --no-fund` after updating the source. The tour starts manually, stores no progress, and follows real frame, camera, color, capture and QR actions. Run `npm run test:guide` to verify it. See [the guest guide](docs/HUONG-DAN-NGUOI-MOI.md) and [tour test cases](docs/SPOTLIGHT_TOUR_TEST_CASES.md).
+The modern home screen's **Hướng dẫn** button starts an optional, action-driven spotlight tour. Driver.js 1.10.2 is pinned in the npm lockfile and served locally; run `npm ci --ignore-scripts --no-audit --no-fund` after updating the source. The tour starts manually, stores no progress, and follows real frame, camera, capture and QR actions. Run `npm run test:guide` to verify it. See [the guest guide](docs/HUONG-DAN-NGUOI-MOI.md) and [tour test cases](docs/SPOTLIGHT_TOUR_TEST_CASES.md).
+
+The separate photo color-filter feature has been removed from capture, results and Admin. New capture requests omit `filter`; the API accepts the legacy `filter=plain` value as a no-op and rejects other retired filter values before processing. Beauty adjustments, makeup palettes, face stickers and frames remain available.
 
 Photo receipt QR links use the installation URL automatically. For a public address or reverse proxy, set `PHOTOBOOTH_PUBLIC_URL` to the HTTP(S) installation URL including its subfolder, or create `config/photo-receipt.local.php` containing `<?php return 'https://booth.example/event';`. The environment setting takes priority. Keep personal application configuration in `config/my.config.inc.php`; runtime photos, logs and local configuration are excluded from Git.
 
 In the modern capture screen, choose **Camera trên thiết bị / Webcam USB** to save a photo from the selected browser camera. Allow camera access over localhost or HTTPS. Use **Máy ảnh ngoài (DSLR / Mirrorless)** for a camera connected to the booth server, with its supported digiCamControl (Windows) or gphoto2 (Linux) capture command configured in Admin. A webcam can provide a separate preview for that external camera. Browser camera selection is remembered for the current browser session. New installations default to browser capture; existing private camera settings are preserved.
 
-Set **Admin → General → Public URL / Tunnel URL** to share photos through a tunnel. URL priority is `PHOTOBOOTH_PUBLIC_URL`, then the Admin public URL, then `config/photo-receipt.local.php`, then the detected installation address. Include `/photobooth` when installed in that subfolder. Display, gallery and print QR codes use the same photo receipt URL. The tunnel must forward to the actual web server port (this XAMPP installation uses port 8080); changing the URL does not start a tunnel.
+Set **Admin → General → Public URL / Tunnel URL** to share photos through a tunnel. URL priority is `PHOTOBOOTH_PUBLIC_URL`, then the Admin public URL, then `config/photo-receipt.local.php`, then the detected installation address. Include `/photobooth` when installed in that subfolder. Display, gallery and print QR codes use the same photo receipt URL. The tunnel must forward to the configured Apache HTTP port; check `Listen` in XAMPP's `apache/conf/httpd.conf`. Changing the URL does not start a tunnel.
 
 The gallery's **Chọn ảnh** action supports selecting individual photos, selecting all, clearing the selection and deleting after confirmation. Deletion honors gallery permissions and the existing `picture.keep_original` policy. Failed photos remain selected for retry. Kiosk zoom shortcuts, touch pinch and gallery image zoom are locked; normal scrolling and gallery navigation remain available. See [the device verification checklist](scripts/DEVICE_CAPTURE_CHECKLIST.md) for hardware checks.
 
@@ -70,7 +74,7 @@ _*2 Capture from webcam is possible e.g. using [fswebcam](https://www.sanslogic.
 
 | Software          | Tested version         | Note
 |-------------------|------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
-| Node.js           | v18                    | Currently only v18 is tested. Our installer will check your Node.js version and suggest an update/downgrade if needed. Versions below v18 aren't supported anymore. |
+| Node.js           | v22 / v24 LTS          | Minimum 20.19.0, required by the locked Sass dependencies. The Windows installer checks Node.js and npm before installing. |
 | npm               | >=v9.6.0               |                                                                                                                                     |
 | php               | v7.4, v8.0, v8.1       |                                                                                                                                     |
 | Webserver         |                        | Apache, Nginx or lighttpd is needed. By default Apache webserver is installed by our installer.                                     |
@@ -121,7 +125,6 @@ _*2 Capture from webcam is possible e.g. using [fswebcam](https://www.sanslogic.
       - L = max 1080px
       - XL = max 1260px"
   - Choose between date-formatted or random image names.
-  - Choose an image filter after taking a picture.
   - QR-Code to allow downloading pictures from your Photobooth.
   - Pictures can be directly downloaded from the gallery.
   - Print feature:
@@ -138,7 +141,7 @@ _*2 Capture from webcam is possible e.g. using [fswebcam](https://www.sanslogic.
   - Event specific (e.g. wedding, birthday) config to show a symbol (e.g. heart)
     between some text on the start page.
   - Chroma keying
-  - HMU single-photo flow: select a frame, choose effects, confirm capture, and receive the final JPG.
+- HMU single-photo flow: select a frame, optionally adjust beauty or face effects, confirm capture, and receive the final JPG.
   - Save pictures with a Polaroid effect.
   - Adjust take picture and print commands.
   - Adjust the style of Photobooth via admin panel.
