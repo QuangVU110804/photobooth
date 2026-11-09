@@ -38,6 +38,7 @@ $config['dev']['loglevel'] = 0;
 $config['dev']['reload_on_error'] = false;
 $config['database']['enabled'] = false;
 $config['login']['enabled'] = false;
+if (($_COOKIE['galleryTest'] ?? '') === 'enabled') $config['gallery']['enabled'] = true;
 $config['preview']['mode'] = 'device_cam';
 $config['preview']['camTakesPic'] = true;
 if (($_COOKIE['filterTestMode'] ?? '') === 'external') { $config['preview']['mode'] = 'none'; $config['preview']['camTakesPic'] = false; }

@@ -320,8 +320,6 @@ html { touch-action: pan-x pan-y; }
 .hmu-section-kicker .fa { color: var(--hmu-magenta); }
 .hmu-section-heading h2 { margin: 0; color: var(--hmu-ink); font-size: clamp(27px, 3vw, 38px); font-weight: 700; line-height: 1.15; }
 .hmu-section-description { margin: 7px 0 0; color: var(--hmu-muted); font-size: 16px; }
-.hmu-selected-summary { display: inline-flex; flex: none; align-items: center; gap: 7px; padding: 9px 13px; border: 1px solid var(--hmu-border); border-radius: 999px; background: #fff; color: var(--hmu-muted); font-size: 14px; }
-.hmu-selected-summary strong { color: var(--hmu-magenta); }
 .hmu-template-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 22px 0 14px; }
 .hmu-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .hmu-filter-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 6px 13px; border: 1px solid var(--hmu-border); border-radius: 999px; background: #fff; color: var(--hmu-muted); font-size: 14px; font-weight: 600; }
@@ -338,7 +336,6 @@ html { touch-action: pan-x pan-y; }
 .hmu-frame-thumb { display: grid; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; place-items: center; border-radius: 15px; background: var(--hmu-surface-soft); }
 .hmu-frame-thumb img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .hmu-frame-meta { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-top: 13px; }
-.hmu-frame-name { display: block; color: var(--hmu-ink); font-size: 19px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
 .hmu-frame-description { display: block; margin-top: 3px; color: var(--hmu-muted); font-size: 14px; line-height: 1.35; }
 .hmu-frame-size { flex: none; padding: 5px 8px; border-radius: 8px; background: var(--hmu-surface-soft); color: var(--hmu-muted); font-family: Arial, sans-serif; font-size: 11px; }
 .hmu-frame-select { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin-top: 13px; padding: 9px 12px; border: 0; border-radius: 10px; background: var(--hmu-surface-soft); color: var(--hmu-ink); font-family: var(--hmu-font); font-size: 15px; font-weight: 700; cursor: pointer; transition: color var(--hmu-motion-fast) ease, background var(--hmu-motion-fast) ease; }
@@ -448,7 +445,6 @@ html { touch-action: pan-x pan-y; }
   .hmu-section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
   .hmu-section-heading h2 { font-size: 29px; }
   .hmu-section-description { font-size: 15px; }
-  .hmu-selected-summary { align-self: flex-start; }
   .hmu-template-tools { align-items: flex-start; flex-direction: column; margin: 16px 0 13px; }
   .hmu-template-hint { font-size: 13px; }
   .hmu-frame-grid { display: grid; width: calc(100vw - 32px) !important; max-width: calc(100vw - 32px); grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px; box-sizing: border-box; }
@@ -456,7 +452,6 @@ html { touch-action: pan-x pan-y; }
   .hmu-frame-card > *,.hmu-frame-meta { min-width: 0; }
   .hmu-frame-thumb { aspect-ratio: 16 / 9; border-radius: 11px; }
   .hmu-frame-meta { gap: 4px; margin-top: 10px; }
-  .hmu-frame-name { font-size: 16px; overflow-wrap: anywhere; }
   .hmu-frame-description { font-size: 12px; overflow-wrap: anywhere; }
   .hmu-frame-size { padding: 4px 5px; font-size: 9px; }
   .hmu-frame-select { min-height: 42px; margin-top: 10px; padding: 8px 5px; font-size: 13px; }
@@ -482,7 +477,6 @@ html { touch-action: pan-x pan-y; }
   .hmu-hero-art { min-height: 340px; }
   .hmu-frame-grid { gap: 9px; }
   .hmu-frame-card { padding: 7px; }
-  .hmu-frame-name { font-size: 15px; }
   .hmu-frame-size { display: none; }
 }
 

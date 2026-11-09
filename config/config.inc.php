@@ -87,7 +87,7 @@ $config['textonpicture']['linespace'] = '90';
 
 
 // G A L L E R Y
-$config['gallery']['enabled'] = true;
+$config['gallery']['enabled'] = false;
 $config['gallery']['newest_first'] = true;
 $config['gallery']['use_slideshow'] = true;
 $config['gallery']['pictureTime'] = '3000';

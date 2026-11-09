@@ -76,8 +76,10 @@ $uiShape = 'shape--' . $config['ui']['style'];
 		<?php if(!$config['protect']['admin'] || (!$config['protect']['localhost_admin'] && $_SERVER['REMOTE_ADDR'] === $_SERVER['SERVER_ADDR']) || !$config['login']['enabled'] || (isset($_SESSION['auth']) && $_SESSION['auth'] === true)): ?>
 		<p><a href="../admin" class="<?php echo $btnClass; ?>"><i class="<?php echo $config['icons']['admin']; ?>"></i> <span data-i18n="admin_panel"></span></a></p>
 		<?php endif; ?>
+		<?php if ($config['gallery']['enabled']): ?>
 		<p><a href="../gallery.php" class="<?php echo $btnClass; ?>"><i class="<?php echo $config['icons']['gallery']; ?>"></i> <span data-i18n="gallery"></span></a></p>
 		<p><a href="../slideshow" class="<?php echo $btnClass; ?>"><i class="<?php echo $config['icons']['slideshow']; ?>"></i> <span data-i18n="slideshow"></span></a></p>
+		<?php endif; ?>
 		<?php if(!$config['protect']['index'] || (!$config['protect']['localhost_index'] && $_SERVER['REMOTE_ADDR'] === $_SERVER['SERVER_ADDR']) || !$config['login']['enabled'] || (isset($_SESSION['auth']) && $_SESSION['auth'] === true)): ?>
 		<p><a href="../livechroma.php" class="<?php echo $btnClass; ?>"><i class="<?php echo $config['icons']['livechroma']; ?>"></i> <span data-i18n="livechroma"></span></a></p>
 		<?php endif; ?>

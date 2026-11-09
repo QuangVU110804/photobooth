@@ -66,8 +66,10 @@ $btnClass = 'btn ' . $btnShape;
 		<p><b>Add your own files (e.g. background images, frames, overrides.css) inside:</b> <?=$PHOTOBOOTH_HOME . DIRECTORY_SEPARATOR . "private"?><br>
 		<i>All files and folders inside this path will be ignored on git and won't cause trouble while updating Photobooth.</i></p>
 		<p>You can change the settings and look of Photobooth using the Admin panel at <a href="../admin" target="_blank" rel="noopener noreferrer"><?=$URL;?>/admin</a>.<br>
+		<?php if ($config['gallery']['enabled']): ?>
 		A standalone gallery can be found at <a href="../gallery.php" target="_blank" rel="noopener noreferrer"><?=$URL;?>/gallery.php</a>.<br>
 		A standalone slideshow can be found at <a href="../slideshow" target="_blank" rel="noopener noreferrer"><?=$URL;?>/slideshow</a>.<br>
+		<?php endif; ?>
 		An integrated FAQ to answer a lot of questions can be found at <a href="../faq" target="_blank" rel="noopener noreferrer"><?=$URL;?>/faq</a>.</p>
 		<p></p>
 		<p>You are missing some translation or your language isn't supported yet? Don't worry! You can request new language support at <a href="https://github.com/PhotoboothProject/photobooth/issues" target="_blank" rel="noopener noreferrer">GitHub</a>,

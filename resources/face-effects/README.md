@@ -1,8 +1,9 @@
 # Tự thêm sticker bám khuôn mặt
 
 Thêm PNG nền trong suốt vào `stickers/`, thêm một effect trong `catalog.json`,
-rồi tải lại trang booth. Không cần sửa JavaScript/PHP cho mẫu dùng các điểm
-neo đã có. Giữ `version: 1`; không dùng ID `none`, `glasses`, `blush`.
+rồi bắt đầu lượt chụp mới. Nếu xóa một PNG, lượt mới sẽ ẩn mọi sticker dùng PNG đó.
+Không cần sửa JavaScript/PHP cho mẫu dùng các điểm neo đã có. Giữ `version: 1`;
+không dùng ID `none`, `glasses`, `blush`.
 
 Ví dụ một effect (đặt trong mảng `effects`):
 
@@ -26,14 +27,13 @@ Ví dụ một effect (đặt trong mảng `effects`):
 `crown.png` đi kèm là hình vương miện gốc vẽ riêng cho dự án. Có thể sao chép
 effect `gold-crown` để thử thông số trước khi thay bằng ảnh của bạn.
 
-Danh mục hiện giữ vương miện vàng cùng hai PNG `hat`, `mask`.
+Danh mục khai báo vương miện vàng, mũ và khẩu trang. Khách chỉ thấy những mẫu có đủ PNG.
 Má hồng và kính thời trang vẫn là các hiệu ứng có sẵn, không khai báo lại trong JSON.
 Tọa độ của các PNG nằm trong `catalog.json`; không cần file JSON riêng.
 Mũ neo vào trán, khẩu trang neo vào miệng. `hat.png` rộng 1500 px và `mask.png`
 rộng 1254 px; giữ nguyên kích thước ảnh được cung cấp.
 
-PNG ống nghe chưa có trong bộ source, nên effect `stethoscope` được tạm bỏ khỏi
-catalog để các sticker đã đủ tài nguyên xuất ảnh bình thường. Khi bổ sung PNG gốc,
+PNG ống nghe chưa có trong bộ source. Khi bổ sung PNG gốc,
 có thể khai báo lại với anchor `chin`, width `2.4`, origin `[0.385, 0.075]`,
 offset `[0, 0.15]`, opacity `1`. Ống nghe neo vào cằm rồi dịch xuống
 `0.15` lần khoảng cách mắt, tạo hiệu ứng đeo ở cổ/ngực. Điểm đặt trong PNG là

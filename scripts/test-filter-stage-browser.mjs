@@ -86,7 +86,7 @@ try {
   const loaderSource=await fs.readFile(path.join(root,'resources/js/face-stickers.js'),'utf8');
   let latestCatalog=false, catalogRequests=0;
   catalogCacheServer=createHttpServer((request,response)=>{
-    if(request.url==='/resources/face-effects/catalog.json') {
+    if(request.url==='/api/getFaceEffects.php') {
       catalogRequests++;
       response.writeHead(200,{'Content-Type':'application/json','Cache-Control':'public, max-age=86400'});
       response.end(latestCatalog?catalogSource:JSON.stringify({version:1,effects:JSON.parse(catalogSource).effects.filter(e=>e.id==='gold-crown')}));
@@ -160,6 +160,11 @@ try {
     check(!/PHP (?:Warning|Fatal error|Notice|Deprecated)/i.test(serverLog),'No beauty PHP diagnostics');
     console.log(`${checks} full beautifier GPU/camera/PHP checks passed`);return;
   }
+  check(await cdp.evaluate("!document.querySelector('.gallery-button,.gallerybtn,#gallery')"),'Gallery is hidden on the guest screen by default');
+  const standaloneGallery = await fetch(`${base}/gallery.php`);
+  check(standaloneGallery.ok && (await standaloneGallery.text()).includes('gallery__header'),'Standalone gallery remains accessible directly');
+  await cdp.evaluate("document.cookie='galleryTest=enabled;path=/photobooth/'");
+  await load();
   const previewResponse = await fetch(`${base}/api/framePreview.php?frame=${encodeURIComponent('Golden Atelier.png')}`);
   const previewBytes = await previewResponse.arrayBuffer();
   const originalFrame = await fs.stat(path.join(root, 'resources/img/frames/Golden Atelier.png'));
@@ -167,6 +172,7 @@ try {
   const revalidated = await fetch(`${base}/api/framePreview.php?frame=${encodeURIComponent('Golden Atelier.png')}`, { headers: { 'If-None-Match': previewResponse.headers.get('etag') } });
   check(revalidated.status === 304 && (await revalidated.arrayBuffer()).byteLength === 0, 'Unchanged frame previews revalidate without sending image bytes');
   check(await cdp.evaluate("[...document.querySelectorAll('.hmu-frame-thumb img')].every(img=>img.src.includes('/api/framePreview.php?frame='))"), 'Frame cards use cached previews');
+  check(await cdp.evaluate("!document.querySelector('.hmu-frame-name,#hmuSelectedName') && [...document.querySelectorAll('.hmu-frame-card')].every(card=>!card.innerText.split('\\n').includes(card.dataset.frame.replace(/\\.png$/i,'')))"),'Frame filenames are absent from guest labels');
   check((await logs()).length===0,'Initial frame auto-selection never starts capture');
   await cdp.evaluate("photoBooth.thrill('collage');hmuFilterStage.request('collage')");
   check(await cdp.evaluate("!hmuFilterStage.active && !photoBooth.takingPic && !photoboothPreview.stream"),'Removed capture mode cannot open the stage or start a camera');
@@ -409,8 +415,10 @@ try {
   await waitFor(()=>cdp.evaluate("hmuFilterStage.active&&!document.getElementById('hmu-filter-shoot').disabled"),'session after PNG');
   check(await cdp.evaluate("hmuFilterStage.face==='none'"),'PNG does not leak into next session');
   // Supplied PNG assets must survive real browser decoding, landmarks and JPG export.
-  check(await cdp.evaluate("['glasses','blush','gold-crown','hat','mask'].every(id=>!!document.querySelector('[data-face='+id+']'))"),'Old and new face filters remain selectable together');
-  for(const id of ['hat','mask']) {
+  const availableCatalog = await (await fetch(`${base}/api/getFaceEffects.php`)).json();
+  const availableIds = availableCatalog.effects.map(effect=>effect.id);
+  await waitFor(()=>cdp.evaluate(`${JSON.stringify(['glasses','blush',...availableIds])}.every(id=>!!document.querySelector('[data-face='+id+']'))`),'Built-in effects and available PNGs appear together');
+  for(const id of ['hat','mask'].filter(id=>availableIds.includes(id))) {
     await cdp.evaluate(`document.querySelector('[data-face=${id}]').click()`);
     await waitFor(()=>cdp.evaluate(`hmuFilterStage.face==='${id}'&&!document.getElementById('hmu-filter-shoot').disabled`),id+' PNG decoded');
     await waitFor(()=>cdp.evaluate("(()=>{const c=document.getElementById('hmu-filter-overlay');return c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((n,i)=>i%4===3&&n>0);})()"),id+' preview visible');
@@ -424,6 +432,7 @@ try {
     await waitFor(()=>cdp.evaluate("hmuFilterStage.active&&!document.getElementById('hmu-filter-shoot').disabled"),'session after '+id);
   }
   // Slow decode is an external boundary; keep real catalog and renderer.
+  await waitFor(()=>cdp.evaluate("!!document.querySelector('[data-face=gold-crown]')"),'PNG catalog refreshed before slow decode');
   await cdp.evaluate(`window.pngNativeLoader=HmuFaceStickers.loadPng;window.pngRelease=null;
     window.pngOriginalPrepare=HmuFaceStickers.AssetCache.prototype.prepare;
     HmuFaceStickers.AssetCache.prototype.prepare=function(effect){return new Promise((resolve,reject)=>{window.pngRelease=()=>window.pngOriginalPrepare.call(this,effect).then(images=>{window.pngTestBitmaps=[...images.values()];resolve(images);},reject);});};
@@ -436,6 +445,7 @@ try {
   await cdp.evaluate("document.getElementById('hmu-filter-back').click()");
   check(await cdp.evaluate('pngTestBitmaps.every(image=>image.width===0&&image.height===0)'),'Back closes actual decoded PNG bitmaps');
   await openStage();
+  await waitFor(()=>cdp.evaluate("!!document.querySelector('[data-face=gold-crown]')"),'PNG catalog refreshed before missing image');
   await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*/resources/face-effects/stickers/crown.png',requestStage:'Request'}]});
   await cdp.evaluate("document.querySelector('[data-face=gold-crown]').click()");
   const failedPng=await waitFor(()=>Promise.resolve(cdp.events.shift()),'PNG network request');
@@ -445,7 +455,16 @@ try {
   await cdp.evaluate("document.querySelector('[data-face=glasses]').click()");
   await waitFor(()=>cdp.evaluate("hmuFilterStage.face==='glasses'&&!document.getElementById('hmu-filter-shoot').disabled"),'legacy still works after missing PNG');
   await cdp.evaluate("document.getElementById('hmu-filter-back').click()");
-  await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*/resources/face-effects/catalog.json',requestStage:'Request'}]});
+  await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*/api/getFaceEffects.php',requestStage:'Request'}]});
+  await openStage();
+  const updatedCatalog=await waitFor(()=>Promise.resolve(cdp.events.shift()),'new session refreshes the catalog in the same tab');
+  const withoutCrown = {...availableCatalog,effects:availableCatalog.effects.filter(effect=>effect.id!=='gold-crown')};
+  await cdp.send('Fetch.fulfillRequest',{requestId:updatedCatalog.requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:'application/json'}],body:Buffer.from(JSON.stringify(withoutCrown)).toString('base64')});
+  await cdp.send('Fetch.disable');
+  await waitFor(()=>cdp.evaluate(`${JSON.stringify(withoutCrown.effects.map(effect=>effect.id))}.every(id=>!!document.querySelector('[data-face='+id+']'))`),'remaining PNGs return after refresh');
+  check(await cdp.evaluate("!document.querySelector('[data-face=gold-crown]')"),'Deleted PNG disappears in the next session without reloading the tab');
+  await cdp.evaluate("document.getElementById('hmu-filter-back').click()");
+  await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*/api/getFaceEffects.php',requestStage:'Request'}]});
   await load();await openStage();
   const failedCatalog=await waitFor(()=>Promise.resolve(cdp.events.shift()),'catalog network request');
   await cdp.send('Fetch.fulfillRequest',{requestId:failedCatalog.requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:'application/json'}],body:Buffer.from('{"version":2,"effects":[]}').toString('base64')});await cdp.send('Fetch.disable');
