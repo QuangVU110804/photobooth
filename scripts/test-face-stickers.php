@@ -74,11 +74,22 @@ try {
         fn($c)=>array_replace($c,['effects'=>[$c['effects'][0],$c['effects'][0]]]),
         fn($c)=>['version'=>1,'effects'=>[array_replace($c['effects'][0],['id'=>'glasses'])]],
     ] as $change) {file_put_contents($dir.'/catalog.json',json_encode($change($catalog)));stickerReject(fn()=>stickerCatalog($dir),'Reject malformed catalog');}
-    foreach(['../test.png','https://example.com/test.png','missing.png','not-png.png'] as $file) {
+    foreach(['../test.png','https://example.com/test.png','not-png.png'] as $file) {
         file_put_contents($dir.'/stickers/not-png.png','not a png');
         $bad=$catalog;$bad['effects'][0]['parts'][0]['file']=$file;file_put_contents($dir.'/catalog.json',json_encode($bad));
         stickerReject(fn()=>stickerCatalog($dir),'Reject unsafe/invalid asset '.$file);
     }
+    $withMissing = $catalog;
+    $withMissing['effects'][] = ['id'=>'deleted','title'=>'Deleted','parts'=>[
+        $catalog['effects'][0]['parts'][0], ['file'=>'missing.png','anchor'=>'eyes','width'=>1],
+    ]];
+    file_put_contents($dir.'/catalog.json',json_encode($withMissing));
+    stickerCheck(array_keys(stickerCatalog($dir)) === ['test'],'A deleted PNG hides its whole sticker and leaves other stickers available');
+    $deleted = array_replace($entry,['effect'=>'deleted']);
+    stickerReject(fn()=>parseFaceSticker((object)$deleted,$dir),'A client cannot submit a deleted sticker');
+    $withMissing['effects'][] = $withMissing['effects'][1];
+    file_put_contents($dir.'/catalog.json',json_encode($withMissing));
+    stickerReject(fn()=>stickerCatalog($dir),'Deleted stickers still require unique IDs');
     file_put_contents($dir.'/catalog.json',json_encode($catalog));
     $large=imagecreatetruecolor(1536,1536);imagepng($large,$dir.'/stickers/large.png');imagedestroy($large);
     $bad=$catalog;$bad['effects'][0]['parts'][0]['file']='large.png';file_put_contents($dir.'/catalog.json',json_encode($bad));
@@ -126,12 +137,27 @@ try {
     copy($root.'/api/applyEffects.php',$dir.'/app/api/applyEffects.php');copy($root.'/config/config.inc.php',$dir.'/app/config/config.inc.php');
     copy($root.'/resources/face-effects/catalog.json',$dir.'/app/resources/face-effects/catalog.json');
     foreach(glob($root.'/resources/face-effects/stickers/*.png') as $source)copy($source,$dir.'/app/resources/face-effects/stickers/'.basename($source));
+    $catalogApi = $dir.'/app/api/getFaceEffects.php';
+    copy($root.'/api/getFaceEffects.php',$catalogApi);
+    $catalogFile = $dir.'/app/resources/face-effects/catalog.json';
+    $title = str_repeat("\u{1F451}",80);
+    $fixtureCatalog = ['version'=>1,'effects'=>[['id'=>'test','title'=>$title,'parts'=>[['file'=>'crown.png','anchor'=>'eyes','width'=>1]]]]];
+    file_put_contents($catalogFile,json_encode($fixtureCatalog,JSON_UNESCAPED_UNICODE));
+    $p = proc_open([PHP_BINARY,$catalogApi],[1=>['pipe','w'],2=>['pipe','w']],$pipes);
+    $json=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);
+    stickerCheck(proc_close($p)===0 && $err==='' && str_contains($json,$title),'Catalog API preserves UTF-8 titles within the client byte budget');
+    stickerCheck(!isset(json_decode($json,true)['effects'][0]['parts'][0]['path']),'Catalog API omits internal file paths');
+    copy($root.'/resources/face-effects/catalog.json',$catalogFile);
     $base=imagecreatetruecolor(200,100);imagefill($base,0,0,imagecolorallocate($base,100,100,100));imagejpeg($base,$dir.'/tmp/shot.jpg',100);imagedestroy($base);
     $post=['file'=>'shot.jpg','style'=>'photo','faceEffects'=>json_encode($raw)];
     $request=function($post,$overrides=[])use($dir){$p=proc_open([PHP_BINARY,__FILE__,'--endpoint',$dir,$dir.'/app'],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);fwrite($pipes[0],json_encode(['post'=>$post,'overrides'=>array_replace_recursive(['picture'=>['flip'=>'off']],$overrides)]));fclose($pipes[0]);$out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$code=proc_close($p);stickerCheck($code===0&&!preg_match('/Warning|Fatal|Deprecated|Notice/',$out.$err),'Endpoint exits cleanly '.$out.$err);return [$out,$err];};
     [$out,$err]=$request($post);stickerCheck(str_contains($err,'STATUS:200')&&is_file($dir.'/images/shot.jpg'),'Actual API persists sticker JPG');
     $saved=imagecreatefromjpeg($dir.'/images/shot.jpg');$rgb=stickerRgb($saved,100,50);stickerNear($rgb,[222,61,110],'Center gemstone survives JPEG export',25);imagedestroy($saved);
     foreach(['hat','mask'] as $id) {
+        if (!is_file($root.'/resources/face-effects/stickers/'.$id.'.png')) {
+            stickerCheck(!isset($shipped[$id]),'Removed medical sticker stays out of the catalog: '.$id);
+            continue;
+        }
         stickerCheck(isset($shipped[$id]),'New medical sticker is registered: '.$id);
         $medical=$shot;$medical['effect']=$id;
         [$out,$err]=$request(array_replace($post,['faceEffects'=>json_encode(['shot.jpg'=>[$medical]])]));

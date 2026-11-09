@@ -81,6 +81,7 @@ for(const anchor of ['mouth','chin','face']) check(S.indicesFor({...effect,parts
     return {width:png.readUInt32BE(16),height:png.readUInt32BE(20),close(){}};
   });
   for(const [id,width] of Object.entries({hat:1500,mask:1254})) {
+    if (!fs.existsSync(path.join(__dirname,'../resources/face-effects/stickers',id+'.png'))) continue;
     const medical=S.validateCatalog(shipped).find(e=>e.id===id);
     check(!!medical,'Medical sticker available alongside crown: '+id);
     const bitmaps=await medicalCache.prepare(medical);

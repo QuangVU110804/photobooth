@@ -4,7 +4,6 @@
   var selector = document.getElementById("kioskFrameSelector");
   if (!selector) return;
 
-  var selectedName = document.getElementById("hmuSelectedName");
   var frameCount = document.getElementById("hmuFrameCount");
   var heroFrame = document.getElementById("hmuHeroFrame");
   var errorMessage = document.getElementById("hmuFrameError");
@@ -17,18 +16,12 @@
     ready: function () { return listPromise.then(function () { return syncPromise; }); }
   };
 
-  function frameTitle(filename) {
-    var match = filename.match(/kiosk_frame_(\d+)/i);
-    return match ? "Khung HMU " + match[1] : filename.replace(/\.png$/i, "").replace(/[_-]+/g, " ");
-  }
-
   function frameUrl(filename) {
     return new URL("resources/img/frames/" + encodeURIComponent(filename), document.baseURI).href;
   }
 
   function selectFrame(filename, card, persist) {
     var url = frameUrl(filename);
-    var title = frameTitle(filename);
 
     selector.querySelectorAll(".hmu-frame-card").forEach(function (item) {
       var isSelected = item === card;
@@ -42,11 +35,7 @@
       }
     });
 
-    if (selectedName) selectedName.textContent = title;
-    if (heroFrame) {
-      heroFrame.src = url;
-      heroFrame.alt = "Bản xem trước " + title;
-    }
+    if (heroFrame) heroFrame.src = url;
 
     document.documentElement.style.setProperty("--picture-frame", 'url("' + url + '")');
     document.querySelectorAll("#picture--frame, #frame, .frameImage, #preview-frame, .live-preview-frame").forEach(function (element) {
@@ -85,11 +74,12 @@
       });
   }
 
-  function makeFrameCard(filename) {
+  function makeFrameCard(filename, index) {
     var card = document.createElement("button");
     card.type = "button";
     card.className = "hmu-frame-card";
     card.dataset.frame = filename;
+    card.setAttribute("aria-label", "Chọn khung này, mẫu số " + (index + 1));
     card.setAttribute("aria-pressed", "false");
 
     var tag = document.createElement("span");
@@ -109,16 +99,10 @@
 
     var meta = document.createElement("span");
     meta.className = "hmu-frame-meta";
-    var info = document.createElement("span");
-    var name = document.createElement("span");
-    name.className = "hmu-frame-name";
-    name.textContent = frameTitle(filename);
     var description = document.createElement("span");
     description.className = "hmu-frame-description";
     description.textContent = "Khung ảnh HMU";
-    info.appendChild(name);
-    info.appendChild(description);
-    meta.appendChild(info);
+    meta.appendChild(description);
     var size = document.createElement("span");
     size.className = "hmu-frame-size";
     size.textContent = "PNG";
@@ -144,7 +128,7 @@
       if (!Array.isArray(frames) || !frames.length) throw new Error("No frames available");
 
       var cards = document.createDocumentFragment();
-      frames.forEach(function (filename) { cards.appendChild(makeFrameCard(filename)); });
+      frames.forEach(function (filename, index) { cards.appendChild(makeFrameCard(filename, index)); });
       selector.appendChild(cards);
       if (frameCount) frameCount.textContent = String(frames.length);
 

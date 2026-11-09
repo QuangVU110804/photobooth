@@ -134,9 +134,11 @@ if (
     </div>
     <div class="rotarygroup">
 
-        <div id="wrapper">
-            <?php include('template/gallery.template.php'); ?>
-        </div>
+        <?php if ($config['gallery']['enabled']): ?>
+            <div id="wrapper">
+                <?php include('template/gallery.template.php'); ?>
+            </div>
+        <?php endif; ?>
         <?php include('template/pswp.template.php'); ?>
 
         <?php include('template/send-mail.template.php'); ?>

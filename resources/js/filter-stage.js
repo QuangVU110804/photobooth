@@ -55,7 +55,7 @@
   const stickers = window.HmuFaceStickers;
   const stickerEffects = new Map(), unavailableStickers = new Set();
   const stickerCache = stickers ? new stickers.AssetCache() : null;
-  let catalogPromise = null, stickerImages = null;
+  let catalogRequest = null, stickerImages = null;
 
   function hasBeauty() { return beautySettings.isActive(session.beauty); }
   function detectionIndices() {
@@ -121,15 +121,23 @@
     } catch (error) { if (token === revision && choiceToken === faceChoiceRevision) failBeauty(); }
   }
 
-  function ensureStickerCatalog() {
-    if (!stickers || catalogPromise) return;
-    catalogPromise = stickers.loadCatalog().then((effects) => {
+  function refreshStickerCatalog() {
+    if (!stickers) return;
+    const container = document.getElementById('hmu-face-filters');
+    for (const button of container.querySelectorAll('[data-face]')) {
+      if (stickerEffects.has(button.dataset.face)) button.remove();
+    }
+    stickerEffects.clear();
+    unavailableStickers.clear();
+    const request = catalogRequest = stickers.loadCatalog();
+    request.then((effects) => {
+      if (request !== catalogRequest) return;
       const items = effects.map((effect) => {
         stickerEffects.set(effect.id, effect);
-        const item = [effect.id, effect.title, 'Sticker theo khuôn mặt']; faces.push(item); return item;
+        return [effect.id, effect.title, 'Sticker theo khuôn mặt'];
       });
-      makeButtons(items, document.getElementById('hmu-face-filters')); update();
-    }).catch(() => { catalogPromise = null; /* Existing effects remain available. */ });
+      makeButtons(items, container); update();
+    }).catch(() => { /* Existing effects remain available. */ });
   }
 
   function update() {
@@ -151,7 +159,8 @@
     beautyCompare.setAttribute('aria-pressed', String(beautyCompared));
     beautyCompare.textContent = 'Giữ để xem ảnh trước';
     for (const button of stage.querySelectorAll('button, select')) button.classList.toggle('rotaryfocus', !button.disabled);
-    document.getElementById('hmu-filter-choice').textContent = `${faces.find(([id]) => id === session.face)?.[1]}` + (hasBeauty() ? ` · ${beautySettings.PRESETS.find(p=>p.id===session.beauty.preset)?.name || 'Làm đẹp tùy chỉnh'}` : '');
+    const faceTitle = stickerEffects.get(session.face)?.title ?? faces.find(([id]) => id === session.face)?.[1];
+    document.getElementById('hmu-filter-choice').textContent = `${faceTitle}` + (hasBeauty() ? ` · ${beautySettings.PRESETS.find(p=>p.id===session.beauty.preset)?.name || 'Làm đẹp tùy chỉnh'}` : '');
     draw(lastFaces);
   }
   function makeButtons(items, container) {
@@ -322,7 +331,6 @@
   async function open() {
     const token = ++revision;
     stage.hidden = false; document.body.classList.add('hmu-filter-open');
-    ensureStickerCatalog();
     finalEffects = null; finalBeauty = null; finalBeautyImage = null; lastFaces = []; lastVideoTime = -1; cameraReady = false; frameReady = false; faceAvailable = false; faceLoading = false; beautyLoading = false; beautyCompared = false; splitEnabled = false; maskEnabled = false;
     beautySplitRange.parentElement.hidden = true;
     stopBeautyPreview(); updateBeautyMask([]);
@@ -386,7 +394,10 @@
     request(style, continuation) {
       const previousPhase = session.phase;
       const permitted = session.request(style, continuation);
-      if (!permitted && previousPhase === 'idle' && session.phase === 'selecting') open();
+      if (!permitted && previousPhase === 'idle' && session.phase === 'selecting') {
+        refreshStickerCatalog();
+        open();
+      }
       return !permitted;
     },
     get face() { return session.face; },
