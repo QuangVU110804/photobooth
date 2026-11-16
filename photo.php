@@ -70,7 +70,9 @@ if ($photo !== null) {
     <meta name="robots" content="noindex, nofollow, noimageindex">
     <title><?= $problem === null ? 'Ảnh của bạn' : 'Chưa nhận được ảnh' ?> · HMU Photobooth</title>
     <link rel="icon" href="resources/img/favicon-32x32.png" type="image/png">
-    <link rel="stylesheet" href="resources/css/photo-receipt.css?v=2">
+    <script src="resources/js/color-mode.js?v=1"></script>
+    <link rel="stylesheet" href="resources/css/color-mode.css?v=2">
+    <link rel="stylesheet" href="resources/css/photo-receipt.css?v=3">
     <script src="resources/js/photo-receipt.js?v=1" defer></script>
 </head>
 <body class="receipt-page">
@@ -82,6 +84,7 @@ if ($photo !== null) {
                 <span><strong>HMU <span class="receipt-brand-long">Photobooth</span></strong><small>Trải nghiệm bắt trọn khoảnh khắc</small></span>
             </a>
             <nav aria-label="Điều hướng trang nhận ảnh"><a href="<?= $problem === null ? '#save-help' : 'index.php' ?>"><?= $problem === null ? 'Hướng dẫn lưu ảnh' : 'Trang chủ' ?> <?= receiptIcon('chevron') ?></a></nav>
+            <?php include __DIR__ . '/template/color-mode.template.php'; ?>
         </div>
     </header>
     <main class="receipt-main" id="receipt-main">

@@ -1,0 +1,92 @@
+:root {
+  color-scheme: light;
+  --hmu-blue: #005aab;
+  --hmu-blue-hover: #004987;
+  --hmu-blue-pressed: #003b70;
+  --hmu-on-blue: #fff;
+  --hmu-blue-soft: #eaf3fc;
+  --hmu-magenta: #c61754;
+  --hmu-magenta-soft: #fce9f0;
+  --hmu-bg: #f7f9fc;
+  --hmu-surface: #fff;
+  --hmu-surface-soft: #f1f5f9;
+  --hmu-ink: #112b46;
+  --hmu-muted: #526579;
+  --hmu-subtle: #596c83;
+  --hmu-border: #e2e8f0;
+  --hmu-border-strong: #72869d;
+  --hmu-success: #087553;
+  --hmu-success-soft: #e7f6ee;
+  --hmu-warning: #936006;
+  --hmu-warning-soft: #fff8e7;
+  --hmu-error: #a51e31;
+  --hmu-error-soft: #fff0f2;
+}
+
+:root[data-color-mode="dark"] {
+  color-scheme: dark;
+  --hmu-blue: #9ccdff;
+  --hmu-blue-hover: #b7dbff;
+  --hmu-blue-pressed: #85bdf4;
+  --hmu-on-blue: #102940;
+  --hmu-blue-soft: #213c56;
+  --hmu-magenta: #ffa6c8;
+  --hmu-magenta-soft: #49243a;
+  --hmu-bg: #101925;
+  --hmu-surface: #172435;
+  --hmu-surface-soft: #202f42;
+  --hmu-ink: #edf4ff;
+  --hmu-muted: #bacbdd;
+  --hmu-subtle: #a4b8cf;
+  --hmu-border: #35465c;
+  --hmu-border-strong: #748ba5;
+  --hmu-success: #8de2bd;
+  --hmu-success-soft: #183b32;
+  --hmu-warning: #ffd28c;
+  --hmu-warning-soft: #433121;
+  --hmu-error: #ffb0ba;
+  --hmu-error-soft: #442635;
+}
+
+.hmu-color-mode {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 3px;
+  border: 1px solid var(--hmu-border-strong);
+  border-radius: 999px;
+  background: var(--hmu-surface-soft);
+  color: var(--hmu-muted);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.hmu-color-mode span {
+  display: grid;
+  min-height: 34px;
+  min-width: 36px;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.hmu-color-mode span svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+[data-color-mode="light"] .hmu-color-mode span:first-child,
+[data-color-mode="dark"] .hmu-color-mode span:last-child {
+  background: var(--hmu-blue);
+  color: var(--hmu-on-blue);
+}
+
+.hmu-color-mode:hover { border-color: var(--hmu-blue); }
+.hmu-color-mode:focus-visible { outline: 3px solid var(--hmu-blue); outline-offset: 3px; }
+.hmu-color-mode[hidden] { display: none; }

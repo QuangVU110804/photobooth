@@ -34,7 +34,11 @@ body[data-hmu-guide-step="frames"] #kioskFrameSelector {
 .hmu-guide-popover .driver-popover-title { padding-right: 30px; font: inherit; font-size: 19px; font-weight: 750; line-height: 1.4; }
 .hmu-guide-popover .driver-popover-description { margin-top: 10px; font: inherit; color: var(--hmu-muted, #526579); }
 .hmu-guide-popover .driver-popover-close-btn { width: 44px; height: 44px; top: 6px; right: 6px; color: var(--hmu-ink, #112b46); font-size: 28px; }
-.hmu-guide-popover .driver-popover-close-btn:hover { background: var(--hmu-blue-soft, #eaf3fc); border-radius: 8px; }
+.hmu-guide-popover .driver-popover-close-btn:hover { background: var(--hmu-blue-soft); color: var(--hmu-ink); border-radius: 8px; }
+.hmu-guide-popover .driver-popover-arrow-side-left { border-left-color: var(--hmu-surface); }
+.hmu-guide-popover .driver-popover-arrow-side-right { border-right-color: var(--hmu-surface); }
+.hmu-guide-popover .driver-popover-arrow-side-top { border-top-color: var(--hmu-surface); }
+.hmu-guide-popover .driver-popover-arrow-side-bottom { border-bottom-color: var(--hmu-surface); }
 .hmu-guide-popover button:focus-visible,
 .hmu-guide-start:focus-visible,
 .hmu-guide-wait button:focus-visible { outline: 3px solid var(--hmu-magenta, #c61754); outline-offset: 2px; }
@@ -57,7 +61,11 @@ body[data-hmu-guide-step="frames"] #kioskFrameSelector {
 }
 .hmu-guide-wait[hidden], .hmu-guide-status:empty { display: none; }
 .hmu-guide-wait p { margin: 0 0 10px; }
-.hmu-guide-wait button { min-height: 44px; padding: 8px 16px; border: 1px solid var(--hmu-border-strong, #cbd5e1); border-radius: 8px; background: #fff; color: var(--hmu-ink, #112b46); font: inherit; cursor: pointer; }
+.hmu-guide-wait button,
+#hmu-guide-effects-stop,
+#hmu-guide-try-effects { min-height: 44px; padding: 8px 16px; border: 1px solid var(--hmu-border-strong); border-radius: 8px; background: var(--hmu-surface); color: var(--hmu-ink); font: inherit; cursor: pointer; }
+#hmu-guide-effects-stop { margin-bottom: 8px; }
+#hmu-guide-try-effects { display: block; margin-top: 12px; color: var(--hmu-blue); background: var(--hmu-blue-soft); }
 @media (prefers-reduced-motion: reduce) {
   .hmu-guide-popover, .hmu-guide-popover *, .driver-overlay { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }

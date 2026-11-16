@@ -85,11 +85,13 @@ if (
 
 
 
-<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=9"/>
-<link rel="stylesheet" href="resources/css/filter-stage.css?v=8"/>
+<script src="resources/js/color-mode.js?v=1"></script>
+<link rel="stylesheet" href="resources/css/color-mode.css?v=2"/>
+<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=10"/>
+<link rel="stylesheet" href="resources/css/filter-stage.css?v=10"/>
 <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
 <link rel="stylesheet" href="node_modules/driver.js/dist/driver.css?v=1.10.2"/>
-<link rel="stylesheet" href="resources/css/guide-tour.css?v=1"/>
+<link rel="stylesheet" href="resources/css/guide-tour.css?v=3"/>
 <?php endif; ?>
 </head>
 
@@ -181,6 +183,7 @@ if (
     </div>
 
     <?php if ($config['gallery']['enabled']): ?>
+        <?php $showColorMode = true; ?>
         <?php include('template/gallery.template.php'); ?>
     <?php endif; ?>
 </div>
@@ -218,7 +221,7 @@ if (
 <script src="resources/js/face-stickers.js?v=4"></script>
 <script src="resources/js/skin-beauty.js?v=2"></script>
 <script src="resources/js/beauty-panel.js?v=2"></script>
-<script src="resources/js/filter-stage.js?v=9"></script>
+<script src="resources/js/filter-stage.js?v=11"></script>
 <script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3&beauty=2"></script>
 <script src="node_modules/@andreasremdt/simple-translator/dist/umd/translator.min.js"></script>
 <script type="text/javascript" src="resources/js/i18n.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
@@ -226,7 +229,7 @@ if (
 <script src="resources/js/gallery-selection.js?v=2"></script>
 <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
 <script src="node_modules/driver.js/dist/driver.js.iife.js?v=1.10.2"></script>
-<script src="resources/js/guide-tour.js?v=2"></script>
+<script src="resources/js/guide-tour.js?v=4"></script>
 <?php endif; ?>
 
 <?php require_once('lib/services_start.php'); ?>

@@ -17,7 +17,7 @@
 					<a class="hmu-nav-link gallery-button" href="#gallery"><i class="<?php echo $config['icons']['gallery']; ?>" aria-hidden="true"></i> Thư viện</a>
 					<?php endif; ?>
 				</nav>
-				<div class="hmu-header-meta"><span class="hmu-status-dot" aria-hidden="true"></span><span>Chọn khung và bắt đầu</span></div>
+				<?php include __DIR__ . '/color-mode.template.php'; ?>
 			</header>
 
 			<main class="hmu-main">
