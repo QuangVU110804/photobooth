@@ -24,8 +24,9 @@
       if (this.phase !== 'selecting') return;
       this.face = face;
     }
-    confirm() {
+    confirm(countdownSeconds) {
       if (this.phase !== 'selecting') throw new Error('Effect selection is not active');
+      this.countdownSeconds = countdownSeconds;
       this.phase = 'confirmed';
     }
     selectBeauty(settings) {

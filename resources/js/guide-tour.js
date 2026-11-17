@@ -3,6 +3,7 @@
   const start = document.getElementById('hmu-guide-start');
   if (!start) return;
   const frames = document.getElementById('kioskFrameSelector');
+  const framePicker = document.getElementById('hmuFramePicker');
   const stage = document.getElementById('hmu-filter-stage');
   const beautySection = stage.querySelector('.hmu-beauty-group');
   const effectsStop = document.getElementById('hmu-guide-effects-stop');
@@ -92,7 +93,7 @@
     controls(target)[0]?.focus({ preventScroll: true });
   }
   function showFrames() {
-    paint('frames', frames, '1 · Chọn khung ảnh', 'Chạm vào một khung bạn thích. Nút có biểu tượng mặt trời và mặt trăng trên thanh đầu trang dùng để đổi giao diện.');
+    paint('frames', framePicker, '1 · Chọn khung ảnh', 'Chọn chủ đề và khung. Nút mặt trời và mặt trăng đổi giao diện.');
   }
   function showCameraEntry() {
     paint('open-camera', document.querySelector('.hmu-actions .takePic'), '2 · Mở camera', 'Chạm “Chọn hiệu ứng và chụp”. Nếu trình duyệt hỏi quyền camera, hãy chọn Cho phép / Allow.');
@@ -136,6 +137,7 @@
       beautySection.querySelector('summary').focus({preventScroll: true});
       return;
     }
+    if (phase === 'frames' && target.closest('.hmu-filter-chip')) spotlight?.refresh();
     if (phase === 'frames' && target.closest('.hmu-frame-card')) {
       const revision = ++selectionRevision;
       window.hmuFrameSelection.ready().then(() => {

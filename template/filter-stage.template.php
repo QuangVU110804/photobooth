@@ -84,7 +84,16 @@
                     <span class="hmu-filter-card-icon"><i class="fa fa-clock-o" aria-hidden="true"></i></span>
                     <div class="hmu-filter-timer-copy"><h2 id="hmu-timer-title">Hẹn giờ đếm ngược</h2><p>Thời gian chuẩn bị tạo dáng</p></div>
                     <div class="hmu-filter-timer-values">
-                        <?php if ($config['picture']['enabled']): ?><span class="hmu-filter-timer-photo"><span>Ảnh đơn</span><strong><?= (int) $config['picture']['cntdwn_time'] ?>s</strong></span><?php endif; ?>
+                        <div class="hmu-filter-timer-presets" role="group" aria-label="Chọn nhanh thời gian đếm ngược">
+                            <button type="button" data-countdown="3" aria-pressed="false">3s</button>
+                            <button type="button" data-countdown="5" aria-pressed="false">5s</button>
+                            <button type="button" data-countdown="10" aria-pressed="false">10s</button>
+                        </div>
+                        <label for="hmu-timer-seconds">
+                            Tự chỉnh (giây)
+                            <!-- The maximum keeps the delay within the browser's setTimeout limit. -->
+                            <input id="hmu-timer-seconds" type="number" inputmode="numeric" min="1" max="2147483" step="1" required value="<?= (int) $config['picture']['cntdwn_time'] ?>">
+                        </label>
                     </div>
                 </section>
             </div>

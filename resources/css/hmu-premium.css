@@ -291,14 +291,14 @@ html { touch-action: pan-x pan-y; }
 .hmu-section-kicker .fa { color: var(--hmu-magenta); }
 .hmu-section-heading h2 { margin: 0; color: var(--hmu-ink); font-size: clamp(27px, 3vw, 38px); font-weight: 700; line-height: 1.15; }
 .hmu-section-description { margin: 7px 0 0; color: var(--hmu-muted); font-size: 16px; }
-.hmu-template-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 22px 0 14px; }
-.hmu-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.hmu-filter-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 6px 13px; border: 1px solid var(--hmu-border); border-radius: 999px; background: var(--hmu-surface); color: var(--hmu-muted); font-size: 14px; font-weight: 600; }
-.hmu-filter-chip.is-active { border-color: transparent; background: var(--hmu-blue-soft); color: var(--hmu-blue); }
-.hmu-filter-chip b { display: inline-grid; min-width: 19px; height: 19px; place-items: center; border-radius: 50%; background: var(--hmu-blue); color: var(--hmu-on-blue); font-family: Arial, sans-serif; font-size: 11px; }
-.hmu-template-hint { color: var(--hmu-subtle); font-size: 14px; }
+.hmu-filter-chips:not([hidden]) { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 14px; }
+.hmu-filter-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; max-width: 100%; padding: 6px 13px; border: 1px solid var(--hmu-border-strong); border-radius: 999px; background: var(--hmu-surface); color: var(--hmu-ink); font: inherit; font-size: .875rem; font-weight: 600; overflow-wrap: anywhere; cursor: pointer; }
+.hmu-filter-chip:hover,.hmu-filter-chip[aria-pressed="true"] { border-color: var(--hmu-blue); }
+.hmu-filter-chip:active,.hmu-filter-chip[aria-pressed="true"] { background: var(--hmu-blue-soft); color: var(--hmu-blue); }
+.hmu-filter-chip:focus-visible { outline: 3px solid var(--hmu-blue); outline-offset: 2px; }
+.hmu-filter-chip b { display: inline-grid; flex: none; min-width: 19px; min-height: 19px; padding: 0 4px; place-items: center; border-radius: 999px; background: var(--hmu-blue); color: var(--hmu-on-blue); font-size: .6875rem; }
 
-.hmu-frame-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); align-items: stretch; gap: 18px; }
+.hmu-frame-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); align-items: stretch; gap: 18px; }
 .hmu-frame-card { position: relative; display: flex; flex-direction: column; min-width: 0; padding: 14px; border: 1.5px solid var(--hmu-border); border-radius: 22px; background: var(--hmu-surface); box-shadow: 0 2px 7px rgba(17, 43, 70, 0.025); color: var(--hmu-ink); text-align: left; cursor: pointer; transition: transform var(--hmu-motion-card) ease, border-color var(--hmu-motion-card) ease, box-shadow var(--hmu-motion-card) ease; }
 .hmu-frame-card:hover { border-color: var(--hmu-blue); box-shadow: var(--hmu-shadow-md); transform: translateY(-3px); }
 .hmu-frame-card.is-selected { border: 2px solid var(--hmu-magenta); box-shadow: 0 7px 20px rgba(198, 23, 84, 0.12); }
@@ -380,7 +380,7 @@ html { touch-action: pan-x pan-y; }
   .hmu-header { gap: 14px; }
   .hmu-hero { grid-template-columns: minmax(0, 1fr) minmax(280px, .8fr); gap: 34px; min-height: 560px; }
   .hmu-hero-art { min-height: 400px; }
-  .hmu-frame-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+  .hmu-frame-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
   #galimages.gallery__body > a { width: calc(33.333% - 11px); }
 }
 
@@ -417,8 +417,7 @@ html { touch-action: pan-x pan-y; }
   .hmu-section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
   .hmu-section-heading h2 { font-size: 29px; }
   .hmu-section-description { font-size: 15px; }
-  .hmu-template-tools { align-items: flex-start; flex-direction: column; margin: 16px 0 13px; }
-  .hmu-template-hint { font-size: 13px; }
+  .hmu-filter-chips:not([hidden]) { margin: 16px 0 13px; }
   .hmu-frame-grid { display: grid; width: calc(100vw - 32px) !important; max-width: calc(100vw - 32px); grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px; box-sizing: border-box; }
   .hmu-frame-card { width: auto; max-width: 100%; min-width: 0; box-sizing: border-box !important; padding: 9px; border-radius: 16px; }
   .hmu-frame-card > *,.hmu-frame-meta { min-width: 0; }

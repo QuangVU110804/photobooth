@@ -204,7 +204,9 @@ var photoBooth = function () {
       photoStyle = PhotoStyle.CHROMA;
     }
     photoboothTools.console.log('PhotoStyle: ' + photoStyle);
+    var countdownSeconds = config.picture.cntdwn_time;
     if (window.hmuFilterStage && photoStyle === PhotoStyle.PHOTO) {
+      countdownSeconds = window.hmuFilterStage.countdownSeconds;
       try { await window.hmuFilterStage.startCountdown(retry); }
       catch (error) { api.errorPic({ error: 'Không mở được camera. Hãy kiểm tra quyền truy cập và chọn lại camera.' }); return; }
     } else photoboothPreview.startVideo(CameraDisplayMode.COUNTDOWN, retry);
@@ -219,14 +221,18 @@ var photoBooth = function () {
       var getUrl = config.get_request.server + '/' + getMode;
       photoboothTools.getRequest(getUrl);
     }
-    api.startCountdown(config.picture.cntdwn_time, counter, function () {
+    api.startCountdown(countdownSeconds, counter, function () {
       if (config.picture.no_cheese) {
         photoboothTools.console.log('Cheese is disabled.');
       } else {
         api.cheese(photoStyle);
       }
     });
-    var triggerCnt = (config.picture.cntdwn_time) - config.picture.cntdwn_offset;
+    var triggerCnt = Math.max(0, countdownSeconds - config.picture.cntdwn_offset);
+    if (triggerCnt === 0 && Number(countdownSeconds) !== Number(config.picture.cntdwn_time)) {
+      // A shorter guest timer must not trigger the shutter immediately.
+      triggerCnt = countdownSeconds;
+    }
     photoboothTools.console.log('Capture image in ' + triggerCnt + ' seconds.');
     setTimeout(function () {
       if (config.preview.camTakesPic && !photoboothPreview.stream && !config.dev.demo_images) {

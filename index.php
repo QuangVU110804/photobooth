@@ -87,11 +87,11 @@ if (
 
 <script src="resources/js/color-mode.js?v=1"></script>
 <link rel="stylesheet" href="resources/css/color-mode.css?v=2"/>
-<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=10"/>
-<link rel="stylesheet" href="resources/css/filter-stage.css?v=10"/>
+<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=11"/>
+<link rel="stylesheet" href="resources/css/filter-stage.css?v=11"/>
 <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
 <link rel="stylesheet" href="node_modules/driver.js/dist/driver.css?v=1.10.2"/>
-<link rel="stylesheet" href="resources/css/guide-tour.css?v=3"/>
+<link rel="stylesheet" href="resources/css/guide-tour.css?v=4"/>
 <?php endif; ?>
 </head>
 
@@ -217,19 +217,19 @@ if (
 <script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
 <script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
 <script src="resources/js/beauty-settings.js?v=1"></script>
-<script src="resources/js/filter-session.js?v=5"></script>
+<script src="resources/js/filter-session.js?v=6"></script>
 <script src="resources/js/face-stickers.js?v=4"></script>
 <script src="resources/js/skin-beauty.js?v=2"></script>
 <script src="resources/js/beauty-panel.js?v=2"></script>
-<script src="resources/js/filter-stage.js?v=11"></script>
-<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3&beauty=2"></script>
+<script src="resources/js/filter-stage.js?v=13"></script>
+<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3&beauty=2&timer=1"></script>
 <script src="node_modules/@andreasremdt/simple-translator/dist/umd/translator.min.js"></script>
 <script type="text/javascript" src="resources/js/i18n.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-<script type="text/javascript" src="resources/js/hmu-frames.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-3"></script>
+<script type="text/javascript" src="resources/js/hmu-frames.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-7"></script>
 <script src="resources/js/gallery-selection.js?v=2"></script>
 <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
 <script src="node_modules/driver.js/dist/driver.js.iife.js?v=1.10.2"></script>
-<script src="resources/js/guide-tour.js?v=4"></script>
+<script src="resources/js/guide-tour.js?v=5"></script>
 <?php endif; ?>
 
 <?php require_once('lib/services_start.php'); ?>
