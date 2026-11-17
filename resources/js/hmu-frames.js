@@ -4,7 +4,7 @@
   var selector = document.getElementById("kioskFrameSelector");
   if (!selector) return;
 
-  var frameCount = document.getElementById("hmuFrameCount");
+  var topicFilters = document.getElementById("hmuFrameTopics");
   var heroFrame = document.getElementById("hmuHeroFrame");
   var errorMessage = document.getElementById("hmuFrameError");
   var storageKey = "hmu-photobooth-selected-frame";
@@ -13,26 +13,27 @@
   var listPromise;
   window.hmuFrameSelection = {
     filename: null,
+    get url() { return this.filename ? frameUrl(this.filename) : ""; },
     ready: function () { return listPromise.then(function () { return syncPromise; }); }
   };
 
   function frameUrl(filename) {
-    return new URL("resources/img/frames/" + encodeURIComponent(filename), document.baseURI).href;
+    return new URL("resources/img/frames/" + filename.split("/").map(encodeURIComponent).join("/"), document.baseURI).href;
   }
 
-  function selectFrame(filename, card, persist) {
+  function setCardSelection(card, isSelected) {
+    card.classList.toggle("is-selected", isSelected);
+    card.setAttribute("aria-pressed", String(isSelected));
+    card.querySelector(".hmu-frame-select").innerHTML = isSelected
+      ? '<i class="fa fa-check" aria-hidden="true"></i><span>Đang chọn</span>'
+      : "Chọn khung này";
+  }
+
+  function selectFrame(filename, card) {
     var url = frameUrl(filename);
 
     selector.querySelectorAll(".hmu-frame-card").forEach(function (item) {
-      var isSelected = item === card;
-      item.classList.toggle("is-selected", isSelected);
-      item.setAttribute("aria-pressed", isSelected ? "true" : "false");
-      var action = item.querySelector(".hmu-frame-select");
-      if (action) {
-        action.innerHTML = isSelected
-          ? '<i class="fa fa-check" aria-hidden="true"></i><span>Đang chọn</span>'
-          : "Chọn khung này";
-      }
+      setCardSelection(item, item === card);
     });
 
     if (heroFrame) heroFrame.src = url;
@@ -43,7 +44,6 @@
       else element.style.backgroundImage = 'url("' + url + '")';
     });
 
-    if (!persist) return;
     window.hmuFrameSelection.filename = filename;
     var revision = ++selectionRevision;
 
@@ -74,13 +74,12 @@
       });
   }
 
-  function makeFrameCard(filename, index) {
+  function makeFrameCard(filename) {
     var card = document.createElement("button");
     card.type = "button";
     card.className = "hmu-frame-card";
     card.dataset.frame = filename;
-    card.setAttribute("aria-label", "Chọn khung này, mẫu số " + (index + 1));
-    card.setAttribute("aria-pressed", "false");
+    card.setAttribute("aria-label", "Chọn khung " + filename.split("/").pop().slice(0, -4));
 
     var tag = document.createElement("span");
     tag.className = "hmu-frame-selected-tag";
@@ -111,37 +110,73 @@
 
     var action = document.createElement("span");
     action.className = "hmu-frame-select";
-    action.textContent = "Chọn khung này";
     card.appendChild(action);
 
-    card.addEventListener("click", function () { selectFrame(filename, card, true); });
+    setCardSelection(card, filename === window.hmuFrameSelection.filename);
+    card.addEventListener("click", function () { selectFrame(filename, card); });
     return card;
   }
 
   selector.setAttribute("aria-busy", "true");
-  listPromise = fetch("api/getFrames.php", { credentials: "same-origin" })
+  listPromise = fetch("api/getFrames.php?grouped=1", { credentials: "same-origin" })
     .then(function (response) {
       if (!response.ok) throw new Error("Frame list request failed");
       return response.json();
     })
-    .then(function (frames) {
-      if (!Array.isArray(frames) || !frames.length) throw new Error("No frames available");
-
-      var cards = document.createDocumentFragment();
-      frames.forEach(function (filename, index) { cards.appendChild(makeFrameCard(filename, index)); });
-      selector.appendChild(cards);
-      if (frameCount) frameCount.textContent = String(frames.length);
+    .then(function (topics) {
+      if (!Array.isArray(topics) || !topics.length) throw new Error("No frames available");
 
       var savedFrame = null;
       try { savedFrame = window.localStorage.getItem(storageKey); } catch (error) { /* Use the first configured frame. */ }
-      var initialFrame = frames.indexOf(savedFrame) !== -1 ? savedFrame : frames[0];
-      var initialCard = Array.prototype.find.call(selector.querySelectorAll(".hmu-frame-card"), function (card) {
+      var frames = topics.flatMap(function (topic) { return topic.frames; });
+      if (savedFrame && !frames.includes(savedFrame)) {
+        var basename = savedFrame.split("/").pop();
+        var relocated = frames.filter(function (filename) { return filename.split("/").pop() === basename; });
+        if (relocated.length === 1) savedFrame = relocated[0];
+      }
+      var savedTopic = topics.find(function (topic) { return topic.frames.includes(savedFrame); });
+      var initialTopic = savedTopic || topics[0];
+      var filters = topics.length > 1
+        ? [{ label: "Tất cả khung", frames: frames }].concat(topics)
+        : topics;
+      var activeFilter;
+
+      filters.forEach(function (topic) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "hmu-filter-chip";
+        button.textContent = topic.label;
+        button.setAttribute("aria-controls", selector.id);
+        button.setAttribute("aria-pressed", "false");
+        button.setAttribute("aria-label", topic.label + ", " + topic.frames.length + " khung");
+        var count = document.createElement("b");
+        count.textContent = topic.frames.length;
+        count.setAttribute("aria-hidden", "true");
+        button.appendChild(count);
+
+        function showTopic() {
+          if (activeFilter === button) return;
+          if (activeFilter) activeFilter.setAttribute("aria-pressed", "false");
+          activeFilter = button;
+          button.setAttribute("aria-pressed", "true");
+          selector.replaceChildren(...topic.frames.map(makeFrameCard));
+          selector.scrollTop = 0;
+        }
+        button.addEventListener("click", showTopic);
+        topicFilters.appendChild(button);
+        if (topic === initialTopic) showTopic();
+      });
+      topicFilters.hidden = false;
+
+      var initialFrame = savedTopic ? savedFrame : initialTopic.frames[0];
+      var initialCard = Array.from(selector.children).find(function (card) {
         return card.dataset.frame === initialFrame;
       });
-      selectFrame(initialFrame, initialCard, true);
+      selectFrame(initialFrame, initialCard);
     })
     .catch(function (error) {
       selector.innerHTML = "";
+      topicFilters.hidden = true;
       if (errorMessage) errorMessage.hidden = false;
       throw error;
     })

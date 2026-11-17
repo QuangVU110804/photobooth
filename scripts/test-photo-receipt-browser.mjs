@@ -129,6 +129,12 @@ try {
   };
   const reports = path.join(root, 'reports');
   await fs.mkdir(reports, { recursive: true });
+  await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+  await loadPage(receiptUrl);
+  check(await cdp.evaluate("document.documentElement.dataset.colorMode === 'dark' && getComputedStyle(document.body).colorScheme === 'dark'"), 'The receipt follows the device color scheme on first visit');
+  await cdp.evaluate("document.querySelector('.hmu-color-mode').click()");
+  await loadPage(receiptUrl);
+  check(await cdp.evaluate("document.documentElement.dataset.colorMode === 'light' && document.querySelector('.hmu-color-mode').getAttribute('aria-checked') === 'false'"), 'The receipt remembers an explicit light preference');
   for (const [width, height] of [[320, 740], [375, 812], [390, 844], [768, 1024], [844, 390], [1024, 768], [1440, 1000]]) {
     await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 900 });
     await loadPage(receiptUrl);

@@ -21,6 +21,8 @@
   const beautySplitRange = document.getElementById('hmu-beauty-split-range');
   const status = document.getElementById('hmu-filter-status');
   const shoot = document.getElementById('hmu-filter-shoot');
+  const countdownInput = document.getElementById('hmu-timer-seconds');
+  const countdownPresets = stage.querySelectorAll('[data-countdown]');
   const back = document.getElementById('hmu-filter-back');
   const camera = document.getElementById('hmu-filter-camera');
   const cameraHome = camera.parentElement;
@@ -328,6 +330,11 @@
     revision++; stopLoop(); stage.hidden = true; document.body.classList.remove('hmu-filter-open');
     if (!keepPreview) { stopBeautyPreview(); video.pause(); video.srcObject = null; ipcam.hidden = true; ipcam.removeAttribute('src'); }
   }
+  function updateCountdownPresets() {
+    for (const button of countdownPresets) {
+      button.setAttribute('aria-pressed', String(Number(button.dataset.countdown) === countdownInput.valueAsNumber));
+    }
+  }
   async function open() {
     const token = ++revision;
     stage.hidden = false; document.body.classList.add('hmu-filter-open');
@@ -343,7 +350,7 @@
       api.frame = window.hmuFrameSelection?.filename || '';
       frameImage.hidden = !api.frame;
       if (api.frame) {
-        frameImage.src = new URL('resources/img/frames/' + encodeURIComponent(api.frame), document.baseURI).href;
+        frameImage.src = window.hmuFrameSelection.url;
         await frameImage.decode();
         if (token !== revision) return;
       }
@@ -395,6 +402,8 @@
       const previousPhase = session.phase;
       const permitted = session.request(style, continuation);
       if (!permitted && previousPhase === 'idle' && session.phase === 'selecting') {
+        countdownInput.value = countdownInput.defaultValue;
+        updateCountdownPresets();
         refreshStickerCatalog();
         open();
       }
@@ -407,6 +416,7 @@
     get active() { return !stage.hidden; },
     get captureSource() { return source; },
     get captureVideo() { return video; },
+    get countdownSeconds() { return session.countdownSeconds; },
     get countingDown() { return !countdown.hidden; },
     async startCountdown(retry = 0) {
       const live = photoboothPreview.stream?.getVideoTracks().some(track => track.readyState === 'live');
@@ -474,9 +484,16 @@
   beautyMask.addEventListener('click',()=>{maskEnabled=!maskEnabled;splitEnabled=false;beautySplitRange.parentElement.hidden=true;if(beautyRenderer)beautyRenderer.lastVideoTime=-1;update();});
   beautyMirror.addEventListener('click',()=>{config.preview.flip=config.preview.flip==='flip-horizontal'?'off':'flip-horizontal';if(beautyRenderer)beautyRenderer.lastVideoTime=-1;update();});
   beautySplitRange.addEventListener('input',()=>{if(beautyRenderer)beautyRenderer.lastVideoTime=-1;});
+  countdownInput.addEventListener('input', updateCountdownPresets);
+  for (const button of countdownPresets) {
+    button.addEventListener('click', () => {
+      countdownInput.value = button.dataset.countdown;
+      updateCountdownPresets();
+    });
+  }
   shoot.addEventListener('click', () => {
-    if (shoot.disabled || session.phase !== 'selecting') return;
-    session.confirm(); hide(true);
+    if (shoot.disabled || session.phase !== 'selecting' || !countdownInput.reportValidity()) return;
+    session.confirm(countdownInput.valueAsNumber); hide(true);
     photoBooth.thrill(session.style);
   });
   sourceSelect.addEventListener('change', async () => {

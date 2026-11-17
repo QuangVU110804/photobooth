@@ -12,7 +12,7 @@
                 <li><span class="hmu-filter-step-number">3</span><span>Chụp ảnh</span></li>
                 <li><span class="hmu-filter-step-number">4</span><span>Nhận ảnh</span></li>
             </ol>
-            <span class="hmu-filter-topbar-note"><i class="fa fa-camera" aria-hidden="true"></i> Góc tạo kỷ niệm</span>
+            <?php include __DIR__ . '/color-mode.template.php'; ?>
         </div>
     </header>
     <div class="hmu-filter-inner">
@@ -20,7 +20,7 @@
             <div class="hmu-filter-heading-copy">
                 <p class="hmu-filter-step"><i class="fa fa-magic" aria-hidden="true"></i> BƯỚC 2 · HIỆU ỨNG &amp; PREVIEW CAMERA</p>
                 <h1 id="hmu-filter-title" tabindex="-1">Chọn hiệu ứng của bạn</h1>
-                <p class="hmu-filter-intro">Thử trực tiếp trên camera. Tạo dáng thật tự tin và sẵn sàng cho khoảnh khắc của bạn!</p>
+                <p class="hmu-filter-intro">Xem trước khung ảnh và thử hiệu ứng trên camera trước khi chụp.</p>
             </div>
         </div>
         <div class="hmu-filter-workspace">
@@ -36,13 +36,11 @@
                         <img id="hmu-preview-frame" class="hmu-preview-frame" alt="Khung ảnh đã chọn" hidden>
                     </div>
                     <span class="hmu-filter-live"><span aria-hidden="true"></span> CAMERA PREVIEW</span>
-                    <span class="hmu-filter-camera-caption"><i class="fa fa-camera" aria-hidden="true"></i> Khoảnh khắc của bạn, phong cách của bạn</span>
                 </div>
                 <div class="hmu-filter-camera-info">
                     <i class="fa fa-info-circle" aria-hidden="true"></i>
                     <p id="hmu-filter-status" class="hmu-filter-status" role="status" aria-live="polite">Đang chuẩn bị camera…</p>
                 </div>
-                <div class="hmu-filter-preview-tip"><i class="fa fa-lightbulb-o" aria-hidden="true"></i><span>Một chút ánh sáng, một nụ cười — sẵn sàng cho bức ảnh thật đẹp.</span></div>
             </div>
             <div class="hmu-filter-settings">
                 <section class="hmu-filter-group hmu-camera-settings" aria-labelledby="hmu-camera-title">
@@ -59,6 +57,7 @@
                     </details>
                 </section>
                 <section class="hmu-filter-group hmu-beauty-group" aria-labelledby="hmu-beauty-title">
+                    <button type="button" id="hmu-guide-effects-stop" hidden>Dừng hướng dẫn</button>
                     <details class="hmu-filter-section">
                         <summary class="rotaryfocus"><h2 id="hmu-beauty-title">Làm đẹp &amp; Chỉnh ảnh</h2></summary>
                         <p class="hmu-filter-section-description">21 tinh chỉnh · 4 phong cách</p>
@@ -85,12 +84,20 @@
                     <span class="hmu-filter-card-icon"><i class="fa fa-clock-o" aria-hidden="true"></i></span>
                     <div class="hmu-filter-timer-copy"><h2 id="hmu-timer-title">Hẹn giờ đếm ngược</h2><p>Thời gian chuẩn bị tạo dáng</p></div>
                     <div class="hmu-filter-timer-values">
-                        <?php if ($config['picture']['enabled']): ?><span class="hmu-filter-timer-photo"><span>Ảnh đơn</span><strong><?= (int) $config['picture']['cntdwn_time'] ?>s</strong></span><?php endif; ?>
+                        <div class="hmu-filter-timer-presets" role="group" aria-label="Chọn nhanh thời gian đếm ngược">
+                            <button type="button" data-countdown="3" aria-pressed="false">3s</button>
+                            <button type="button" data-countdown="5" aria-pressed="false">5s</button>
+                            <button type="button" data-countdown="10" aria-pressed="false">10s</button>
+                        </div>
+                        <label for="hmu-timer-seconds">
+                            Tự chỉnh (giây)
+                            <!-- The maximum keeps the delay within the browser's setTimeout limit. -->
+                            <input id="hmu-timer-seconds" type="number" inputmode="numeric" min="1" max="2147483" step="1" required value="<?= (int) $config['picture']['cntdwn_time'] ?>">
+                        </label>
                     </div>
                 </section>
             </div>
         </div>
-        <footer class="hmu-filter-footer"><span>HMU Photobooth · Lưu giữ những khoảnh khắc đẹp</span><span><i class="fa fa-heart-o" aria-hidden="true"></i> Tự tin là hiệu ứng đẹp nhất</span></footer>
     </div>
     <div class="hmu-filter-confirm">
         <div class="hmu-filter-confirm-inner">

@@ -1,23 +1,33 @@
 <?php
 
-/** Resolve a selectable frame without allowing paths or the shared active copy. */
+/** Resolve a PNG in the frames directory or one topic folder beneath it. */
 function resolvePhotoFrame(string $directory, $name): ?string {
-    if (!is_string($name) || $name === '' || basename($name) !== $name
-        || strpos($name, '/') !== false || strpos($name, '\\') !== false
+    if (!is_string($name) || str_contains($name, '\\') || str_contains($name, ':')
         || preg_match('/[\x00-\x1f\x7f]/', $name)
-        || !preg_match('/\.png\z/i', $name)
-        || strcasecmp($name, 'current_active_frame.png') === 0) return null;
+        || !preg_match('/\.png\z/i', $name)) return null;
+
+    $parts = explode('/', $name, 3);
+    $filename = array_pop($parts);
+    $topic = $parts[0] ?? null;
+    if (count($parts) > 1 || in_array($topic, ['', '.', '..'], true)
+        || strcasecmp($filename, 'current_active_frame.png') === 0) return null;
 
     $directory = realpath($directory);
     if ($directory === false) return null;
-    $path = realpath($directory . DIRECTORY_SEPARATOR . $name);
-    return $path !== false && dirname($path) === $directory && is_file($path) ? $path : null;
+    $parent = $topic === null ? $directory : $directory . DIRECTORY_SEPARATOR . $topic;
+    $path = realpath($parent . DIRECTORY_SEPARATOR . $filename);
+    return $path !== false && dirname($path) === $parent && is_file($path)
+        && strcasecmp(basename($path), 'current_active_frame.png') !== 0 ? $path : null;
 }
 
-function listPhotoFrames(string $directory): array {
+function listPhotoFrames(string $directory, bool $includeTopics = false): array {
+    $directory = rtrim($directory, '/\\');
+    $paths = glob($directory . '/*') ?: [];
+    if ($includeTopics) $paths = array_merge($paths, glob($directory . '/*/*') ?: []);
+
     $names = [];
-    foreach (glob($directory . '/*.png') ?: [] as $path) {
-        $name = basename($path);
+    foreach ($paths as $path) {
+        $name = str_replace(DIRECTORY_SEPARATOR, '/', substr($path, strlen($directory) + 1));
         if (resolvePhotoFrame($directory, $name) !== null) $names[] = $name;
     }
     sort($names);

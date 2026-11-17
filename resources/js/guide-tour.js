@@ -3,7 +3,10 @@
   const start = document.getElementById('hmu-guide-start');
   if (!start) return;
   const frames = document.getElementById('kioskFrameSelector');
+  const framePicker = document.getElementById('hmuFramePicker');
   const stage = document.getElementById('hmu-filter-stage');
+  const beautySection = stage.querySelector('.hmu-beauty-group');
+  const effectsStop = document.getElementById('hmu-guide-effects-stop');
   const shoot = document.getElementById('hmu-filter-shoot');
   const result = document.getElementById('result');
   const loader = document.getElementById('loader');
@@ -31,6 +34,7 @@
     document.body.dataset.hmuGuideStep = next;
     waiting.hidden = next !== 'camera';
     waitStop.disabled = next !== 'camera';
+    effectsStop.hidden = next !== 'effects';
   }
   function release() {
     internalClose = true;
@@ -89,13 +93,13 @@
     controls(target)[0]?.focus({ preventScroll: true });
   }
   function showFrames() {
-    paint('frames', frames, '1 · Chọn khung ảnh', 'Chạm vào một khung bạn thích. Bạn có thể cuộn danh sách để xem thêm. Chỉ khi khung được lưu thành công, hướng dẫn mới tiếp tục.');
+    paint('frames', framePicker, '1 · Chọn khung ảnh', 'Chọn chủ đề và khung. Nút mặt trời và mặt trăng đổi giao diện.');
   }
   function showCameraEntry() {
     paint('open-camera', document.querySelector('.hmu-actions .takePic'), '2 · Mở camera', 'Chạm “Chọn hiệu ứng và chụp”. Nếu trình duyệt hỏi quyền camera, hãy chọn Cho phép / Allow.');
   }
   function showShoot() {
-    paint('shoot', shoot, '3 · Tạo dáng và chụp', 'Chạm “Bắt đầu chụp ảnh”, nhìn vào camera và tạo dáng theo đếm ngược. Hướng dẫn sẽ ẩn khi chụp và tiếp tục khi ảnh sẵn sàng.');
+    paint('shoot', shoot, '3 · Thử hiệu ứng và chụp', 'Mở “Làm đẹp &amp; Chỉnh ảnh” để chọn mẫu hoặc chỉnh ánh sáng và màu. Mở “Hiệu ứng khuôn mặt” để thử kính, má hồng hoặc sticker. Khi đã sẵn sàng, bấm “Bắt đầu chụp ảnh”. <button type="button" id="hmu-guide-try-effects">Thử hiệu ứng</button>');
   }
   function sync() {
     if (!running) return;
@@ -105,12 +109,12 @@
     if (phase === 'camera') {
       if (stage.hidden) return stop();
       if (!shoot.disabled) showShoot();
-    } else if (phase === 'shoot') {
+    } else if (phase === 'shoot' || phase === 'effects') {
       if (window.photoBooth?.takingPic) {
         captureBefore = result.getAttribute('data-img');
         release(); setPhase('capturing');
       } else if (stage.hidden) stop();
-      else if (shoot.disabled) { release(); setPhase('camera'); }
+      else if (phase === 'shoot' && shoot.disabled) { release(); setPhase('camera'); }
     } else if (phase === 'capturing') {
       if (loader.classList.contains('error')) return stop('Lần chụp chưa thành công. Hãy xử lý thông báo trên màn hình và thử lại.');
       if (visible(result) && result.getAttribute('data-img') && result.getAttribute('data-img') !== captureBefore) {
@@ -126,6 +130,14 @@
   function onAction(event) {
     const target = event.target instanceof Element ? event.target : null;
     if (!target) return;
+    if (phase === 'shoot' && target.id === 'hmu-guide-try-effects') {
+      release();
+      setPhase('effects');
+      beautySection.scrollIntoView({block: 'start', behavior: 'instant'});
+      beautySection.querySelector('summary').focus({preventScroll: true});
+      return;
+    }
+    if (phase === 'frames' && target.closest('.hmu-filter-chip')) spotlight?.refresh();
     if (phase === 'frames' && target.closest('.hmu-frame-card')) {
       const revision = ++selectionRevision;
       window.hmuFrameSelection.ready().then(() => {
@@ -174,6 +186,7 @@
     showFrames();
   });
   waitStop.addEventListener('click', () => stop());
+  effectsStop.addEventListener('click', () => stop());
   document.addEventListener('keyup', event => {
     if (guideShortcuts.delete(event.code || event.key)) event.stopImmediatePropagation();
   }, true);

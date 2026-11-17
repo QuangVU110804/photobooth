@@ -163,6 +163,14 @@ try {
   check(await cdp.evaluate("!document.querySelector('.gallery-button,.gallerybtn,#gallery')"),'Gallery is hidden on the guest screen by default');
   const standaloneGallery = await fetch(`${base}/gallery.php`);
   check(standaloneGallery.ok && (await standaloneGallery.text()).includes('gallery__header'),'Standalone gallery remains accessible directly');
+  await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+  await cdp.send('Page.navigate', { url: `${base}/gallery.php` });
+  await waitFor(() => cdp.evaluate("document.readyState==='complete' && document.querySelector('#gallery .hmu-color-mode:not([hidden])')!==null"), 'standalone gallery switch');
+  await cdp.evaluate("document.querySelector('#gallery .hmu-color-mode').click()");
+  check(await cdp.evaluate("document.documentElement.dataset.colorMode === 'dark' && getComputedStyle(document.querySelector('#gallery .gallery__header')).colorScheme === 'dark'"), 'The standalone gallery can switch to dark mode');
+  await load();
+  check(await cdp.evaluate("document.querySelector('#start .hmu-color-mode').getAttribute('aria-checked')==='true'"), 'Gallery color choice carries to the home screen');
+  await cdp.evaluate("document.querySelector('#start .hmu-color-mode').click(); localStorage.removeItem('hmu-color-mode')");
   await cdp.evaluate("document.cookie='galleryTest=enabled;path=/photobooth/'");
   await load();
   const previewResponse = await fetch(`${base}/api/framePreview.php?frame=${encodeURIComponent('Golden Atelier.png')}`);
