@@ -21,6 +21,8 @@
   const beautySplitRange = document.getElementById('hmu-beauty-split-range');
   const status = document.getElementById('hmu-filter-status');
   const shoot = document.getElementById('hmu-filter-shoot');
+  const countdownInput = document.getElementById('hmu-timer-seconds');
+  const countdownPresets = stage.querySelectorAll('[data-countdown]');
   const back = document.getElementById('hmu-filter-back');
   const camera = document.getElementById('hmu-filter-camera');
   const cameraHome = camera.parentElement;
@@ -55,7 +57,7 @@
   const stickers = window.HmuFaceStickers;
   const stickerEffects = new Map(), unavailableStickers = new Set();
   const stickerCache = stickers ? new stickers.AssetCache() : null;
-  let catalogPromise = null, stickerImages = null;
+  let catalogRequest = null, stickerImages = null;
 
   function hasBeauty() { return beautySettings.isActive(session.beauty); }
   function detectionIndices() {
@@ -121,15 +123,23 @@
     } catch (error) { if (token === revision && choiceToken === faceChoiceRevision) failBeauty(); }
   }
 
-  function ensureStickerCatalog() {
-    if (!stickers || catalogPromise) return;
-    catalogPromise = stickers.loadCatalog().then((effects) => {
+  function refreshStickerCatalog() {
+    if (!stickers) return;
+    const container = document.getElementById('hmu-face-filters');
+    for (const button of container.querySelectorAll('[data-face]')) {
+      if (stickerEffects.has(button.dataset.face)) button.remove();
+    }
+    stickerEffects.clear();
+    unavailableStickers.clear();
+    const request = catalogRequest = stickers.loadCatalog();
+    request.then((effects) => {
+      if (request !== catalogRequest) return;
       const items = effects.map((effect) => {
         stickerEffects.set(effect.id, effect);
-        const item = [effect.id, effect.title, 'Sticker theo khuôn mặt']; faces.push(item); return item;
+        return [effect.id, effect.title, 'Sticker theo khuôn mặt'];
       });
-      makeButtons(items, document.getElementById('hmu-face-filters')); update();
-    }).catch(() => { catalogPromise = null; /* Existing effects remain available. */ });
+      makeButtons(items, container); update();
+    }).catch(() => { /* Existing effects remain available. */ });
   }
 
   function update() {
@@ -151,7 +161,8 @@
     beautyCompare.setAttribute('aria-pressed', String(beautyCompared));
     beautyCompare.textContent = 'Giữ để xem ảnh trước';
     for (const button of stage.querySelectorAll('button, select')) button.classList.toggle('rotaryfocus', !button.disabled);
-    document.getElementById('hmu-filter-choice').textContent = `${faces.find(([id]) => id === session.face)?.[1]}` + (hasBeauty() ? ` · ${beautySettings.PRESETS.find(p=>p.id===session.beauty.preset)?.name || 'Làm đẹp tùy chỉnh'}` : '');
+    const faceTitle = stickerEffects.get(session.face)?.title ?? faces.find(([id]) => id === session.face)?.[1];
+    document.getElementById('hmu-filter-choice').textContent = `${faceTitle}` + (hasBeauty() ? ` · ${beautySettings.PRESETS.find(p=>p.id===session.beauty.preset)?.name || 'Làm đẹp tùy chỉnh'}` : '');
     draw(lastFaces);
   }
   function makeButtons(items, container) {
@@ -319,10 +330,15 @@
     revision++; stopLoop(); stage.hidden = true; document.body.classList.remove('hmu-filter-open');
     if (!keepPreview) { stopBeautyPreview(); video.pause(); video.srcObject = null; ipcam.hidden = true; ipcam.removeAttribute('src'); }
   }
+  function updateCountdownPresets() {
+    for (const button of countdownPresets) {
+      button.setAttribute('aria-pressed', String(Number(button.dataset.countdown) === countdownInput.valueAsNumber));
+    }
+  }
+  let multishotFrame = null;
   async function open() {
     const token = ++revision;
     stage.hidden = false; document.body.classList.add('hmu-filter-open');
-    ensureStickerCatalog();
     finalEffects = null; finalBeauty = null; finalBeautyImage = null; lastFaces = []; lastVideoTime = -1; cameraReady = false; frameReady = false; faceAvailable = false; faceLoading = false; beautyLoading = false; beautyCompared = false; splitEnabled = false; maskEnabled = false;
     beautySplitRange.parentElement.hidden = true;
     stopBeautyPreview(); updateBeautyMask([]);
@@ -330,12 +346,12 @@
     window.rotaryController?.focusSet('#hmu-filter-stage');
     status.textContent = 'Đang đồng bộ khung và chuẩn bị camera…';
     try {
-      await window.hmuFrameSelection?.ready();
+      if (!multishotFrame) await window.hmuFrameSelection?.ready();
       if (token !== revision) return;
-      api.frame = window.hmuFrameSelection?.filename || '';
+      api.frame = multishotFrame ? '' : (window.hmuFrameSelection?.filename || '');
       frameImage.hidden = !api.frame;
       if (api.frame) {
-        frameImage.src = new URL('resources/img/frames/' + encodeURIComponent(api.frame), document.baseURI).href;
+        frameImage.src = window.hmuFrameSelection.url;
         await frameImage.decode();
         if (token !== revision) return;
       }
@@ -383,10 +399,19 @@
   }
   const api = window.hmuFilterStage = {
     frame: '',
+    selectMultishot(frame) {
+      multishotFrame = frame;
+      api.request('photo', false);
+    },
     request(style, continuation) {
       const previousPhase = session.phase;
       const permitted = session.request(style, continuation);
-      if (!permitted && previousPhase === 'idle' && session.phase === 'selecting') open();
+      if (!permitted && previousPhase === 'idle' && session.phase === 'selecting') {
+        countdownInput.value = countdownInput.defaultValue;
+        updateCountdownPresets();
+        refreshStickerCatalog();
+        open();
+      }
       return !permitted;
     },
     get face() { return session.face; },
@@ -396,6 +421,7 @@
     get active() { return !stage.hidden; },
     get captureSource() { return source; },
     get captureVideo() { return video; },
+    get countdownSeconds() { return session.countdownSeconds; },
     get countingDown() { return !countdown.hidden; },
     async startCountdown(retry = 0) {
       const live = photoboothPreview.stream?.getVideoTracks().some(track => track.readyState === 'live');
@@ -417,10 +443,11 @@
       document.body.classList.remove('hmu-counting-down');
       stopLoop(); stopBeautyPreview();
     },
-    finish() { api.endCountdown(); session.finish(); video.pause(); video.srcObject = null; stickerCache?.clear(); stickerImages = null; finalBeautyImage = null; releaseBeauty(); },
-    async prepareEffects(style, file) {
+    finish() { multishotFrame = null; api.endCountdown(); session.finish(); video.pause(); video.srcObject = null; stickerCache?.clear(); stickerImages = null; finalBeautyImage = null; releaseBeauty(); },
+    async prepareEffects(style, file, imageUrl) {
       if (!api.hasEffects) return {};
       if (finalEffects?.file === file) return finalEffects.value;
+      finalBeautyImage = null;
       stopLoop();
       if (previewPending) await previewPending.catch(() => {});
       await ensureWorker();
@@ -428,7 +455,7 @@
       const images = effect ? await stickerCache.prepare(effect) : null;
       const value = {};
       for (const name of [file]) {
-        const image = new Image(); image.src = `${config.foldersJS.tmp}/${encodeURIComponent(name)}?effects=${Date.now()}`;
+        const image = new Image(); image.src = imageUrl || `${config.foldersJS.tmp}/${encodeURIComponent(name)}?effects=${Date.now()}`;
         await image.decode();
         let anchors = await askWorker('image', await bitmapFor(image, 960));
         if (hasBeauty()) {
@@ -463,10 +490,20 @@
   beautyMask.addEventListener('click',()=>{maskEnabled=!maskEnabled;splitEnabled=false;beautySplitRange.parentElement.hidden=true;if(beautyRenderer)beautyRenderer.lastVideoTime=-1;update();});
   beautyMirror.addEventListener('click',()=>{config.preview.flip=config.preview.flip==='flip-horizontal'?'off':'flip-horizontal';if(beautyRenderer)beautyRenderer.lastVideoTime=-1;update();});
   beautySplitRange.addEventListener('input',()=>{if(beautyRenderer)beautyRenderer.lastVideoTime=-1;});
+  countdownInput.addEventListener('input', updateCountdownPresets);
+  for (const button of countdownPresets) {
+    button.addEventListener('click', () => {
+      countdownInput.value = button.dataset.countdown;
+      updateCountdownPresets();
+    });
+  }
   shoot.addEventListener('click', () => {
-    if (shoot.disabled || session.phase !== 'selecting') return;
-    session.confirm(); hide(true);
-    photoBooth.thrill(session.style);
+    if (shoot.disabled || session.phase !== 'selecting' || !countdownInput.reportValidity()) return;
+    session.confirm(countdownInput.valueAsNumber); hide(true);
+    if (multishotFrame) {
+      session.request(session.style, false);
+      window.hmuMultishot.begin(multishotFrame);
+    } else photoBooth.thrill(session.style);
   });
   sourceSelect.addEventListener('change', async () => {
     if (session.phase !== 'selecting') return;
@@ -483,6 +520,8 @@
     if (session.phase === 'selecting' && token === revision) await open();
   });
   back.addEventListener('click', () => {
+    const returnToMultishot = multishotFrame !== null;
+    multishotFrame = null;
     session.cancel(); hide(); disposeWorker();
     stickerCache?.clear(); stickerImages = null; releaseBeauty();
     window.remoteBuzzerClient?.inProgress(false);
@@ -497,7 +536,8 @@
     startPage.classList.add('open');
     startPage.style.removeProperty('display');
     window.rotaryController?.focusSet('#start');
-    document.querySelector('.hmu-frame-card[aria-pressed="true"]')?.focus();
+    if (returnToMultishot) window.hmuMultishot.back();
+    else document.querySelector('.hmu-frame-card[aria-pressed="true"]')?.focus();
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { stopLoop(); stopBeautyPreview(); lastFaces = []; updateBeautyMask([]); }

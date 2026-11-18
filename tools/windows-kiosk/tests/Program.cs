@@ -1,0 +1,3 @@
+using PhotoboothKiosk;
+
+KioskLogicChecks.Run();

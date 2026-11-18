@@ -11,11 +11,12 @@ check(!session.request('photo'), 'A new photo opens selection without starting c
 session.select('glasses');
 check(!session.request('collage'), 'Hardware/duplicate requests cannot bypass selection');
 check(session.style === 'photo', 'Duplicate requests preserve the pending capture type');
-session.confirm();
+session.confirm(10);
 check(session.request('photo'), 'An explicit confirmation admits exactly one new capture');
 check(!session.request('photo'), 'Repeated confirmation/click cannot start another capture');
 check(!session.request('collage', true), 'Removed capture mode cannot bypass confirmation as a continuation');
 check(session.request('photo', true), 'Retry preserves the confirmed photo session');
+check(session.countdownSeconds === 10, 'The confirmed countdown is retained across a retry');
 check(session.face === 'glasses', 'Sticker choice persists through processing and retry');
 check(!('color' in session) && !('defaultColor' in session), 'Capture session carries no retired photo color state');
 session.finish();

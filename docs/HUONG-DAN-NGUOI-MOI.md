@@ -4,17 +4,23 @@
 
 ## Mở hướng dẫn trực tiếp trên màn hình
 
-Chọn nút **Hướng dẫn** ở thanh điều hướng trang chủ để bắt đầu. Màn hình sẽ làm nổi bật lần lượt các nút thật: chọn khung, mở camera, chụp và nhận ảnh bằng QR. Chạm đúng khu vực được hướng dẫn để đi tiếp.
+Trên giao diện Modern, chọn **Hướng dẫn** ở thanh đầu trang chủ. Chạm vào các vùng được làm nổi bật để chọn khung, mở camera, chụp và nhận ảnh bằng QR. Khi camera sẵn sàng, đọc hướng dẫn trong tour rồi chọn **Thử hiệu ứng** để đến các tùy chọn trên camera. Khi đã chọn xong, bấm **Bắt đầu chụp ảnh**.
 
-Bạn có thể nhấn nút **×** của hộp hướng dẫn hoặc phím **Escape** để dừng bất cứ lúc nào. Khi đang chờ quyền camera, dùng nút **Dừng hướng dẫn**. Tour ẩn trong lúc đếm ngược và chụp, rồi tiếp tục khi ảnh đã sẵn sàng. Khi bạn mở mã QR, tour kết thúc để mã không bị che.
+Để thoát, nhấn **×** trên hộp hướng dẫn hoặc phím **Escape**. Khi đang chờ camera hoặc thử hiệu ứng, có nút **Dừng hướng dẫn**. Tour ẩn trong lúc đếm ngược và chụp, rồi tiếp tục khi ảnh đã sẵn sàng. Khi bạn mở mã QR, tour kết thúc để mã không bị che.
 
 Hướng dẫn chỉ chạy khi bạn chủ động chọn nút; bạn có thể mở lại ở lượt sau. Booth không lưu lịch sử đã xem hướng dẫn. Nếu QR hoặc nhóm nút kết quả đang tắt, tour hoàn tất sau khi ảnh sẵn sàng.
+
+## Đổi giao diện Sáng/Tối
+
+Chạm nút có biểu tượng **mặt trời và mặt trăng** ở thanh đầu trang chủ Modern hoặc màn hình xem trước camera. Trên giao diện Classic, nút nằm trong khung chụp ở trang chủ. Biểu tượng được tô màu cho biết chế độ đang dùng. Nút này cũng có trong thư viện và trang nhận ảnh khi các trang đó khả dụng.
+
+Ở lần đầu, giao diện theo cài đặt sáng/tối của thiết bị. Sau khi bạn đổi chế độ, trình duyệt ghi nhớ lựa chọn cho lần mở sau. Thiết lập này chỉ đổi màu giao diện. Để chỉnh độ sáng hoặc tông màu của ảnh, mở **Làm đẹp & Chỉnh ảnh** → **Ánh sáng và màu** trên màn hình camera.
 
 ## Chụp ảnh trong 3 bước
 
 ### 1. Chọn khung ảnh
 
-Ở trang chủ, cuộn đến mục **Chọn khung ảnh bạn yêu thích**. Chạm hoặc nhấp vào một khung để xem trước và chọn khung đó. Khung đang chọn được đánh dấu trên màn hình.
+Ở trang chủ, cuộn đến mục **Chọn khung ảnh bạn yêu thích**. Chọn một chủ đề hoặc **Tất cả khung**, rồi chạm vào mẫu bạn muốn dùng. Khung đang chọn được đánh dấu trên màn hình. Bạn có thể xem các chủ đề khác trước khi đổi sang một khung mới.
 
 ### 2. Chọn hiệu ứng và kiểm tra camera
 
@@ -22,10 +28,20 @@ Chọn **Chọn hiệu ứng và chụp**. Trên màn hình xem trước:
 
 - Cho phép trình duyệt truy cập camera nếu được hỏi. Nếu booth dùng máy ảnh ngoài, người vận hành đã cấu hình máy ảnh và lệnh chụp.
 - Chọn nguồn chụp nếu mục này xuất hiện: **Camera trên thiết bị / Webcam USB** hoặc **Máy ảnh ngoài (DSLR / Mirrorless)**.
-- Có thể chọn hiệu ứng khuôn mặt hoặc các tùy chỉnh làm đẹp nếu muốn. Các mục tùy chọn có thể mở rộng bằng cách chạm vào tiêu đề.
+- Chạm vào tiêu đề **Làm đẹp & Chỉnh ảnh** hoặc **Hiệu ứng khuôn mặt** để mở tùy chọn.
 - Kiểm tra khung và hình xem trước. Khi đã sẵn sàng, chọn **Bắt đầu chụp ảnh**.
 
-Nếu không muốn hiệu ứng, để làm đẹp ở **Tắt** và hiệu ứng khuôn mặt ở **Không hiệu ứng**. Hiệu ứng làm đẹp cần camera xem trước trên thiết bị; nếu camera hoặc trình duyệt không hỗ trợ, một số tùy chỉnh có thể không dùng được.
+#### Bộ lọc làm đẹp và màu ảnh
+
+1. Trong **Làm đẹp & Chỉnh ảnh**, chọn **Natural** để làm đẹp nhẹ, **Glow** để tăng độ sáng và ánh sáng mềm, hoặc **Porcelain** để làm mịn rõ hơn.
+2. Mở **Da**, **Hình dáng khuôn mặt**, **Mắt, môi và má**, hoặc **Ánh sáng và màu** để tinh chỉnh. Kéo thanh điều chỉnh và quan sát hình xem trước. Nhóm **Ánh sáng và màu** có độ sáng, tông ấm/lạnh, độ rực màu, tương phản và các tùy chỉnh khác.
+3. Dùng **Giữ để xem ảnh trước** hoặc **Chia đôi** để so sánh. Chọn **Off** để tắt làm đẹp.
+
+#### Hiệu ứng khuôn mặt
+
+Mở **Hiệu ứng khuôn mặt** rồi chọn **Kính thời trang**, **Má hồng**, hoặc một sticker có sẵn, chẳng hạn **Vương miện vàng**, **Mũ y tá** hay **Khẩu trang**. Nhìn về camera và đợi hiệu ứng hiển thị trước khi chụp. Chọn **Không hiệu ứng** để bỏ sticker hoặc hiệu ứng khuôn mặt. Bạn có thể dùng cả làm đẹp và một hiệu ứng khuôn mặt trong cùng lượt chụp.
+
+Các tùy chọn xem trước hiệu ứng cần camera xem trước trên thiết bị và trình duyệt hỗ trợ. Nếu hiệu ứng chưa hiện, kiểm tra quyền camera, nhìn thẳng và bảo đảm mặt đủ sáng. Bạn vẫn có thể chụp ảnh khi hiệu ứng không khả dụng.
 
 ### 3. Tạo dáng và nhận ảnh
 

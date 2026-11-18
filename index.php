@@ -22,13 +22,12 @@ if (
 ) {
     require_once 'lib/db.php';
 
-    if ($config['database']['enabled']) {
-        $images = getImagesFromDB();
-    } else {
-        $images = getImagesFromDirectory($config['foldersAbs']['images']);
+    if ($config['gallery']['enabled']) {
+        $images = $config['database']['enabled']
+            ? getImagesFromDB()
+            : getImagesFromDirectory($config['foldersAbs']['images']);
+        $imagelist = $config['gallery']['newest_first'] === true ? array_reverse($images) : $images;
     }
-
-    $imagelist = $config['gallery']['newest_first'] === true && !empty($images) ? array_reverse($images) : $images;
 
     $btnClass = 'btn btn--' . $config['ui']['button'];
     $btnShape = 'shape--' . $config['ui']['button'];
@@ -85,11 +84,14 @@ if (
 
 
 
-<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=8"/>
-<link rel="stylesheet" href="resources/css/filter-stage.css?v=8"/>
+<script src="resources/js/color-mode.js?v=1"></script>
+<link rel="stylesheet" href="resources/css/color-mode.css?v=2"/>
+<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=11"/>
+<link rel="stylesheet" href="resources/css/filter-stage.css?v=11"/>
 <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
 <link rel="stylesheet" href="node_modules/driver.js/dist/driver.css?v=1.10.2"/>
-<link rel="stylesheet" href="resources/css/guide-tour.css?v=1"/>
+<link rel="stylesheet" href="resources/css/guide-tour.css?v=4"/>
+<link rel="stylesheet" href="resources/css/multishot.css?v=2"/>
 <?php endif; ?>
 </head>
 
@@ -107,6 +109,7 @@ if (
     <?php include('template/' . $config['ui']['style'] . '.template.php'); ?>
     <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
         <?php include('template/filter-stage.template.php'); ?>
+        <?php if ($config['picture']['enabled'] && !$config['button']['force_buzzer']) include('template/multishot-stage.template.php'); ?>
     <?php endif; ?>
 
     <!-- Loader -->
@@ -161,6 +164,9 @@ if (
                     <?php if ($config['picture']['enabled']): ?>
                         <a href="#" class="<?php echo $btnClass; ?> newpic rotaryfocus"><i class="<?php echo $config['icons']['take_picture']; ?>"></i> <span
                                     data-i18n="newPhoto"></span></a>
+                        <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
+                        <button type="button" class="<?php echo $btnClass; ?> hmu-multishot-repeat rotaryfocus" hidden>Chụp bộ mới</button>
+                        <?php endif; ?>
                     <?php endif; ?>
 
                 <?php endif; ?>
@@ -181,6 +187,7 @@ if (
     </div>
 
     <?php if ($config['gallery']['enabled']): ?>
+        <?php $showColorMode = true; ?>
         <?php include('template/gallery.template.php'); ?>
     <?php endif; ?>
 </div>
@@ -212,21 +219,22 @@ if (
 <script type="text/javascript" src="resources/js/remotebuzzer_client.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3"></script>
 <script type="text/javascript" src="resources/js/photoinit.js?v=<?php echo $config['photobooth']['version']; ?>&gallery=2"></script>
 <script type="text/javascript" src="resources/js/theme.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
-<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-2"></script>
+<script type="text/javascript" src="resources/js/preview.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3"></script>
 <script src="resources/js/beauty-settings.js?v=1"></script>
-<script src="resources/js/filter-session.js?v=5"></script>
-<script src="resources/js/face-stickers.js?v=3"></script>
+<script src="resources/js/filter-session.js?v=6"></script>
+<script src="resources/js/face-stickers.js?v=4"></script>
 <script src="resources/js/skin-beauty.js?v=2"></script>
 <script src="resources/js/beauty-panel.js?v=2"></script>
-<script src="resources/js/filter-stage.js?v=8"></script>
-<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3&beauty=2"></script>
+<script src="resources/js/filter-stage.js?v=14"></script>
+<script type="text/javascript" src="resources/js/core.js?v=<?php echo $config['photobooth']['version']; ?>&capture=device-3&beauty=2&timer=1&delete=2&multi=2&canvas=1"></script>
 <script src="node_modules/@andreasremdt/simple-translator/dist/umd/translator.min.js"></script>
 <script type="text/javascript" src="resources/js/i18n.js?v=<?php echo $config['photobooth']['version']; ?>"></script>
-<script type="text/javascript" src="resources/js/hmu-frames.js?v=<?php echo $config['photobooth']['version']; ?>&capture=single-2"></script>
+<script type="text/javascript" src="resources/js/hmu-frames.js?v=<?php echo $config['photobooth']['version']; ?>&capture=mode-1"></script>
 <script src="resources/js/gallery-selection.js?v=2"></script>
 <?php if (strpos($config['ui']['style'], 'modern') === 0): ?>
 <script src="node_modules/driver.js/dist/driver.js.iife.js?v=1.10.2"></script>
-<script src="resources/js/guide-tour.js?v=2"></script>
+<script src="resources/js/guide-tour.js?v=6"></script>
+<script src="resources/js/multishot.js?v=2"></script>
 <?php endif; ?>
 
 <?php require_once('lib/services_start.php'); ?>

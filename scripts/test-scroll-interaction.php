@@ -39,10 +39,6 @@ foreach ($requiredCoreClasses as $cls) {
     }
 }
 
-if (!str_contains($hmuFramesJs, 'kioskFrameSelector') || !str_contains($hmuFramesJs, 'selectFrame')) {
-    $failures[] = "hmu-frames.js: Frame selector logic was modified or corrupted!";
-}
-
 if (!empty($failures)) {
     echo "❌ TDD FAILURES:\n";
     foreach ($failures as $f) {

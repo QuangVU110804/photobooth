@@ -1,5 +1,6 @@
+<?php $allowMultiFrames = $config['picture']['enabled'] && !$config['button']['force_buzzer']; ?>
 		<!-- Welcome and frame selection -->
-		<section class="stages hmu-start" id="start" aria-labelledby="hmu-hero-title">
+		<section class="stages hmu-start rotarygroup" id="start" aria-labelledby="hmu-hero-title">
 			<header class="hmu-header">
 				<a class="hmu-brand" href="#start" aria-label="HMU Photobooth - Trang chủ">
 					<img src="resources/img/background/logohome.png" width="40" height="40" alt="" />
@@ -17,8 +18,16 @@
 					<a class="hmu-nav-link gallery-button" href="#gallery"><i class="<?php echo $config['icons']['gallery']; ?>" aria-hidden="true"></i> Thư viện</a>
 					<?php endif; ?>
 				</nav>
-				<div class="hmu-header-meta"><span class="hmu-status-dot" aria-hidden="true"></span><span>Chọn khung và bắt đầu</span></div>
+				<?php include __DIR__ . '/color-mode.template.php'; ?>
 			</header>
+			<?php if ($allowMultiFrames): ?>
+			<div class="hmu-capture-mode-bar">
+				<div id="hmu-capture-mode" class="hmu-capture-mode" role="group" aria-label="Chế độ chụp">
+					<button type="button" class="rotaryfocus" data-capture-mode="single" aria-pressed="true" aria-controls="hmuFramePicker">Ảnh đơn</button>
+					<button type="button" class="rotaryfocus" data-capture-mode="multi" aria-pressed="false" aria-controls="hmuMultiFramePicker">Bộ ảnh</button>
+				</div>
+			</div>
+			<?php endif; ?>
 
 			<main class="hmu-main">
 				<section class="hmu-hero" aria-labelledby="hmu-hero-title">
@@ -49,28 +58,14 @@
 						</div>
 					</div>
 					<?php
-					$heroFrameSrc = 'resources/img/frames/current_active_frame.png';
-					$framesDir = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'frames';
-					$frameFiles = glob($framesDir . '/*.png') ?: [];
-					$availableFrames = [];
-					foreach ($frameFiles as $file) {
-						$frameName = basename($file);
-						if (strcasecmp($frameName, 'current_active_frame.png') !== 0 && is_file($file)) {
-							$availableFrames[] = $frameName;
-						}
+					require_once dirname(__DIR__) . '/lib/frames.php';
+					$framesDir = dirname(__DIR__) . '/resources/img/frames';
+					$firstFrame = listPhotoFrames($framesDir)[0] ?? listPhotoFrames($framesDir, true)[0] ?? null;
+					$activeFrameFile = $framesDir . '/current_active_frame.png';
+					if ($firstFrame !== null && (!is_file($activeFrameFile) || filesize($activeFrameFile) === 0)) {
+						@copy($framesDir . '/' . $firstFrame, $activeFrameFile);
 					}
-					sort($availableFrames);
-
-					$activeFrameFile = $framesDir . DIRECTORY_SEPARATOR . 'current_active_frame.png';
-					if ((!file_exists($activeFrameFile) || filesize($activeFrameFile) === 0) && !empty($availableFrames)) {
-						@copy($framesDir . DIRECTORY_SEPARATOR . $availableFrames[0], $activeFrameFile);
-					}
-
-					if (!empty($availableFrames)) {
-						$heroFrameSrc = 'resources/img/frames/' . $availableFrames[0];
-					} elseif (file_exists($activeFrameFile) && filesize($activeFrameFile) > 0) {
-						$heroFrameSrc = 'resources/img/frames/current_active_frame.png';
-					}
+					$heroFrameSrc = 'resources/img/frames/' . implode('/', array_map('rawurlencode', explode('/', $firstFrame ?? 'current_active_frame.png')));
 					?>
 					<aside class="hmu-hero-art" aria-label="Khung ảnh HMU đang được chọn">
 						<div class="hmu-art-orbit hmu-art-orbit-one" aria-hidden="true"></div>
@@ -90,11 +85,30 @@
 						<div><p class="hmu-section-kicker"><i class="fa fa-clone" aria-hidden="true"></i> BƯỚC 1 / 3: CHỌN MẪU KHUNG</p>
 						<h2 id="hmu-templates-title">Chọn khung ảnh bạn yêu thích</h2>
 						<p class="hmu-section-description">Xem trước từng thiết kế và chọn khung phù hợp với khoảnh khắc của bạn.</p></div>
-						<div class="hmu-selected-summary" aria-live="polite"><span>Khung đã chọn:</span><strong id="hmuSelectedName">Đang tải khung…</strong></div>
 					</div>
-					<div class="hmu-template-tools"><div class="hmu-filter-chips" aria-label="Bộ lọc khung ảnh"><span class="hmu-filter-chip is-active">Tất cả khung <b id="hmuFrameCount">0</b></span><span class="hmu-filter-chip">HMU Collection</span></div><span class="hmu-template-hint">Chạm vào khung để chọn</span></div>
-					<div id="kioskFrameSelector" class="hmu-frame-grid" aria-live="polite" aria-busy="true"></div>
-					<p id="hmuFrameError" class="hmu-frame-error" role="status" hidden>Không tải được danh sách khung ảnh. Hãy thử tải lại trang.</p>
+					<div id="hmuFramePicker">
+						<div id="hmuFrameTopics" class="hmu-filter-chips" role="group" aria-label="Chủ đề khung ảnh" hidden></div>
+						<div id="kioskFrameSelector" class="hmu-frame-grid" aria-live="polite" aria-busy="true"></div>
+						<p id="hmuFrameError" class="hmu-frame-error" role="status" hidden>Không tải được danh sách khung ảnh. Hãy thử tải lại trang.</p>
+					</div>
+					<?php if ($allowMultiFrames): ?>
+					<div id="hmuMultiFramePicker" hidden>
+						<div class="hmu-multishot-layout">
+							<label for="hmu-multishot-layout">Bố cục</label>
+							<select id="hmu-multishot-layout" class="rotaryfocus">
+								<option value="">Tất cả bố cục</option>
+								<option value="1x2">1×2 · 2 ảnh</option>
+								<option value="1x3">1×3 · 3 ảnh</option>
+								<option value="1x4">1×4 · 4 ảnh</option>
+								<option value="2x2">2×2 · 4 ảnh</option>
+								<option value="2x3">2×3 · 6 ảnh</option>
+							</select>
+						</div>
+						<div id="hmuMultiFrameTopics" class="hmu-filter-chips" role="group" aria-label="Chủ đề khung bộ ảnh" hidden></div>
+						<p id="hmuMultiFrameError" class="hmu-frame-error" role="status" hidden></p>
+						<div id="hmuMultiFrameSelector" class="hmu-frame-grid" aria-live="polite" tabindex="-1"></div>
+					</div>
+					<?php endif; ?>
 				</section>
 
 			</main>

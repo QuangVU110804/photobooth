@@ -23,6 +23,8 @@ run(php, ['scripts/test-beauty-upload.php']);
 run(process.execPath, ['scripts/test-skin-beauty.cjs']);
 run(process.execPath, ['scripts/test-beauty-controls.cjs']);
 run(process.execPath, ['scripts/test-beauty-geometry.mjs']);
+run(php, ['scripts/test-multishot.php']);
+run(process.execPath, ['scripts/test-multishot.cjs']);
 for (const test of ['run-tests.php', 'test-resize.php', 'test-api-logic.php', 'test-filter-effects.php', 'test-face-stickers.php', 'test-photo-receipt.php', 'test-receipt-deployment.php', 'test-frame-previews.php', 'test-scroll-interaction.php']) {
   run(php, [path.join('scripts', test)]);
 }
@@ -30,3 +32,4 @@ run(process.execPath, ['scripts/test-filter-session.cjs']);
 run(process.execPath, ['scripts/test-face-stickers.cjs']);
 run(process.execPath, ['scripts/test-gallery-polling.cjs']);
 run(process.execPath, ['scripts/test-kiosk-zoom.cjs']);
+

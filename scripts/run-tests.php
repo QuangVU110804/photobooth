@@ -402,8 +402,11 @@ if ($isCoreAffected) {
         }
 
         // 3. Contract check: api/setFrame.php valid frame selection
-        if (!empty($framesList) && is_array($framesList)) {
-            $firstFrame = $framesList[0];
+        require_once $rootDir . '/lib/frames.php';
+        $framesDir = $rootDir . '/resources/img/frames';
+        $requiredFrames = listPhotoFrames($framesDir, true);
+        $firstFrame = $framesList[0] ?? $requiredFrames[0] ?? null;
+        if ($firstFrame !== null) {
             $activePath = $rootDir . '/resources/img/frames/current_active_frame.png';
             $activeBytes = is_file($activePath) ? file_get_contents($activePath) : null;
             $resValid = $runPhpIsolated('$_POST["frame"] = ' . var_export($firstFrame, true) . '; require "api/setFrame.php";');
@@ -417,12 +420,10 @@ if ($isCoreAffected) {
         }
 
         // 4. Validate the frames actually advertised by the API.
-        $requiredFrames = is_array($framesList) ? $framesList : [];
         if (!$requiredFrames) {
             $diag->recordFailure("ASSET_INTEGRITY", $getFramesPath, 1, "No selectable PNG frames available", "SEV-1");
             $hasFailures = true;
         }
-        $framesDir = $rootDir . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'frames';
         foreach ($requiredFrames as $reqFrame) {
             $reqFramePath = $framesDir . DIRECTORY_SEPARATOR . $reqFrame;
             if (!is_file($reqFramePath) || filesize($reqFramePath) === 0 || (@getimagesize($reqFramePath)[2] ?? 0) !== IMAGETYPE_PNG) {
@@ -459,7 +460,7 @@ if ($isCoreAffected) {
         } else {
             if (preg_match('/<img[^>]+id=["\']hmuHeroFrame["\'][^>]+src=["\']([^"\']+)["\']/i', $resRender['output'], $m)) {
                 $renderedHeroSrc = $m[1];
-                $expectedHeroSrc = !empty($framesList) ? 'resources/img/frames/' . $framesList[0] : 'resources/img/frames/current_active_frame.png';
+                $expectedHeroSrc = 'resources/img/frames/' . implode('/', array_map('rawurlencode', explode('/', $firstFrame ?? 'current_active_frame.png')));
                 if ($renderedHeroSrc !== $expectedHeroSrc) {
                     $diag->recordFailure("HERO_FALLBACK", $modernTemplatePath, 57, "Hero frame src mismatch: expected \'{$expectedHeroSrc}\', got \'{$renderedHeroSrc}\'", "SEV-1");
                     $hasFailures = true;

@@ -1,8 +1,22 @@
 <?php
 require_once __DIR__ . '/api.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/multishot.php';
 
 function deletePhotoFiles(string $file): array {
+    global $config;
+    if (!multishotDirectory($config, $file)) return deletePhotoArtifacts($file);
+    try {
+        return multishotUse($config, $file, null, function ($dir, $session) use ($config, $file) {
+            multishotForget($dir, $session, 'deleted', $config['picture']['keep_original']);
+            return deletePhotoArtifacts($file);
+        });
+    } catch (RuntimeException $error) {
+        return ['success' => false, 'file' => $file, 'unavailable' => [], 'failed' => [$error->getMessage()], 'error' => 'Could not delete all photo files'];
+    }
+}
+
+function deletePhotoArtifacts(string $file): array {
     global $config;
     $folders = ['images', 'thumbs', 'keying'];
     if (!$config['picture']['keep_original']) $folders[] = 'tmp';

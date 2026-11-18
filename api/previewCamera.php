@@ -7,6 +7,10 @@ require_once __DIR__ . '/../lib/api.php';
 if (!in_array($_POST['play'] ?? null, ['start', 'stop'], true)) apiError('Invalid preview action');
 if (empty($config['preview'][$_POST['play'] === 'start' ? 'cmd' : 'killcmd'])) apiError('Preview command is not configured', 503);
 
+require_once __DIR__ . '/../lib/capture.php';
+try { $cameraLock = lockExternalCamera($config); }
+catch (CameraCaptureError $error) { apiError($error->getMessage(), $error->getCode()); }
+
 $simpleExec = $config['preview']['simpleExec'];
 
 function isRunning($pid) {

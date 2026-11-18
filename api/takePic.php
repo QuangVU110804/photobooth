@@ -26,65 +26,11 @@ if (!$config['dev']['demo_images'] && $captureSource === 'browser') {
 
 function takePicture($filename) {
     global $config, $cameraBytes, $captureSource;
-
-    if ($config['dev']['demo_images']) {
-        $demoFolder = __DIR__ . '/../resources/img/demo/';
-        $devImg = glob($demoFolder . '*.{jpg,jpeg,JPG,JPEG}', GLOB_BRACE) ?: [];
-        if (!$devImg) apiError('No demo JPEG images available', 503);
-        if (!copy($devImg[array_rand($devImg)], $filename)) apiError('Could not save demo capture', 500);
-    } elseif ($captureSource === 'browser') {
-        if (file_put_contents($filename, $cameraBytes) !== strlen($cameraBytes)) apiError('Could not save capture', 500);
-
-        if ($config['preview']['flip'] != 'off') {
-            $im = imagecreatefromjpeg($filename);
-            switch ($config['preview']['flip']) {
-                case 'flip-horizontal':
-                    imageflip($im, IMG_FLIP_HORIZONTAL);
-                    break;
-                case 'flip-vertical':
-                    imageflip($im, IMG_FLIP_VERTICAL);
-                    break;
-                default:
-                    break;
-            }
-            imagejpeg($im, $filename);
-            imagedestroy($im);
-        }
-    } else {
-        //gphoto must be executed in a dir with write permission for other commands we stay in the api dir
-        if (substr($config['take_picture']['cmd'], 0, strlen('gphoto')) === 'gphoto') {
-            chdir(dirname($filename));
-        }
-        if (trim($config['take_picture']['cmd']) === '') apiError('Capture command is not configured', 503);
-        $cmd = sprintf($config['take_picture']['cmd'], escapeshellarg($filename));
-        $cmd .= ' 2>&1'; //Redirect stderr to stdout, otherwise error messages get lost.
-
-        exec($cmd, $output, $returnValue);
-
-        if ($returnValue && $config['dev']['loglevel'] > 1) {
-            $ErrorData = [
-                'error' => 'Take picture command returned an error code',
-                'cmd' => $cmd,
-                'returnValue' => $returnValue,
-                'output' => $output,
-                'php' => basename($_SERVER['PHP_SELF']),
-            ];
-            $ErrorString = json_encode($ErrorData);
-            logError($ErrorData);
-        }
-
-        if (!is_file($filename) || !@getimagesize($filename)) {
-            $ErrorData = [
-                'error' => 'Máy ảnh ngoài chưa tạo được ảnh. Kiểm tra kết nối và lệnh digiCamControl/gphoto2, hoặc chọn camera trên thiết bị.',
-                'cmd' => $cmd,
-                'returnValue' => $returnValue,
-                'output' => $output,
-                'php' => basename($_SERVER['PHP_SELF']),
-            ];
-            $ErrorString = json_encode($ErrorData);
-            logError($ErrorData);
-            die($ErrorString);
-        }
+    try {
+        saveCameraCapture($config, $filename, $captureSource, $cameraBytes);
+    } catch (CameraCaptureError $error) {
+        if ($error->details) die(json_encode($error->details));
+        apiError($error->getMessage(), $error->getCode());
     }
 }
 

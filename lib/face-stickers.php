@@ -22,14 +22,17 @@ function stickerCatalog(?string $directory = null): array {
     $base = realpath($directory . '/stickers');
     if ($base === false) $invalid();
     $presets = ['eyes','left-eye','right-eye','left-cheek','right-cheek','nose','mouth','forehead','chin','face'];
+    $ids = ['none'=>true,'glasses'=>true,'blush'=>true];
     $output = [];
     foreach ($raw['effects'] as $effect) {
         if (!is_array($effect) || array_diff(array_keys($effect),['id','title','parts'])
             || !is_string($effect['id'] ?? null) || !preg_match('/\A[a-z0-9][a-z0-9_-]{0,63}\z/',$effect['id'])
-            || in_array($effect['id'],['none','glasses','blush'],true) || isset($output[$effect['id']])
+            || isset($ids[$effect['id']])
             || !is_string($effect['title'] ?? null) || trim($effect['title']) === '' || preg_match_all('/./us',$effect['title']) > 80
             || !is_array($effect['parts'] ?? null) || !array_is_list($effect['parts']) || count($effect['parts']) < 1 || count($effect['parts']) > 4) $invalid();
+        $ids[$effect['id']] = true;
         $parts = [];
+        $available = true;
         foreach ($effect['parts'] as $part) {
             if (!is_array($part) || array_diff(array_keys($part),['file','anchor','width','origin','offset','opacity'])
                 || !is_string($part['file'] ?? null) || !preg_match('/\A[a-zA-Z0-9_-]{1,120}\.png\z/',$part['file'])
@@ -38,14 +41,16 @@ function stickerCatalog(?string $directory = null): array {
             $offset = array_key_exists('offset',$part) ? $part['offset'] : [0,0];
             $opacity = array_key_exists('opacity',$part) ? $part['opacity'] : 1.0;
             if (!stickerPair($origin,0,1) || !stickerPair($offset,-2,2) || !stickerNumber($opacity,0,1)) $invalid();
-            $path = realpath($base . DIRECTORY_SEPARATOR . $part['file']);
+            $file = $base . DIRECTORY_SEPARATOR . $part['file'];
+            if (!file_exists($file) && !is_link($file)) { $available = false; continue; }
+            $path = realpath($file);
             if ($path === false || dirname($path) !== $base || !is_file($path) || filesize($path) > 2097152) $invalid();
             $info = @getimagesize($path);
             if (!$info || $info[2] !== IMAGETYPE_PNG || $info[0] < 1 || $info[1] < 1 || $info[0] > 1536 || $info[1] > 1536) $invalid();
             $parts[] = ['file'=>$part['file'],'anchor'=>$part['anchor'],'width'=>$part['width'],
                 'origin'=>$origin,'offset'=>$offset,'opacity'=>(float)$opacity,'path'=>$path,'imageWidth'=>$info[0],'imageHeight'=>$info[1]];
         }
-        $output[$effect['id']] = ['id'=>$effect['id'],'title'=>trim($effect['title']),'parts'=>$parts];
+        if ($available) $output[$effect['id']] = ['id'=>$effect['id'],'title'=>trim($effect['title']),'parts'=>$parts];
     }
     if ($useDefault) $defaultCatalog = $output;
     return $output;

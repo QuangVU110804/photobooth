@@ -9,9 +9,10 @@ function frameCheck($condition, $label) {
     $checks++;
     if (!$condition) throw new RuntimeException($label);
 }
-function frameEndpoint($endpoint, $get = [], $post = []) {
+function frameEndpoint($endpoint, $get = [], $post = [], $server = []) {
     global $fixture;
     $code = '$_GET=' . var_export($get, true) . ';$_POST=' . var_export($post, true) . ';'
+        . '$_SERVER=array_replace($_SERVER,' . var_export($server, true) . ');'
         . 'register_shutdown_function(function(){fwrite(STDERR,"STATUS:".(http_response_code()?:200));});'
         . 'require ' . var_export($fixture . '/app/api/' . $endpoint, true) . ';';
     $process = proc_open([PHP_BINARY, '-r', $code], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
@@ -29,6 +30,7 @@ try {
     $root = dirname(__DIR__);
     foreach (['getFrames.php', 'setFrame.php', 'framePreview.php'] as $endpoint) copy($root . '/api/' . $endpoint, $fixture . '/app/api/' . $endpoint);
     copy($root . '/lib/frames.php', $fixture . '/app/lib/frames.php');
+    copy($root . '/lib/multishot-frames.php', $fixture . '/app/lib/multishot-frames.php');
     file_put_contents($fixture . '/app/lib/config.php', '<?php $config=["foldersAbs"=>["tmp"=>' . var_export($fixture . '/cache', true) . ']];');
 
     $image = imagecreatetruecolor(1200, 800);
@@ -85,7 +87,106 @@ try {
     frameCheck(json_decode($body, true)['status'] === 'error' && hash_file('sha256', $frames . '/current_active_frame.png') === $sourceHash, 'Invalid PNG selection preserves the active frame');
     [$status, $body] = frameEndpoint('getFrames.php');
     frameCheck($status === 200 && in_array($name, json_decode($body, true), true), 'Frame list API keeps its filename-array contract');
-    frameCheck(glob($fixture . '/cache/frame-previews/*.tmp') === [], 'Cache publication leaves no partial files');
+    [$status, $body] = frameEndpoint('getFrames.php', ['grouped' => '1']);
+    frameCheck($status === 200 && json_decode($body, true) === [
+        ['label' => 'Khác', 'frames' => [$name, 'fake.png', 'small.png']],
+    ], 'Root filenames are grouped under Khác');
+
+    foreach (['Studio/Sub', '20-11', 'Sinh nhật', 'Thư mục trống'] as $folder) mkdir($frames . '/' . $folder, 0755, true);
+    $studioFrame = 'Studio/' . $name;
+    $eventFrame = '20-11/Mẫu mới #2.PNG';
+    foreach ([$studioFrame, 'Studio/Mẫu mới.png', $eventFrame, 'Sinh nhật/Khung mới.png', 'Studio/current_active_frame.png', 'Studio/Sub/Hidden.png'] as $path) {
+        copy($frames . '/small.png', $frames . '/' . $path);
+    }
+    [$status, $body] = frameEndpoint('getFrames.php', ['grouped' => '1']);
+    frameCheck($status === 200 && json_decode($body, true) === [
+        ['label' => '20/11', 'frames' => [$eventFrame]],
+        ['label' => 'Sinh nhật', 'frames' => ['Sinh nhật/Khung mới.png']],
+        ['label' => 'Studio', 'frames' => [$studioFrame, 'Studio/Mẫu mới.png']],
+        ['label' => 'Khác', 'frames' => [$name, 'fake.png', 'small.png']],
+    ], 'Nonempty folders set their topic labels, with 20-11 shown as 20/11');
+    [, $body] = frameEndpoint('getFrames.php');
+    frameCheck(json_decode($body, true) === [$name, 'fake.png', 'small.png'], 'The flat route still advertises only root filenames');
+    [$status, $body] = frameEndpoint('framePreview.php', ['frame' => $eventFrame]);
+    $fromTopic = imagecreatefromstring($body);
+    frameCheck($status === 200 && $fromTopic && imagesx($fromTopic) === 80, 'Topic frames support preview requests with Unicode and uppercase PNG extensions');
+    [, $body] = frameEndpoint('setFrame.php', [], ['frame' => $studioFrame]);
+    frameCheck(json_decode($body, true)['status'] === 'success' && hash_file('sha256', $frames . '/current_active_frame.png') === hash_file('sha256', $frames . '/small.png'), 'Selecting a topic frame uses its original even when its name matches a root frame');
+    foreach (['Studio/../small.png', '../frames/small.png', 'Studio/Sub/Hidden.png', 'Studio/current_active_frame.png', 'Studio\\Mẫu mới.png', 'Studio:extra/Mẫu mới.png'] as $path) {
+        frameCheck(resolvePhotoFrame($frames, $path) === null, 'A topic frame path cannot bypass the frame directory or use the active copy');
+    }
+
+    rename($frames . '/Studio', $frames . '/010 - Studio');
+    rename($frames . '/Sinh nhật', $frames . '/2 - Lễ hội');
+    rename($frames . '/20-11', $frames . '/01 - 20-11');
+    mkdir($frames . '/0 Sự kiện');
+    copy($frames . '/small.png', $frames . '/0 Sự kiện/Mẫu.png');
+    [$status, $body] = frameEndpoint('getFrames.php', ['grouped' => '1']);
+    frameCheck($status === 200 && json_decode($body, true) === [
+        ['label' => '20/11', 'frames' => ['01 - ' . $eventFrame]],
+        ['label' => 'Lễ hội', 'frames' => ['2 - Lễ hội/Khung mới.png']],
+        ['label' => 'Studio', 'frames' => ['010 - ' . $studioFrame, '010 - Studio/Mẫu mới.png']],
+        ['label' => '0 Sự kiện', 'frames' => ['0 Sự kiện/Mẫu.png']],
+        ['label' => 'Khác', 'frames' => [$name, 'fake.png', 'small.png']],
+    ], 'Folder renames update the catalog with numeric order and readable labels');
+
+    $cache = $fixture . '/cache/frame-previews';
+    $multiFrames = $fixture . '/app/resources/img/Multi-frames';
+    mkdir($multiFrames . '/01 - Studio', 0755, true);
+    $multiName = '01 - Studio/Bộ ảnh.png';
+    copy($frames . '/small.png', $multiFrames . '/' . $multiName);
+
+    $singleSource = resolvePhotoFrame($frames, $name);
+    $oldSingle = photoFramePreview($singleSource, $cache);
+    touch($singleSource, time() + 30);
+    clearstatcache(true, $singleSource);
+    $currentSingle = photoFramePreview($singleSource, $cache);
+    $multiSource = resolvePhotoFrame($multiFrames, $multiName);
+    $currentMulti = photoFramePreview($multiSource, $cache);
+    copy($frames . '/small.png', $frames . '/removed.png');
+    $oldRemoved = photoFramePreview(resolvePhotoFrame($frames, 'removed.png'), $cache);
+    unlink($frames . '/removed.png');
+
+    $fresh = $cache . '/' . str_repeat('b', 64) . '.png';
+    $nonCache = $cache . '/backup.png';
+    $data = $fixture . '/cache/' . basename($oldRemoved);
+    $nested = $cache . '/' . str_repeat('c', 64) . '.png';
+    mkdir($nested);
+    foreach ([$fresh, $nonCache, $data, $nested . '/keep.png'] as $path) copy($oldRemoved, $path);
+    $old = time() - 7200;
+    foreach ([$oldSingle, $oldRemoved, $currentSingle, $currentMulti, $nonCache, $data, $nested] as $path) touch($path, $old);
+
+    $lockPath = $cache . '/.cleanup.lock';
+    file_put_contents($lockPath, '1');
+    touch($lockPath, $old);
+    $lock = fopen($lockPath, 'r+b');
+    flock($lock, LOCK_EX);
+    try {
+        [$status, $body] = frameEndpoint('framePreview.php', ['frame' => $name]);
+        frameCheck($status === 200 && $body === file_get_contents($currentSingle) && is_file($oldRemoved), 'A busy cleanup lock does not block a warm preview or start a competing sweep');
+    } finally {
+        fclose($lock);
+    }
+
+    $conditional = ['HTTP_IF_NONE_MATCH' => 'W/"' . photoFramePreviewKey($multiSource) . '"'];
+    [$status, $body] = frameEndpoint('framePreview.php', ['mode' => 'multi', 'frame' => $multiName], [], $conditional);
+    clearstatcache();
+    frameCheck($status === 304 && $body === '', 'Revalidating a multi preview keeps the 304 response with no body');
+    frameCheck(!file_exists($oldSingle) && !file_exists($oldRemoved), 'Revalidation removes aged previews for replaced and removed frames');
+    frameCheck(is_file($currentSingle) && is_file($currentMulti) && filemtime($currentSingle) === $old && filemtime($currentMulti) === $old, 'Sweep retains current previews for both frame libraries without rewriting them');
+    frameCheck(is_file($fresh) && is_file($nonCache) && is_file($data) && is_file($nested . '/keep.png'), 'Sweep skips recent files, unrelated names, nested entries and files outside the preview cache');
+
+    copy($currentMulti, $oldRemoved);
+    touch($oldRemoved, $old);
+    [$status, $body] = frameEndpoint('framePreview.php', ['mode' => 'multi', 'frame' => $multiName]);
+    frameCheck($status === 200 && $body === file_get_contents($currentMulti) && is_file($oldRemoved), 'A warm multi preview is served during the cleanup interval without another sweep');
+
+    unlink($lockPath);
+    [$status, $body] = frameEndpoint('framePreview.php', ['frame' => $name], [], ['REQUEST_METHOD' => 'HEAD']);
+    clearstatcache();
+    frameCheck($status === 200 && $body === '' && is_file($lockPath) && !is_file($oldRemoved), 'First sweep initializes its lock and runs on a HEAD request without sending a body');
+
+    frameCheck(glob($cache . '/*.tmp') === [], 'Cache publication leaves no partial files');
     echo "$checks frame preview checks passed\n";
 } finally {
     // The only cleanup target is the freshly allocated test fixture.

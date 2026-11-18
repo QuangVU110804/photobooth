@@ -184,9 +184,7 @@ var photoboothPreview = function () {
     }
   };
   api.stopPreview = function () {
-    if (config.preview.killcmd) {
-      api.runCmd('stop');
-    }
+    var command = config.preview.killcmd ? api.runCmd('stop') : undefined;
     if (config.preview.mode === PreviewMode.DEVICE.valueOf()) {
       setTimeout(function () {
         api.stopVideo();
@@ -197,6 +195,7 @@ var photoboothPreview = function () {
         url.hide();
       }, config.picture.cntdwn_offset * 1000);
     }
+    return command;
   };
   api.stopVideo = function () {
     mediaGeneration += 1;

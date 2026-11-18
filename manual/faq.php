@@ -691,9 +691,11 @@ Disable <code>secure boot</code> in the BIOS and try again.</p>
 </ul>
 </li>
 </ul>
+<?php if ($config['gallery']['enabled']): ?>
 <hr>
 <h3>How to only open the gallery to avoid people taking pictures?</h3>
 <p>Open <a href="http://localhost/gallery.php">http://localhost/gallery.php</a> in your browser (you can replace <code>localhost</code> with your IP adress).</p>
+<?php endif; ?>
 <hr>
 <h3>Chromakeying isn&#39;t working if I access the Photobooth page on my Raspberry Pi, but it works if I access Photobooth from an external device (e.g. mobile phone or tablet). How can I solve the problem?</h3>
 <p>Open <code>chrome://flags</code> in your browser.</p>

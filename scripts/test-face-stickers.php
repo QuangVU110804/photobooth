@@ -74,7 +74,11 @@ try {
         fn($c)=>array_replace($c,['effects'=>[$c['effects'][0],$c['effects'][0]]]),
         fn($c)=>['version'=>1,'effects'=>[array_replace($c['effects'][0],['id'=>'glasses'])]],
     ] as $change) {file_put_contents($dir.'/catalog.json',json_encode($change($catalog)));stickerReject(fn()=>stickerCatalog($dir),'Reject malformed catalog');}
-    foreach(['../test.png','https://example.com/test.png','missing.png','not-png.png'] as $file) {
+    $missing=$catalog;$missing['effects'][0]['parts'][0]['file']='missing.png';
+    file_put_contents($dir.'/catalog.json',json_encode($missing));
+    stickerCheck(!isset(stickerCatalog($dir)['test']),'Effect with a missing PNG is hidden from the catalog');
+    stickerReject(fn()=>parseFaceSticker((object)$entry,$dir),'An unavailable effect cannot be submitted for export');
+    foreach(['../test.png','https://example.com/test.png','not-png.png'] as $file) {
         file_put_contents($dir.'/stickers/not-png.png','not a png');
         $bad=$catalog;$bad['effects'][0]['parts'][0]['file']=$file;file_put_contents($dir.'/catalog.json',json_encode($bad));
         stickerReject(fn()=>stickerCatalog($dir),'Reject unsafe/invalid asset '.$file);
@@ -131,8 +135,10 @@ try {
     $request=function($post,$overrides=[])use($dir){$p=proc_open([PHP_BINARY,__FILE__,'--endpoint',$dir,$dir.'/app'],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);fwrite($pipes[0],json_encode(['post'=>$post,'overrides'=>array_replace_recursive(['picture'=>['flip'=>'off']],$overrides)]));fclose($pipes[0]);$out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$code=proc_close($p);stickerCheck($code===0&&!preg_match('/Warning|Fatal|Deprecated|Notice/',$out.$err),'Endpoint exits cleanly '.$out.$err);return [$out,$err];};
     [$out,$err]=$request($post);stickerCheck(str_contains($err,'STATUS:200')&&is_file($dir.'/images/shot.jpg'),'Actual API persists sticker JPG');
     $saved=imagecreatefromjpeg($dir.'/images/shot.jpg');$rgb=stickerRgb($saved,100,50);stickerNear($rgb,[222,61,110],'Center gemstone survives JPEG export',25);imagedestroy($saved);
-    foreach(['hat','mask'] as $id) {
-        stickerCheck(isset($shipped[$id]),'New medical sticker is registered: '.$id);
+    stickerCheck(isset($shipped['hat']),'Supplied nurse hat is registered');
+    $hasMask=is_file($root.'/resources/face-effects/stickers/mask.png');
+    stickerCheck(isset($shipped['mask'])===$hasMask,'Optional mask is only exposed if its PNG exists');
+    foreach($hasMask ? ['hat','mask'] : ['hat'] as $id) {
         $medical=$shot;$medical['effect']=$id;
         [$out,$err]=$request(array_replace($post,['faceEffects'=>json_encode(['shot.jpg'=>[$medical]])]));
         stickerCheck(str_contains($err,'STATUS:200'),'API exports new medical PNG: '.$id);

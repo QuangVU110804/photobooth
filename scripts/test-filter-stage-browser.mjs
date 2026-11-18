@@ -86,7 +86,7 @@ try {
   const loaderSource=await fs.readFile(path.join(root,'resources/js/face-stickers.js'),'utf8');
   let latestCatalog=false, catalogRequests=0;
   catalogCacheServer=createHttpServer((request,response)=>{
-    if(request.url==='/resources/face-effects/catalog.json') {
+    if(request.url==='/api/getFaceEffects.php') {
       catalogRequests++;
       response.writeHead(200,{'Content-Type':'application/json','Cache-Control':'public, max-age=86400'});
       response.end(latestCatalog?catalogSource:JSON.stringify({version:1,effects:JSON.parse(catalogSource).effects.filter(e=>e.id==='gold-crown')}));
@@ -144,6 +144,18 @@ try {
     } finally { await fs.writeFile(finalPath,original); }
   };
   const openStage=async()=>{await cdp.evaluate("document.querySelector('.takePic').click()");await waitFor(()=>cdp.evaluate("hmuFilterStage.active && !document.getElementById('hmu-filter-shoot').disabled"),'stage camera');};
+  if (process.argv.includes('--multishot-only')) {
+    await cdp.send('Network.enable');
+    await cdp.send('Network.setCookie', { name: 'filterTestMode', value: 'multishot', url: base + '/' });
+    await load();
+    const {checkMultishot, checkSingleExternalStop} = await import('./test-multishot-browser.mjs');
+    await checkMultishot({cdp,check,waitFor,logs,fixture,fs,base});
+    await checkSingleExternalStop({cdp,check,waitFor,openStage,load,fixture,fs,base});
+    check(cdp.errors.length === 0, 'No multishot browser errors: ' + cdp.errors.join('; '));
+    check(!/PHP (?:Warning|Fatal error|Notice|Deprecated)/i.test(serverLog), 'No multishot PHP diagnostics');
+    console.log(checks + ' multishot browser/QR checks passed');
+    return;
+  }
   await load();
   if (process.argv.includes('--guide-only')) {
     const {checkGuideTour}=await import('./guide-tour-browser-checks.mjs');
@@ -160,22 +172,56 @@ try {
     check(!/PHP (?:Warning|Fatal error|Notice|Deprecated)/i.test(serverLog),'No beauty PHP diagnostics');
     console.log(`${checks} full beautifier GPU/camera/PHP checks passed`);return;
   }
-  const previewResponse = await fetch(`${base}/api/framePreview.php?frame=${encodeURIComponent('Golden Atelier.png')}`);
+  const topics = await (await fetch(`${base}/api/getFrames.php?grouped=1`)).json();
+  const previewFrame = topics.flatMap(topic => topic.frames).find(frame => path.posix.basename(frame) === 'Golden Atelier.png');
+  check(previewFrame, 'Golden Atelier is available in the frame catalog');
+  const previewResponse = await fetch(`${base}/api/framePreview.php?frame=${encodeURIComponent(previewFrame)}`);
   const previewBytes = await previewResponse.arrayBuffer();
-  const originalFrame = await fs.stat(path.join(root, 'resources/img/frames/Golden Atelier.png'));
+  const originalFrame = await fs.stat(path.join(root, 'resources/img/frames', previewFrame));
   check(previewResponse.ok && previewResponse.headers.get('content-type') === 'image/png' && previewBytes.byteLength < originalFrame.size / 4, 'Frame preview API reduces transfer while keeping PNG transparency');
-  const revalidated = await fetch(`${base}/api/framePreview.php?frame=${encodeURIComponent('Golden Atelier.png')}`, { headers: { 'If-None-Match': previewResponse.headers.get('etag') } });
+  const revalidated = await fetch(`${base}/api/framePreview.php?frame=${encodeURIComponent(previewFrame)}`, { headers: { 'If-None-Match': previewResponse.headers.get('etag') } });
   check(revalidated.status === 304 && (await revalidated.arrayBuffer()).byteLength === 0, 'Unchanged frame previews revalidate without sending image bytes');
   check(await cdp.evaluate("[...document.querySelectorAll('.hmu-frame-thumb img')].every(img=>img.src.includes('/api/framePreview.php?frame='))"), 'Frame cards use cached previews');
   check((await logs()).length===0,'Initial frame auto-selection never starts capture');
   await cdp.evaluate("photoBooth.thrill('collage');hmuFilterStage.request('collage')");
   check(await cdp.evaluate("!hmuFilterStage.active && !photoBooth.takingPic && !photoboothPreview.stream"),'Removed capture mode cannot open the stage or start a camera');
-  await cdp.evaluate("document.querySelectorAll('.hmu-frame-card')[1].click();hmuFrameSelection.ready()");
+  // This frame leaves the forehead and eyes of the portrait fixture visible after compositing.
+  await cdp.evaluate("document.querySelector('#hmuFrameTopics button:first-child').click();[...document.querySelectorAll('#kioskFrameSelector .hmu-frame-card')].find(card=>card.dataset.frame.split('/').pop().startsWith('Concept B')).click();hmuFrameSelection.ready()");
   check(await cdp.evaluate("!hmuFilterStage.active && !photoboothPreview.stream && !photoBooth.takingPic"),'Selecting a frame stays on the frame screen without opening camera');
-  check(await cdp.evaluate("document.querySelectorAll('.hmu-frame-card')[1].getAttribute('aria-pressed')==='true'"),'Frame selection updates selected state');
-  check(await cdp.evaluate("!document.querySelector('.takeCollage,.newcollage,[data-style=collage]')"),'Capture UI offers only single photos');
+  check(await cdp.evaluate("document.querySelector('#kioskFrameSelector .hmu-frame-card[aria-pressed=true]').dataset.frame === hmuFrameSelection.filename && hmuFrameSelection.filename.split('/').pop().startsWith('Concept B')"),'Frame selection updates selected state');
+  check(await cdp.evaluate("!document.querySelector('.takeCollage,.newcollage,[data-style=collage]')"),'Capture UI omits the retired collage mode');
   await openStage();
   check((await logs()).length===0,'Capture button opens effect selection without countdown/takePic');
+  check(await cdp.evaluate("document.getElementById('hmu-timer-seconds')?.valueAsNumber===1"),'Timer starts with the configured default');
+  for (const seconds of [3, 5, 10]) {
+    check(await cdp.evaluate(`(() => {
+      const preset = document.querySelector('[data-countdown="${seconds}"]');
+      preset.click();
+      return document.getElementById('hmu-timer-seconds').valueAsNumber === ${seconds} &&
+        document.querySelectorAll('[data-countdown][aria-pressed="true"]').length === 1 &&
+        preset.getAttribute('aria-pressed') === 'true';
+    })()`),`The ${seconds}s preset updates the timer and selection`);
+  }
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+  await cdp.evaluate("document.querySelector('#hmu-filter-stage .hmu-color-mode').click(); document.querySelector('.hmu-filter-timer').scrollIntoView({block:'end'})");
+  check(await cdp.evaluate(`(() => {
+    const card = document.querySelector('.hmu-filter-timer');
+    const footer = document.querySelector('.hmu-filter-confirm');
+    return getComputedStyle(card).colorScheme === 'dark' && card.scrollWidth <= card.clientWidth &&
+      card.getBoundingClientRect().bottom <= footer.getBoundingClientRect().top &&
+      [...card.querySelectorAll('button, input')].every(control => control.offsetWidth >= 44 && control.offsetHeight >= 44);
+  })()`),'On a narrow dark-mode screen, timer controls fit above the footer with touch-size targets');
+  await cdp.evaluate("document.querySelector('#hmu-filter-stage .hmu-color-mode').click(); localStorage.removeItem('hmu-color-mode')");
+  await cdp.send('Emulation.clearDeviceMetricsOverride');
+  for (const invalid of ['', '0', '2.5', '2147484']) {
+    check(await cdp.evaluate(`(() => {
+      const input = document.getElementById('hmu-timer-seconds');
+      input.value = ${JSON.stringify(invalid)};
+      input.dispatchEvent(new Event('input'));
+      document.getElementById('hmu-filter-shoot').click();
+      return document.activeElement === input && hmuFilterStage.active && !photoBooth.takingPic;
+    })()`),`Invalid timer ${JSON.stringify(invalid)} cannot start capture`);
+  }
   check(await cdp.evaluate("document.getElementById('hmu-camera-source')?.value==='browser' && document.getElementById('hmu-camera-device')?.options.length>0"), 'Camera source and detected device can be selected');
   check(await cdp.evaluate("document.getElementById('hmu-preview-frame')?.complete && document.getElementById('hmu-preview-frame')?.naturalWidth>0"), 'Selected frame is loaded above camera preview');
   await cdp.evaluate("document.getElementById('hmu-camera-device').dispatchEvent(new Event('change'))");
@@ -252,10 +298,25 @@ try {
   await waitFor(()=>cdp.evaluate("hmuFilterStage.face==='glasses'&&!document.getElementById('hmu-filter-shoot').disabled"),'glasses restored');
   await cdp.evaluate("window.lastCaptureError=null;const originalError=photoBooth.errorPic;photoBooth.errorPic=(data)=>{window.lastCaptureError=data;return originalError(data);}");
   const before=(await logs()).length;
-  await cdp.evaluate("document.getElementById('hmu-filter-shoot').click();document.getElementById('hmu-filter-shoot').click();");
+  await cdp.evaluate(`(() => {
+    const input = document.getElementById('hmu-timer-seconds');
+    input.value = '2';
+    input.dispatchEvent(new Event('input'));
+    const takePic = photoBooth.takePic;
+    const started = performance.now();
+    photoBooth.takePic = (...args) => {
+      window.captureElapsed = performance.now() - started;
+      photoBooth.takePic = takePic;
+      return takePic(...args);
+    };
+    document.getElementById('hmu-filter-shoot').click();
+    document.getElementById('hmu-filter-shoot').click();
+  })()`);
   check(await cdp.evaluate("photoBooth.takingPic && !hmuFilterStage.active"),'Only confirmation starts countdown');
+  check(await cdp.evaluate("document.getElementById('counter').textContent==='2' && !document.querySelector('[data-countdown][aria-pressed=\"true\"]')"),'Custom duration drives the visible countdown');
   check(await cdp.evaluate("!document.getElementById('hmu-countdown-preview').hidden && document.getElementById('hmu-countdown-preview').contains(document.getElementById('hmu-preview-frame')) && getComputedStyle(document.getElementById('hmu-filter-surface')).filter==='none' && !document.getElementById('hmu-filter-video').paused"), 'Countdown keeps the selected frame, live camera and face overlay with natural photo colors');
   await waitFor(()=>cdp.evaluate("typeof photoBooth !== 'undefined' && !photoBooth.takingPic && document.getElementById('result').getAttribute('data-img')"),'final processed photo',40000);
+  check(await cdp.evaluate('window.captureElapsed >= 1900'),'Capture waits for the custom duration');
   const first=(await logs()).slice(before);
   check(first.filter((r)=>r.route==='api/takePic.php').length===1,'Double click produces exactly one capture');
   const processed=first.find((r)=>r.route==='api/applyEffects.php');
@@ -265,6 +326,7 @@ try {
   await verifyExport(processed,'glasses');
   await cdp.evaluate("document.querySelector('.newpic').click()");
   await waitFor(()=>cdp.evaluate("hmuFilterStage.active&&!document.getElementById('hmu-filter-shoot').disabled"),'new photo stage');
+  check(await cdp.evaluate("document.getElementById('hmu-timer-seconds').valueAsNumber===1"),'The next guest starts with the configured default');
   check(await cdp.evaluate("hmuFilterStage.face==='none'&&!('color' in hmuFilterStage)"),'New session resets effects without restoring retired color state');
   await cdp.evaluate("document.querySelector('[data-face=blush]').click()");
   await waitFor(()=>cdp.evaluate("hmuFilterStage.face==='blush'&&!document.getElementById('hmu-filter-shoot').disabled"),'blush ready');
@@ -360,7 +422,7 @@ try {
   await cdp.send('Fetch.continueRequest',{requestId:paused.requestId});await cdp.send('Fetch.disable');
   await cdp.evaluate("hmuFrameSelection.ready()");
   check(await cdp.evaluate("!hmuFilterStage.active&&!photoboothPreview.stream"),'Cancelled waiting stage cannot reopen when the frame response arrives');
-  await cdp.evaluate("document.querySelectorAll('.hmu-frame-card')[0].click();document.querySelectorAll('.hmu-frame-card')[1].click();document.querySelectorAll('.hmu-frame-card')[2].click()");
+  await cdp.evaluate("document.querySelector('#hmuFrameTopics button:first-child').click();document.querySelectorAll('.hmu-frame-card')[0].click();document.querySelectorAll('.hmu-frame-card')[1].click();document.querySelectorAll('.hmu-frame-card')[2].click()");
   await cdp.evaluate("hmuFrameSelection.ready()");
   check(await cdp.evaluate("!hmuFilterStage.active&&!photoboothPreview.stream"),'Rapid frame changes stay at frame selection');
   await openStage();
@@ -370,7 +432,7 @@ try {
   // Real PNG catalog -> MediaPipe preview -> fresh still detection -> GD/JPG.
   // Blue Atelier's opaque header covers this fixture's forehead. Pick a frame
   // with a shallow header; preserve production frame ordering/occlusion.
-  await cdp.evaluate("document.getElementById('hmu-filter-back').click();[...document.querySelectorAll('.hmu-frame-card')].find(c=>c.dataset.frame.startsWith('Concept B')).click();hmuFrameSelection.ready()");
+  await cdp.evaluate("document.getElementById('hmu-filter-back').click();document.querySelector('#hmuFrameTopics button:first-child').click();[...document.querySelectorAll('.hmu-frame-card')].find(c=>c.dataset.frame.split('/').pop().startsWith('Concept B')).click();hmuFrameSelection.ready()");
   await openStage();
   const pngFrame=await cdp.evaluate('hmuFilterStage.frame');
   await waitFor(()=>cdp.evaluate("!!document.querySelector('[data-face=gold-crown]')"),'PNG catalog option');
@@ -409,8 +471,10 @@ try {
   await waitFor(()=>cdp.evaluate("hmuFilterStage.active&&!document.getElementById('hmu-filter-shoot').disabled"),'session after PNG');
   check(await cdp.evaluate("hmuFilterStage.face==='none'"),'PNG does not leak into next session');
   // Supplied PNG assets must survive real browser decoding, landmarks and JPG export.
-  check(await cdp.evaluate("['glasses','blush','gold-crown','hat','mask'].every(id=>!!document.querySelector('[data-face='+id+']'))"),'Old and new face filters remain selectable together');
-  for(const id of ['hat','mask']) {
+  const hasMask = await fs.access(path.join(root,'resources/face-effects/stickers/mask.png')).then(()=>true,()=>false);
+  const medicalIds = hasMask ? ['hat','mask'] : ['hat'];
+  check(await cdp.evaluate("['glasses','blush','gold-crown','hat'].every(id=>!!document.querySelector('[data-face='+id+']')) && !!document.querySelector('[data-face=mask]') === " + hasMask),'Available face filters stay selectable and unavailable assets are hidden');
+  for(const id of medicalIds) {
     await cdp.evaluate(`document.querySelector('[data-face=${id}]').click()`);
     await waitFor(()=>cdp.evaluate(`hmuFilterStage.face==='${id}'&&!document.getElementById('hmu-filter-shoot').disabled`),id+' PNG decoded');
     await waitFor(()=>cdp.evaluate("(()=>{const c=document.getElementById('hmu-filter-overlay');return c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((n,i)=>i%4===3&&n>0);})()"),id+' preview visible');
@@ -445,7 +509,7 @@ try {
   await cdp.evaluate("document.querySelector('[data-face=glasses]').click()");
   await waitFor(()=>cdp.evaluate("hmuFilterStage.face==='glasses'&&!document.getElementById('hmu-filter-shoot').disabled"),'legacy still works after missing PNG');
   await cdp.evaluate("document.getElementById('hmu-filter-back').click()");
-  await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*/resources/face-effects/catalog.json',requestStage:'Request'}]});
+  await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*/api/getFaceEffects.php',requestStage:'Request'}]});
   await load();await openStage();
   const failedCatalog=await waitFor(()=>Promise.resolve(cdp.events.shift()),'catalog network request');
   await cdp.send('Fetch.fulfillRequest',{requestId:failedCatalog.requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:'application/json'}],body:Buffer.from('{"version":2,"effects":[]}').toString('base64')});await cdp.send('Fetch.disable');

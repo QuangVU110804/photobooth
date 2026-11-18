@@ -67,11 +67,14 @@ $GALLERY_FOOTER = false;
 	<?php if (is_file("private/overrides.css")): ?>
 	<link rel="stylesheet" href="private/overrides.css?v=<?php echo $config['photobooth']['version']; ?>" />
 	<?php endif; ?>
-	<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=8" />
+	<script src="resources/js/color-mode.js?v=1"></script>
+	<link rel="stylesheet" href="resources/css/color-mode.css?v=2" />
+	<link rel="stylesheet" href="resources/css/hmu-premium.css?v=<?php echo $config['photobooth']['version']; ?>&ui=10" />
 </head>
 
 <body class="deselect" data-gallery-db-size="<?=$galleryDBSize?>">
 	<div id="wrapper">
+		<?php $showColorMode = true; ?>
 		<?php include('template/gallery.template.php'); ?>
 	</div>
 

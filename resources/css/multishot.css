@@ -1,0 +1,75 @@
+.hmu-capture-mode-bar {
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px 0;
+}
+.hmu-capture-mode {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--hmu-border);
+  border-radius: 999px;
+  background: var(--hmu-surface-soft);
+}
+.hmu-capture-mode button {
+  min-width: 108px;
+  min-height: 44px;
+  padding: 6px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--hmu-muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hmu-capture-mode button[aria-pressed="true"] {
+  background: var(--hmu-surface);
+  color: var(--hmu-blue);
+  box-shadow: 0 1px 5px rgba(17, 43, 70, .16);
+}
+.hmu-capture-mode button:focus-visible, .hmu-multishot-layout select:focus-visible {
+  outline: 3px solid var(--hmu-blue);
+  outline-offset: 2px;
+}
+.hmu-multishot-layout { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 14px; }
+.hmu-multishot-layout select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border: 1px solid var(--hmu-border-strong);
+  border-radius: 10px;
+  color: var(--hmu-ink);
+  background: var(--hmu-surface);
+  font: inherit;
+}
+#hmuHeroFrame[hidden] { display: none !important; }
+.hmu-multishot-progress button { min-height: 44px; font: inherit; cursor: pointer; }
+.hmu-multishot-progress button:focus-visible { outline: 3px solid var(--hmu-blue); outline-offset: 3px; }
+.hmu-multishot-mode #hmu-filter-camera { aspect-ratio: var(--hmu-multishot-ratio) !important; }
+.hmu-multishot-mode #hmu-countdown-preview #hmu-filter-camera { width: min(100vw, calc(100dvh * var(--hmu-multishot-ratio))); }
+.hmu-multishot-mode #hmu-filter-camera .hmu-filter-surface :is(video, img, canvas) { object-fit: cover; }
+.hmu-multishot-progress {
+  position: absolute;
+  z-index: 8;
+  left: max(10px, env(safe-area-inset-left));
+  top: max(10px, env(safe-area-inset-top));
+  width: min(200px, calc(100vw - 20px));
+  padding: 12px;
+  border: 1px solid var(--hmu-border-strong);
+  border-radius: 14px;
+  background: var(--hmu-surface);
+  color: var(--hmu-ink);
+}
+.hmu-multishot-progress p { margin: 0 0 8px; font-weight: 650; }
+.hmu-multishot-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.hmu-multishot-controls:has(button:not([hidden])) { margin-top: 10px; }
+.hmu-multishot-sheet { position: relative; width: min(88px, 100%); margin-inline: auto; }
+.hmu-multishot-sheet span { position: absolute; display: grid; place-items: center; background: var(--hmu-bg); color: var(--hmu-ink); font-size: .625rem; }
+.hmu-multishot-sheet img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+:is(.hmu-multishot-progress, .hmu-multishot-controls button, .hmu-multishot-repeat)[hidden] { display: none !important; }
+@media (max-width: 500px) {
+  .hmu-multishot-progress { width: min(155px, calc(100vw - 20px)); padding: 8px; }
+  .hmu-multishot-sheet { width: min(50px, 100%); }
+}

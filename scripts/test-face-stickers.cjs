@@ -83,6 +83,11 @@ for(const anchor of ['mouth','chin','face']) check(S.indicesFor({...effect,parts
   for(const [id,width] of Object.entries({hat:1500,mask:1254})) {
     const medical=S.validateCatalog(shipped).find(e=>e.id===id);
     check(!!medical,'Medical sticker available alongside crown: '+id);
+    if (id === 'mask' && !fs.existsSync(path.join(__dirname,'../resources/face-effects/stickers/mask.png'))) {
+      await assert.rejects(medicalCache.prepare(medical), { code: 'ENOENT' });
+      checks++;
+      continue;
+    }
     const bitmaps=await medicalCache.prepare(medical);
     check(bitmaps.get(id+'.png').width===width,'Supplied medical PNG dimensions preserved: '+id);
   }

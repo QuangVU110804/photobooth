@@ -151,7 +151,7 @@
   }
   async function loadCatalog() {
     // This editable catalog must not reuse a fresh HTTP cache entry after adding effects.
-    const response = await fetch(new URL('resources/face-effects/catalog.json', document.baseURI), { credentials: 'same-origin', cache: 'no-store' });
+    const response = await fetch(new URL('api/getFaceEffects.php', document.baseURI), { credentials: 'same-origin', cache: 'no-store' });
     if (!response.ok || Number(response.headers.get('content-length')) > 65536) throw new Error('Invalid sticker catalog');
     const body = await response.text();
     if (new TextEncoder().encode(body).length > 65536) throw new Error('Invalid sticker catalog size');

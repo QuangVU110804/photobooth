@@ -6,6 +6,7 @@
 	<div class="gallery__inner">
 		<div class="gallery__header">
 			<div class="hmu-gallery-heading"><h1>Thư viện ảnh</h1><p>Những khoảnh khắc đáng nhớ của bạn.</p></div>
+			<?php if (!empty($showColorMode)) include __DIR__ . '/color-mode.template.php'; ?>
 			<a href="#" aria-label="Đóng thư viện" title="Đóng thư viện" class="<?php echo $btnClass; ?> gallery__close close_gal rotaryfocus"><i class="<?php echo $config['icons']['close']; ?>" aria-hidden="true"></i></a>
 		</div>
         <?php if ($config['gallery']['allow_delete']): ?>

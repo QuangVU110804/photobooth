@@ -14,15 +14,17 @@ if ($route === '_filter-test-log') {
 if ($route === '_filter-test-frame') { echo file_exists($testRoot . '/active-frame.txt') ? file_get_contents($testRoot . '/active-frame.txt') : ''; exit; }
 if (str_starts_with($route, '_filter-test-data/')) {
     $relative = substr($route, strlen('_filter-test-data/'));
+    if (str_starts_with(rawurldecode($relative), 'tmp/multishot/')) { http_response_code(403); exit; }
     $file = realpath($testRoot . '/' . rawurldecode($relative));
     if (!$file || !str_starts_with($file, realpath($testRoot) . DIRECTORY_SEPARATOR)) { http_response_code(404); exit; }
     header('Content-Type: image/jpeg'); readfile($file); exit;
 }
-if (!in_array($route, ['index.php', '', 'api/config.php', 'api/setFrame.php', 'api/framePreview.php', 'api/takePic.php', 'api/applyEffects.php', 'api/deletePhoto.php', 'api/previewCamera.php', 'api/qrcode.php'], true)) return false;
+if (!in_array($route, ['index.php', '', 'api/config.php', 'api/setFrame.php', 'api/framePreview.php', 'api/takePic.php', 'api/applyEffects.php', 'api/deletePhoto.php', 'api/previewCamera.php', 'api/qrcode.php', 'api/multishot.php', 'photo.php'], true)) return false;
 if ($route === 'api/setFrame.php') {
     // Frame writes are the external boundary: don't overwrite the real active frame.
     header('Content-Type: application/json');
-    $valid = is_string($_POST['frame'] ?? null) && basename($_POST['frame']) === $_POST['frame'] && is_file($root . '/resources/img/frames/' . $_POST['frame']);
+    require_once $root . '/lib/frames.php';
+    $valid = resolvePhotoFrame($root . '/resources/img/frames', $_POST['frame'] ?? null) !== null;
     if (($_COOKIE['filterTestMode'] ?? '') === 'frame-fail') $valid = false;
     if ($valid) file_put_contents($testRoot . '/active-frame.txt', $_POST['frame']);
     echo json_encode(['status' => $valid ? 'success' : 'error']); exit;
@@ -30,6 +32,8 @@ if ($route === 'api/setFrame.php') {
 require_once $root . '/lib/config.php';
 $config['ui']['skip_welcome'] = true;
 $config['ui']['style'] = 'modern';
+$config['gallery']['enabled'] = true;
+$config['gallery']['allow_delete'] = true;
 if (($_COOKIE['filterTestMode'] ?? '') === 'classic') $config['ui']['style'] = 'classic';
 $config['ui']['notification_timeout'] = '.05';
 $config['ui']['folders_lang'] = '/photobooth/resources/lang';
@@ -74,6 +78,14 @@ if (($_COOKIE['filterTestMode'] ?? '') === 'external-retry') {
 }
 $config['textonpicture']['enabled'] = false;
 $config['qr']['enabled'] = false;
+if (($_COOKIE['filterTestMode'] ?? '') === 'multishot') {
+    $config['qr']['enabled'] = true;
+    $config['download']['enabled'] = true;
+    $config['picture']['allow_delete'] = true;
+    $config['database']['enabled'] = true;
+    $config['foldersAbs']['data'] = $testRoot;
+    $config['picture']['keep_original'] = false;
+}
 if (($_COOKIE['filterTestMode'] ?? '') === 'guide') $config['qr']['enabled'] = true;
 if (($_COOKIE['filterTestMode'] ?? '') === 'guide-keyboard') $config['picture']['key'] = '13';
 if (($_COOKIE['filterTestMode'] ?? '') === 'guide-space') $config['picture']['key'] = '32';
@@ -92,6 +104,7 @@ $config['remotebuzzer']['usenogpio'] = false;
 foreach (['images', 'tmp', 'thumbs', 'qrcodes', 'keying', 'print'] as $folder) {
     $config['foldersAbs'][$folder] = $testRoot . '/' . $folder;
     $config['foldersJS'][$folder] = '/photobooth/_filter-test-data/' . $folder;
+    $config['foldersRoot'][$folder] = '_filter-test-data/' . $folder;
 }
 if ($route === 'api/config.php') {
     header('Content-Type: application/javascript');
@@ -103,6 +116,8 @@ if (str_starts_with($route, 'api/')) {
     if ($route === 'api/framePreview.php') { require $root . '/' . $route; exit; }
     $log = ['route' => $route, 'hasColorFilter' => array_key_exists('filter', $_POST), 'style' => $_POST['style'] ?? null, 'file' => $_POST['file'] ?? null, 'frame' => $_POST['frame'] ?? null, 'faceEffects' => $_POST['faceEffects'] ?? null, 'beautyEffects' => $_POST['beautyEffects'] ?? null];
     $log['beautyImageBytes'] = isset($_POST['beautyImage']) ? strlen($_POST['beautyImage']) : 0;
+    if ($route === 'api/multishot.php') $log += ['action' => $_GET['action'] ?? null, 'slot' => $_POST['slot'] ?? null, 'request' => $_POST['request'] ?? null, 'hasCanvas' => isset($_POST['canvasimg'])];
     file_put_contents($testRoot . '/requests.jsonl', json_encode($log) . "\n", FILE_APPEND);
     chdir($root . '/api'); require $root . '/' . $route;
-} else { chdir($root); require $root . '/index.php'; }
+} elseif ($route === 'photo.php') { require $root . '/photo.php'; }
+else { chdir($root); require $root . '/index.php'; }

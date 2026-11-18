@@ -3,13 +3,21 @@ export async function checkGuideTour({ cdp, check, waitFor, load, logs, base, sc
   const evaluate = expression => cdp.evaluate(expression);
   const phase = () => evaluate('document.body.dataset.hmuGuideStep || "idle"');
   const at = name => waitFor(async () => await phase() === name, `guide step ${name}`);
+  const pickerIsClear = () => evaluate(`(() => {
+    const p = document.querySelector('.driver-popover').getBoundingClientRect();
+    const g = document.getElementById('hmuFramePicker').getBoundingClientRect();
+    return p.bottom <= g.top || p.top >= g.bottom || p.right <= g.left || p.left >= g.right;
+  })()`);
   const click = async (selector, touch = false) => {
     const point = await waitFor(() => evaluate(`(() => {
       const element = document.querySelector(${JSON.stringify(selector)});
       if (!element) throw new Error('Missing click target: ' + ${JSON.stringify(selector)});
       const box = element.getBoundingClientRect();
-      if(box.bottom<0||box.top>innerHeight) { element.scrollIntoView({block:'center',inline:'nearest'}); return false; }
-      const x=box.x+box.width/2,y=box.y+box.height/2;
+      const grid = element.closest('#kioskFrameSelector')?.getBoundingClientRect();
+      const top = Math.max(0, box.top, grid?.top ?? 0);
+      const bottom = Math.min(innerHeight, box.bottom, grid?.bottom ?? innerHeight);
+      if (bottom <= top) { element.scrollIntoView({block:'center',inline:'nearest'}); return false; }
+      const x=box.x+box.width/2,y=(top+bottom)/2;
       const hit=document.elementFromPoint(x,y);
       return hit && (element===hit || element.contains(hit)) ? {x,y} : false;
     })()`), `clickable ${selector}`);
@@ -51,10 +59,20 @@ export async function checkGuideTour({ cdp, check, waitFor, load, logs, base, sc
   await mode('guide');
   check(await evaluate("!!document.getElementById('hmu-guide-start')"), 'Modern screen has a manual Hướng dẫn button');
   check(await phase() === 'idle' && !await evaluate("!!document.querySelector('.driver-overlay')"), 'Tour never starts automatically');
+  const topics = await (await fetch(`${base}/api/getFrames.php?grouped=1`)).json();
+  const allFrames = topics.flatMap(topic => topic.frames);
+  const chosenFrame = await evaluate('hmuFrameSelection.ready().then(() => hmuFrameSelection.filename)');
+  check(await evaluate(`document.querySelectorAll('.hmu-frame-card').length < ${allFrames.length}`), 'Frame picker opens on a topic');
   const storageBefore = await evaluate('JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)])');
   await start();
+  await click('#hmuFrameTopics button:last-child', true);
+  check(await phase() === 'frames' && await evaluate(`hmuFrameSelection.filename===${JSON.stringify(chosenFrame)}&&!document.querySelector('.hmu-frame-card[aria-pressed=true]')`), 'Filtering within the guide keeps the selected frame');
+  await click('#hmuFrameTopics button:first-child');
+  check(await evaluate(`document.querySelectorAll('.hmu-frame-card').length===${allFrames.length}`), 'All topics shows every installed frame');
+  await click('#hmuFrameTopics button:nth-child(2)');
+  check(await evaluate(`document.querySelector('.hmu-frame-card[aria-pressed=true]')?.dataset.frame===${JSON.stringify(chosenFrame)}`), 'Returning to the selected topic restores the selected card');
   await screenshot('guide-frames');
-  check(await evaluate("(()=>{const p=document.querySelector('.driver-popover').getBoundingClientRect(),g=document.getElementById('kioskFrameSelector').getBoundingClientRect();return p.bottom<=g.top||p.top>=g.bottom||p.right<=g.left||p.left>=g.right;})()"), 'Frame instructions do not cover the selectable frames');
+  check(await pickerIsClear(), 'Frame instructions do not cover the topics or selectable frames');
   check(await evaluate("[...document.querySelectorAll('.driver-popover-next-btn')].every(button=>!button.getClientRects().length)"), 'Guide offers no Next button to bypass real actions');
   await cdp.send('Input.dispatchKeyEvent', {type:'keyDown',key:'ArrowRight',code:'ArrowRight'});
   check(await phase() === 'frames', 'Arrow navigation cannot bypass frame selection');
@@ -133,11 +151,17 @@ export async function checkGuideTour({ cdp, check, waitFor, load, logs, base, sc
   check(await evaluate("document.getElementById('loader').classList.contains('error')&&!document.querySelector('.driver-overlay')"), 'A real capture failure ends the guide and preserves the application error');
 
   await mode('guide');
-  await cdp.send('Emulation.setDeviceMetricsOverride', {width:390,height:844,deviceScaleFactor:1,mobile:true});
+  await cdp.send('Emulation.setDeviceMetricsOverride', {width:375,height:812,deviceScaleFactor:1,mobile:true});
   await cdp.send('Emulation.setEmulatedMedia', {features:[{name:'prefers-reduced-motion',value:'reduce'}]});
   await start();
   await screenshot('guide-mobile');
+  check(await pickerIsClear(), 'The mobile guide leaves the frame picker unobstructed');
+  check(await evaluate("[...document.querySelectorAll('.hmu-filter-chip')].every(chip=>{const b=chip.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth&&b.height>=44;})"), 'Topic buttons fit on a small screen with 44px touch targets');
   check(await evaluate("(()=>{const b=document.querySelector('.driver-popover').getBoundingClientRect();return b.left>=0&&b.right<=innerWidth&&b.top>=0&&b.bottom<=innerHeight;})()"), 'Guide popover fits the mobile viewport with reduced motion');
+  await escape(); await at('idle');
+  await cdp.send('Emulation.setDeviceMetricsOverride', {width:667,height:375,deviceScaleFactor:1,mobile:true});
+  await start();
+  check(await pickerIsClear(), 'The landscape guide leaves the frame picker unobstructed');
   await escape(); await at('idle');
   await cdp.send('Emulation.clearDeviceMetricsOverride');
   await cdp.send('Emulation.setEmulatedMedia', {features:[]});
@@ -174,4 +198,12 @@ export async function checkGuideTour({ cdp, check, waitFor, load, logs, base, sc
   await at('frames');
   check(!await evaluate('hmuFilterStage.active||photoBooth.takingPic'), 'Space on Hướng dẫn starts only the tour even when Space is configured as shutter');
   await escape(); await at('idle');
+
+  const relocatedFrame = allFrames.find(frame => frame !== chosenFrame && frame.includes('/'));
+  const filename = relocatedFrame.split('/').pop();
+  for (const oldPath of [filename, 'Thư mục cũ/' + filename]) {
+    await evaluate(`localStorage.setItem('hmu-photobooth-selected-frame', ${JSON.stringify(oldPath)})`);
+    await mode('guide');
+    check(await evaluate(`hmuFrameSelection.ready().then(() => localStorage.getItem('hmu-photobooth-selected-frame') === ${JSON.stringify(relocatedFrame)})`), 'A saved frame is restored after its path changes');
+  }
 }

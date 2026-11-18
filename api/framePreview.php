@@ -1,7 +1,12 @@
 <?php
-require_once __DIR__ . '/../lib/frames.php';
+require_once __DIR__ . '/../lib/multishot-frames.php';
 
-$source = resolvePhotoFrame(__DIR__ . '/../resources/img/frames', $_GET['frame'] ?? null);
+$multi = ($_GET['mode'] ?? null) === 'multi';
+$singleDirectory = __DIR__ . '/../resources/img/frames';
+$multiDirectory = multishotFramesDirectory();
+$directory = $multi ? $multiDirectory : $singleDirectory;
+$source = resolvePhotoFrame($directory, $_GET['frame'] ?? null);
+if ($multi && $source !== null && !multishotPngSize($source)) $source = null;
 if ($source === null) {
     http_response_code(404);
     header('Content-Type: application/json');
@@ -10,18 +15,31 @@ if ($source === null) {
 }
 
 try {
-    $etag = 'W/"' . photoFramePreviewKey($source) . '"';
+    $key = photoFramePreviewKey($source);
+    $etag = 'W/"' . $key . '"';
+    require_once __DIR__ . '/../lib/config.php';
+    $cacheDirectory = $config['foldersAbs']['tmp'] . '/frame-previews';
+    cleanPhotoFramePreviews($cacheDirectory, [$singleDirectory, $multiDirectory], $key);
     header('Cache-Control: public, max-age=0, must-revalidate');
     header('ETag: ' . $etag);
     if (trim($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) {
         http_response_code(304);
         exit;
     }
-    require_once __DIR__ . '/../lib/config.php';
-    $preview = photoFramePreview($source, $config['foldersAbs']['tmp'] . '/frame-previews');
-    header('Content-Type: image/png');
-    header('Content-Length: ' . filesize($preview));
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'HEAD') readfile($preview);
+    $preview = @fopen(photoFramePreview($source, $cacheDirectory), 'rb');
+    if ($preview === false) {
+        // A concurrent sweep can remove an obsolete cache entry before it is opened.
+        clearstatcache();
+        $preview = @fopen(photoFramePreview($source, $cacheDirectory), 'rb');
+    }
+    if ($preview === false) throw new RuntimeException('Could not read frame preview');
+    try {
+        header('Content-Type: image/png');
+        header('Content-Length: ' . fstat($preview)['size']);
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'HEAD') fpassthru($preview);
+    } finally {
+        fclose($preview);
+    }
 } catch (InvalidArgumentException $error) {
     http_response_code(400);
     header('Content-Type: application/json');

@@ -58,8 +58,8 @@
 					<?php if ($config['picture']['enabled']): ?>
 					<a href="#" class="<?php echo $btnClass; ?> takePic rotaryfocus"><i class="<?php echo $config['icons']['take_picture']; ?>"></i> <span data-i18n="takePhoto"></span></a>
 					<?php endif; ?>
-
 				<?php endif; ?>
+				<div class="hmu-classic-color-mode"><?php include __DIR__ . '/color-mode.template.php'; ?></div>
 			</div>
 
 			<?php if ($config['ui']['show_fork']): ?>

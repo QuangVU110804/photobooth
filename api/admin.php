@@ -174,6 +174,9 @@ if (isset($data['type'])) {
 
             if ($newConfig['reset']['remove_images']) {
                 $LogData[] = ['remove_images' => 'Removing images'];
+                require_once __DIR__ . '/../lib/multishot.php';
+                try { $multishotResetLock = multishotReset($config); }
+                catch (RuntimeException $error) { apiError($error->getMessage(), 500); }
                 // empty folders
                 foreach ($config['foldersAbs'] as $folder) {
                     if ($folder != $config['foldersAbs']['archives'] && $folder != $config['foldersAbs']['private']) {

@@ -149,7 +149,9 @@ $frame = imagecreatetruecolor(120, 80);
 imagealphablending($frame, false); imagesavealpha($frame, true);
 imagefill($frame, 0, 0, imagecolorallocatealpha($frame, 0, 0, 0, 127));
 imagefilledrectangle($frame, 0, 0, 20, 20, imagecolorallocatealpha($frame, 230, 30, 80, 0));
-imagepng($frame, $directory . '/app/resources/img/frames/Session Frame.png');
+$topicFrame = 'Sự kiện/Session Frame.png';
+mkdir($directory . '/app/resources/img/frames/Sự kiện');
+imagepng($frame, $directory . '/app/resources/img/frames/' . $topicFrame);
 imagefilledrectangle($frame, 0, 0, 20, 20, imagecolorallocatealpha($frame, 20, 200, 50, 0));
 imagepng($frame, $directory . '/app/resources/img/frames/current_active_frame.png');
 imagedestroy($frame);
@@ -281,8 +283,8 @@ try {
         effectsCheck($status === 400 && isset($body['error']), 'Invalid session frame returns HTTP 400 JSON');
         effectsCheck(effectsSnapshot($directory) === $before, 'Invalid frame touches no images or copies');
     }
-    [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo', 'faceEffects' => json_encode($map), 'frame' => 'Session Frame.png']);
-    effectsCheck($status === 200, 'Session frame photo succeeds');
+    [$status, $body] = effectsEndpoint($directory, ['file' => 'shot.jpg', 'style' => 'photo', 'faceEffects' => json_encode($map), 'frame' => $topicFrame]);
+    effectsCheck($status === 200, 'A frame from a topic folder renders in the photo');
     $saved = imagecreatefromjpeg($directory . '/images/shot.jpg');
     effectsCheck(effectsNear(effectsPixel($saved, 10, 10), [230,30,80], 4), 'Selected alpha frame applied after flip despite take_frame false');
     effectsCheck(effectsNear(effectsPixel($saved, 100, 40), [18,36,58], 4), 'Transparent frame leaves face visible');

@@ -1,177 +1,283 @@
 (function () {
   "use strict";
 
-  var selector = document.getElementById("kioskFrameSelector");
-  if (!selector) return;
+  const singlePanel = document.getElementById("hmuFramePicker");
+  if (!singlePanel) return;
 
-  var selectedName = document.getElementById("hmuSelectedName");
-  var frameCount = document.getElementById("hmuFrameCount");
-  var heroFrame = document.getElementById("hmuHeroFrame");
-  var errorMessage = document.getElementById("hmuFrameError");
-  var storageKey = "hmu-photobooth-selected-frame";
-  var syncPromise = Promise.resolve();
-  var selectionRevision = 0;
-  var listPromise;
-  window.hmuFrameSelection = {
-    filename: null,
-    ready: function () { return listPromise.then(function () { return syncPromise; }); }
-  };
-
-  function frameTitle(filename) {
-    var match = filename.match(/kiosk_frame_(\d+)/i);
-    return match ? "Khung HMU " + match[1] : filename.replace(/\.png$/i, "").replace(/[_-]+/g, " ");
-  }
+  const multiPanel = document.getElementById("hmuMultiFramePicker");
+  const modeBar = document.getElementById("hmu-capture-mode");
+  const layout = document.getElementById("hmu-multishot-layout");
+  const hero = document.getElementById("hmuHeroFrame");
+  const initialHero = hero?.src;
+  const title = document.getElementById("hmu-templates-title");
+  const singleTitle = title?.textContent;
+  const storageKey = "hmu-photobooth-selected-frame";
+  const multiStorageKey = "hmu-photobooth-selected-set-frame";
+  let mode = "single";
+  let modeRevision = 0;
+  let selectedMulti = null;
+  let multiFrames;
+  let multiReady;
+  let syncPromise = Promise.resolve();
+  let selectionRevision = 0;
 
   function frameUrl(filename) {
-    return new URL("resources/img/frames/" + encodeURIComponent(filename), document.baseURI).href;
+    return new URL("resources/img/frames/" + filename.split("/").map(encodeURIComponent).join("/"), document.baseURI).href;
   }
 
-  function selectFrame(filename, card, persist) {
-    var url = frameUrl(filename);
-    var title = frameTitle(filename);
+  function readPreference(key) {
+    try { return localStorage.getItem(key); } catch (error) { return null; }
+  }
 
-    selector.querySelectorAll(".hmu-frame-card").forEach(function (item) {
-      var isSelected = item === card;
-      item.classList.toggle("is-selected", isSelected);
-      item.setAttribute("aria-pressed", isSelected ? "true" : "false");
-      var action = item.querySelector(".hmu-frame-select");
-      if (action) {
-        action.innerHTML = isSelected
+  function savePreference(key, value) {
+    try { localStorage.setItem(key, value); } catch (error) { /* Optional for kiosk mode. */ }
+  }
+
+  async function json(url) {
+    const response = await fetch(url, { credentials: "same-origin" });
+    if (!response.ok) throw new Error("Frame list request failed");
+    return response.json();
+  }
+
+  function updateHero() {
+    if (!hero) return;
+    const url = mode === "multi" ? selectedMulti?.preview : (hmuFrameSelection.url || initialHero);
+    hero.hidden = !url;
+    if (url && hero.src !== new URL(url, document.baseURI).href) hero.src = url;
+  }
+
+  function makePicker(gridId, topicsId, describe, select, selectedId) {
+    const grid = document.getElementById(gridId);
+    const chips = document.getElementById(topicsId);
+
+    function markSelection() {
+      const current = selectedId();
+      grid.querySelectorAll(".hmu-frame-card").forEach(card => {
+        const selected = card.dataset.frame === current;
+        card.classList.toggle("is-selected", selected);
+        card.setAttribute("aria-pressed", String(selected));
+        card.querySelector(".hmu-frame-select").innerHTML = selected
           ? '<i class="fa fa-check" aria-hidden="true"></i><span>Đang chọn</span>'
           : "Chọn khung này";
-      }
-    });
-
-    if (selectedName) selectedName.textContent = title;
-    if (heroFrame) {
-      heroFrame.src = url;
-      heroFrame.alt = "Bản xem trước " + title;
+      });
     }
 
+    function makeCard(frame) {
+      const details = describe(frame);
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "hmu-frame-card rotaryfocus";
+      card.dataset.frame = details.id;
+      card.setAttribute("aria-label", "Chọn khung " + details.name);
+      card.innerHTML = '<span class="hmu-frame-selected-tag"><i class="fa fa-check-circle" aria-hidden="true"></i> Đang chọn</span>' +
+        '<span class="hmu-frame-thumb"><img alt="" loading="lazy" decoding="async"></span>' +
+        '<span class="hmu-frame-meta"><span class="hmu-frame-description"></span><span class="hmu-frame-size"></span></span>' +
+        '<span class="hmu-frame-select"></span>';
+      card.querySelector("img").src = details.preview;
+      card.querySelector(".hmu-frame-description").textContent = details.description;
+      card.querySelector(".hmu-frame-size").textContent = details.badge;
+      card.addEventListener("click", () => { select(frame); markSelection(); });
+      return card;
+    }
+
+    function render(topics, initialTopic) {
+      const all = topics.flatMap(topic => topic.frames);
+      const filters = topics.length > 1 ? [{ label: "Tất cả khung", frames: all }, ...topics] : topics;
+      let activeFilter;
+      grid.replaceChildren();
+      chips.replaceChildren();
+      for (const topic of filters) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "hmu-filter-chip rotaryfocus";
+        button.textContent = topic.label;
+        button.setAttribute("aria-controls", grid.id);
+        button.setAttribute("aria-pressed", "false");
+        button.setAttribute("aria-label", topic.label + ", " + topic.frames.length + " khung");
+        const count = document.createElement("b");
+        count.textContent = topic.frames.length;
+        count.setAttribute("aria-hidden", "true");
+        button.append(count);
+        function showTopic() {
+          if (activeFilter === button) return;
+          activeFilter?.setAttribute("aria-pressed", "false");
+          activeFilter = button;
+          button.setAttribute("aria-pressed", "true");
+          grid.replaceChildren(...topic.frames.map(makeCard));
+          markSelection();
+          grid.scrollTop = 0;
+        }
+        button.addEventListener("click", showTopic);
+        chips.append(button);
+        if (topic === (initialTopic || filters[0])) showTopic();
+      }
+      chips.hidden = !all.length;
+    }
+    return { grid, render, markSelection };
+  }
+
+  const hmuFrameSelection = window.hmuFrameSelection = {
+    filename: null,
+    get url() { return this.filename ? frameUrl(this.filename) : ""; },
+    ready() { return listPromise.then(() => syncPromise); },
+  };
+  const singleError = document.getElementById("hmuFrameError");
+  function selectSingle(filename) {
+    const url = frameUrl(filename);
+    hmuFrameSelection.filename = filename;
+    updateHero();
     document.documentElement.style.setProperty("--picture-frame", 'url("' + url + '")');
-    document.querySelectorAll("#picture--frame, #frame, .frameImage, #preview-frame, .live-preview-frame").forEach(function (element) {
-      if (element.tagName.toLowerCase() === "img") element.src = url;
+    document.querySelectorAll("#picture--frame, #frame, .frameImage, #preview-frame, .live-preview-frame").forEach(element => {
+      if (element.tagName === "IMG") element.src = url;
       else element.style.backgroundImage = 'url("' + url + '")';
     });
-
-    if (!persist) return;
-    window.hmuFrameSelection.filename = filename;
-    var revision = ++selectionRevision;
-
-    try { window.localStorage.setItem(storageKey, filename); } catch (error) { /* Storage may be disabled in kiosk privacy mode. */ }
-
-    var form = new FormData();
+    savePreference(storageKey, filename);
+    const revision = ++selectionRevision;
+    const form = new FormData();
     form.append("frame", filename);
-    // Serialize writes so the last selected frame also wins on the server.
-    syncPromise = syncPromise.catch(function () {}).then(function () {
+    // Serialize the writes to the single-photo active frame across rapid clicks.
+    syncPromise = syncPromise.catch(() => {}).then(async () => {
       if (revision !== selectionRevision) return;
-      return fetch("api/setFrame.php", { method: "POST", body: form, credentials: "same-origin" })
-      .then(function (response) {
-        if (!response.ok) throw new Error("Frame request failed");
-        return response.json();
-      })
-      .then(function (result) {
-        if (!result || result.status !== "success") throw new Error("Frame could not be saved");
-        if (revision !== selectionRevision) return;
-        if (errorMessage) errorMessage.hidden = true;
-      })
+      const response = await fetch("api/setFrame.php", { method: "POST", body: form, credentials: "same-origin" });
+      if (!response.ok || (await response.json())?.status !== "success") throw new Error("Frame could not be saved");
+      if (revision === selectionRevision && singleError) singleError.hidden = true;
     });
-    syncPromise.catch(function () {
-        if (revision !== selectionRevision) return;
-        if (errorMessage) {
-          errorMessage.textContent = "Đã chọn khung để xem trước, nhưng chưa đồng bộ được với máy chủ. Hãy thử chọn lại khung.";
-          errorMessage.hidden = false;
-        }
-      });
+    syncPromise.catch(() => {
+      if (revision !== selectionRevision || !singleError) return;
+      singleError.textContent = "Đã chọn khung để xem trước, nhưng chưa đồng bộ được với máy chủ. Hãy thử chọn lại khung.";
+      singleError.hidden = false;
+    });
+  }
+  const single = makePicker("kioskFrameSelector", "hmuFrameTopics", filename => ({
+    id: filename,
+    name: filename.split("/").pop().slice(0, -4),
+    preview: "api/framePreview.php?frame=" + encodeURIComponent(filename),
+    description: "Khung ảnh HMU",
+    badge: "PNG",
+  }), selectSingle, () => hmuFrameSelection.filename);
+
+  const listPromise = json("api/getFrames.php?grouped=1").then(topics => {
+    if (!Array.isArray(topics) || !topics.length) throw new Error("No frames available");
+    let savedFrame = readPreference(storageKey);
+    const frames = topics.flatMap(topic => topic.frames);
+    if (savedFrame && !frames.includes(savedFrame)) {
+      const basename = savedFrame.split("/").pop();
+      const relocated = frames.filter(filename => filename.split("/").pop() === basename);
+      if (relocated.length === 1) savedFrame = relocated[0];
+    }
+    const savedTopic = topics.find(topic => topic.frames.includes(savedFrame));
+    const initialTopic = savedTopic || topics[0];
+    selectSingle(savedTopic ? savedFrame : initialTopic.frames[0]);
+    single.render(topics, initialTopic);
+  }).catch(error => {
+    single.render([]);
+    if (singleError) singleError.hidden = false;
+    throw error;
+  }).finally(() => single.grid.setAttribute("aria-busy", "false"));
+  listPromise.catch(() => {});
+
+  document.getElementById("hmuPreviewCaption")?.addEventListener("click", event => {
+    const target = document.getElementById("hmu-templates");
+    if (target) {
+      event.preventDefault();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+
+  if (!modeBar || !multiPanel) return;
+  const multiError = document.getElementById("hmuMultiFrameError");
+  const multi = makePicker("hmuMultiFrameSelector", "hmuMultiFrameTopics", frame => ({
+    id: frame.id,
+    name: frame.name,
+    preview: frame.preview,
+    description: frame.name,
+    badge: frame.layout.replace("x", "×"),
+  }), selectMulti, () => selectedMulti?.id);
+
+  function selectMulti(frame) {
+    selectedMulti = frame;
+    if (frame) savePreference(multiStorageKey, frame.id);
+    updateHero();
   }
 
-  function makeFrameCard(filename) {
-    var card = document.createElement("button");
-    card.type = "button";
-    card.className = "hmu-frame-card";
-    card.dataset.frame = filename;
-    card.setAttribute("aria-pressed", "false");
-
-    var tag = document.createElement("span");
-    tag.className = "hmu-frame-selected-tag";
-    tag.innerHTML = '<i class="fa fa-check-circle" aria-hidden="true"></i> Đang chọn';
-    card.appendChild(tag);
-
-    var thumb = document.createElement("span");
-    thumb.className = "hmu-frame-thumb";
-    var image = document.createElement("img");
-    image.src = new URL("api/framePreview.php?frame=" + encodeURIComponent(filename), document.baseURI).href;
-    image.alt = "";
-    image.loading = "lazy";
-    image.decoding = "async";
-    thumb.appendChild(image);
-    card.appendChild(thumb);
-
-    var meta = document.createElement("span");
-    meta.className = "hmu-frame-meta";
-    var info = document.createElement("span");
-    var name = document.createElement("span");
-    name.className = "hmu-frame-name";
-    name.textContent = frameTitle(filename);
-    var description = document.createElement("span");
-    description.className = "hmu-frame-description";
-    description.textContent = "Khung ảnh HMU";
-    info.appendChild(name);
-    info.appendChild(description);
-    meta.appendChild(info);
-    var size = document.createElement("span");
-    size.className = "hmu-frame-size";
-    size.textContent = "PNG";
-    meta.appendChild(size);
-    card.appendChild(meta);
-
-    var action = document.createElement("span");
-    action.className = "hmu-frame-select";
-    action.textContent = "Chọn khung này";
-    card.appendChild(action);
-
-    card.addEventListener("click", function () { selectFrame(filename, card, true); });
-    return card;
+  function renderMulti() {
+    const visible = multiFrames.filter(frame => !layout.value || frame.layout === layout.value);
+    const grouped = new Map();
+    for (const frame of visible) {
+      if (!grouped.has(frame.topic)) grouped.set(frame.topic, { label: frame.topic, frames: [] });
+      grouped.get(frame.topic).frames.push(frame);
+    }
+    const preferred = selectedMulti?.id || readPreference(multiStorageKey);
+    // Changing the layout picks a new frame only when the previous one cannot fit the filter.
+    if (!visible.some(frame => frame.id === preferred) || !selectedMulti) {
+      selectMulti(visible.find(frame => frame.id === preferred) || visible[0] || null);
+    }
+    multi.render([...grouped.values()], grouped.get(selectedMulti?.topic));
+    multiError.hidden = !!visible.length;
+    if (!visible.length) multiError.textContent = "Chưa có khung phù hợp. Hãy chọn bố cục khác.";
   }
 
-  selector.setAttribute("aria-busy", "true");
-  listPromise = fetch("api/getFrames.php", { credentials: "same-origin" })
-    .then(function (response) {
-      if (!response.ok) throw new Error("Frame list request failed");
-      return response.json();
-    })
-    .then(function (frames) {
-      if (!Array.isArray(frames) || !frames.length) throw new Error("No frames available");
-
-      var cards = document.createDocumentFragment();
-      frames.forEach(function (filename) { cards.appendChild(makeFrameCard(filename)); });
-      selector.appendChild(cards);
-      if (frameCount) frameCount.textContent = String(frames.length);
-
-      var savedFrame = null;
-      try { savedFrame = window.localStorage.getItem(storageKey); } catch (error) { /* Use the first configured frame. */ }
-      var initialFrame = frames.indexOf(savedFrame) !== -1 ? savedFrame : frames[0];
-      var initialCard = Array.prototype.find.call(selector.querySelectorAll(".hmu-frame-card"), function (card) {
-        return card.dataset.frame === initialFrame;
-      });
-      selectFrame(initialFrame, initialCard, true);
-    })
-    .catch(function (error) {
-      selector.innerHTML = "";
-      if (errorMessage) errorMessage.hidden = false;
+  function loadMulti() {
+    if (multiReady) return multiReady;
+    multi.grid.setAttribute("aria-busy", "true");
+    multiError.hidden = true;
+    multiReady = json("api/multishot.php?action=frames").then(result => {
+      if (!Array.isArray(result.frames)) throw new Error("Invalid multishot catalog");
+      multiFrames = result.frames;
+      renderMulti();
+    }).catch(error => {
+      multiReady = null;
+      multiError.textContent = "Không tải được khung bộ ảnh. Hãy chọn lại Bộ ảnh để thử lại.";
+      multiError.hidden = false;
       throw error;
-    })
-    .finally(function () { selector.setAttribute("aria-busy", "false"); });
-  listPromise.catch(function () {});
-
-  var previewCaption = document.getElementById("hmuPreviewCaption") || document.querySelector(".hmu-preview-caption");
-  if (previewCaption) {
-    previewCaption.addEventListener("click", function (event) {
-      var target = document.getElementById("hmu-templates") || document.querySelector(".hmu-templates");
-      if (target) {
-        event.preventDefault();
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
+    }).finally(() => multi.grid.setAttribute("aria-busy", "false"));
+    return multiReady;
   }
+
+  function selectMode(next) {
+    if (!["single", "multi"].includes(next) || window.photoBooth?.takingPic || window.hmuFilterStage?.active) return false;
+    if (mode !== next) modeRevision++;
+    mode = next;
+    singlePanel.hidden = mode === "multi";
+    multiPanel.hidden = mode === "single";
+    modeBar.querySelectorAll("button").forEach(button =>
+      button.setAttribute("aria-pressed", String(button.dataset.captureMode === mode)));
+    if (title) title.textContent = mode === "multi" ? "Chọn khung bộ ảnh" : singleTitle;
+    updateHero();
+    if (mode === "multi") loadMulti().catch(() => {});
+    return true;
+  }
+
+  function focusSelection() {
+    const grid = (mode === "multi" ? multi : single).grid;
+    (grid.querySelector('[aria-pressed="true"]') || grid).focus();
+  }
+
+  layout.addEventListener("change", () => { if (multiFrames) renderMulti(); });
+  modeBar.addEventListener("click", event => {
+    const button = event.target.closest("button[data-capture-mode]");
+    if (button) selectMode(button.dataset.captureMode);
+  });
+  modeBar.addEventListener("keydown", event => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === "ArrowLeft" || event.key === "Home" ? "single" : "multi";
+    if (selectMode(next)) modeBar.querySelector('[data-capture-mode="' + next + '"]').focus();
+  });
+
+  window.hmuFrameMode = {
+    get current() { return mode; },
+    select: selectMode,
+    focusSelection,
+    async openCapture() {
+      const revision = modeRevision;
+      try { await loadMulti(); } catch (error) {
+        if (mode === "multi" && revision === modeRevision) focusSelection();
+        return;
+      }
+      if (mode !== "multi" || revision !== modeRevision || window.photoBooth?.takingPic || window.hmuFilterStage?.active) return;
+      if (selectedMulti) window.hmuMultishot.open(selectedMulti);
+      else focusSelection();
+    },
+  };
 })();

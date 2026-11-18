@@ -114,18 +114,16 @@ var photoBooth = function () {
       blocker.css('background-image', 'url(' + config.ui.shutter_cheese_img + ')');
     }
   };
-  api.stopPreviewAndCaptureFromVideo = function () {
-    if (config.preview.camTakesPic) {
-      if (photoboothPreview.stream) {
-        var sourceVideo = window.hmuFilterStage && window.hmuFilterStage.countingDown ? window.hmuFilterStage.captureVideo : videoView;
-        if (!sourceVideo.videoWidth || !sourceVideo.videoHeight || !photoboothPreview.stream.getVideoTracks().some(function (track) { return track.readyState === 'live'; })) {
-          api.errorPic({ error: 'Camera chưa sẵn sàng hoặc đã ngắt kết nối. Hãy chọn lại camera.' });
-          return false;
-        }
-        videoSensor.width = sourceVideo.videoWidth;
-        videoSensor.height = sourceVideo.videoHeight;
-        videoSensor.getContext('2d').drawImage(sourceVideo, 0, 0);
+  api.stopPreviewAndCaptureFromVideo = function (captureCanvas = config.preview.camTakesPic) {
+    if (captureCanvas && photoboothPreview.stream) {
+      var sourceVideo = window.hmuFilterStage && window.hmuFilterStage.countingDown ? window.hmuFilterStage.captureVideo : videoView;
+      if (!sourceVideo.videoWidth || !sourceVideo.videoHeight || !photoboothPreview.stream.getVideoTracks().some(function (track) { return track.readyState === 'live'; })) {
+        api.errorPic({ error: 'Camera chưa sẵn sàng hoặc đã ngắt kết nối. Hãy chọn lại camera.' });
+        return false;
       }
+      videoSensor.width = sourceVideo.videoWidth;
+      videoSensor.height = sourceVideo.videoHeight;
+      videoSensor.getContext('2d').drawImage(sourceVideo, 0, 0);
     }
     if (window.hmuFilterStage) window.hmuFilterStage.endCountdown();
     if (!config.preview.killcmd || config.preview.camTakesPic) {
@@ -178,11 +176,40 @@ var photoBooth = function () {
       photoboothTools.console.log(cmd, 'result: ', result);
     });
   };
+  api.beginMultishot = function () {
+    if (api.takingPic) return false;
+    api.takingPic = true;
+    api.reset();
+    api.closeGallery();
+    api.showResultInner(false);
+    api.resetTimeOut();
+    remoteBuzzerClient.inProgress(true);
+    if (config.pre_photo.cmd) api.shellCommand('pre-command');
+    return true;
+  };
+  api.endMultishot = function (file) {
+    if (file) {
+      if (config.get_request.processed) photoboothTools.getRequest(config.get_request.server + '/photo');
+      api.renderPic(file, [file], true);
+      return;
+    }
+    window.hmuFilterStage.finish();
+    remoteBuzzerClient.inProgress(false);
+    api.takingPic = false;
+    startPage.show();
+    api.init();
+    api.resetTimeOut();
+  };
   api.thrill = async function (photoStyle) {
     var retry = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
     if (photoStyle !== PhotoStyle.PHOTO && photoStyle !== PhotoStyle.CHROMA) return;
     if (api.takingPic) {
       photoboothTools.console.logDev('ERROR: Taking picture in progress already!');
+      return;
+    }
+    if (!retry && !chromaFile && photoStyle === PhotoStyle.PHOTO && window.hmuFrameMode?.current === 'multi' &&
+        window.hmuFilterStage && !window.hmuFilterStage.active) {
+      await window.hmuFrameMode.openCapture();
       return;
     }
     if (window.hmuFilterStage && !chromaFile && photoStyle !== PhotoStyle.CHROMA) {
@@ -204,7 +231,9 @@ var photoBooth = function () {
       photoStyle = PhotoStyle.CHROMA;
     }
     photoboothTools.console.log('PhotoStyle: ' + photoStyle);
+    var countdownSeconds = config.picture.cntdwn_time;
     if (window.hmuFilterStage && photoStyle === PhotoStyle.PHOTO) {
+      countdownSeconds = window.hmuFilterStage.countdownSeconds;
       try { await window.hmuFilterStage.startCountdown(retry); }
       catch (error) { api.errorPic({ error: 'Không mở được camera. Hãy kiểm tra quyền truy cập và chọn lại camera.' }); return; }
     } else photoboothPreview.startVideo(CameraDisplayMode.COUNTDOWN, retry);
@@ -219,16 +248,22 @@ var photoBooth = function () {
       var getUrl = config.get_request.server + '/' + getMode;
       photoboothTools.getRequest(getUrl);
     }
-    api.startCountdown(config.picture.cntdwn_time, counter, function () {
+    let previewStop;
+    function stopPreviewForCapture() {
+      if (!previewStop) previewStop = Promise.resolve(photoboothPreview.stopPreview()).catch(() => {});
+      return previewStop;
+    }
+    api.startCountdown(countdownSeconds, counter, function () {
       if (config.picture.no_cheese) {
         photoboothTools.console.log('Cheese is disabled.');
       } else {
         api.cheese(photoStyle);
       }
-    });
-    var triggerCnt = (config.picture.cntdwn_time) - config.picture.cntdwn_offset;
+    }, stopPreviewForCapture);
+    var triggerCnt = Math.max(0, countdownSeconds - config.picture.cntdwn_offset);
     photoboothTools.console.log('Capture image in ' + triggerCnt + ' seconds.');
-    setTimeout(function () {
+    setTimeout(async function () {
+      if (config.preview.killcmd && !config.preview.camTakesPic && !config.dev.demo_images) await stopPreviewForCapture();
       if (config.preview.camTakesPic && !photoboothPreview.stream && !config.dev.demo_images) {
         api.errorPic({
           error: 'No preview by device cam available!'
@@ -252,12 +287,14 @@ var photoBooth = function () {
   };
   api.takePic = function (photoStyle, retry) {
     remoteBuzzerClient.inProgress(true);
-    if (api.stopPreviewAndCaptureFromVideo() === false) return;
-    var data = {
-      style: photoStyle.valueOf(),
-      canvasimg: videoSensor.toDataURL('image/jpeg')
-    };
+    const data = { style: photoStyle.valueOf() };
     if (window.hmuFilterStage) data.captureSource = window.hmuFilterStage.captureSource;
+    const fromBrowser = data.captureSource
+      ? data.captureSource === 'browser'
+      : config.preview.mode === PreviewMode.DEVICE.valueOf() && config.preview.camTakesPic;
+    const captureCanvas = fromBrowser && !config.dev.demo_images;
+    if (api.stopPreviewAndCaptureFromVideo(captureCanvas) === false) return;
+    if (captureCanvas) data.canvasimg = videoSensor.toDataURL('image/jpeg');
     if (photoStyle === PhotoStyle.CHROMA) {
       data.file = chromaFile;
     }
@@ -437,7 +474,9 @@ var photoBooth = function () {
     }).appendTo(body);
     $(modal).addClass('shape--' + config.ui.style);
   };
-  api.renderPic = function (filename, files) {
+  api.renderPic = function (filename, files, multishot = false) {
+    const newSet = document.querySelector('.hmu-multishot-repeat');
+    if (newSet) newSet.hidden = !multishot;
     api.showQr('#qrCode', filename);
     if (config.print.from_result) {
       $(document).off('click touchstart', '.printbtn');
@@ -457,21 +496,43 @@ var photoBooth = function () {
         });
       }, config.print.auto_delay);
     }
-    resultPage.find('.deletebtn').off('click').on('click', function (ev) {
+    var deleting = false;
+    resultPage.find('.deletebtn').off('click').on('click', async function (ev) {
       ev.preventDefault();
-      var really = config["delete"].no_request ? true : confirm(filename + ' ' + photoboothTools.getTranslation('really_delete_image'));
-      if (really) {
-        files.forEach(function (file, index, array) {
-          photoboothTools.console.logDev('Index:', index);
-          photoboothTools.console.logDev('Array:', array);
-          api.deleteImage(file, function () {});
-        });
-        setTimeout(function () {
-          photoboothTools.reloadPage();
-        }, notificationTimeout);
-      } else {
+      if (deleting) return;
+      var really = config["delete"].no_request ? true : confirm('Xóa ảnh này? Không thể khôi phục.');
+      if (!really) {
         deleteBtn.blur();
+        return;
       }
+
+      deleting = true;
+      clearTimeout(timeOut);
+      timeOut = undefined;
+      var results = await Promise.allSettled(files.map(function (file) {
+        return api.deleteImage(file);
+      }));
+      if (!results.length || results.some(function (result) {
+        return result.status !== 'fulfilled' || !result.value?.success;
+      })) {
+        photoboothTools.modalMesg.showError('#modal_mesg', 'Không thể xóa ảnh. Photobooth sẽ tự tải lại.');
+        setTimeout(photoboothTools.reloadPage, notificationTimeout);
+        return;
+      }
+
+      var deadline = performance.now() + notificationTimeout;
+      function updateDeleteCountdown() {
+        var remaining = deadline - performance.now();
+        if (remaining <= 0) {
+          photoboothTools.reloadPage();
+          return;
+        }
+        var seconds = Math.ceil(remaining / 1000);
+        photoboothTools.modalMesg.showSuccess('#modal_mesg',
+          'Đã xóa ảnh.<br>Quay về Photobooth trong ' + seconds + ' giây.');
+        setTimeout(updateDeleteCountdown, remaining - (seconds - 1) * 1000);
+      }
+      updateDeleteCountdown();
     });
     api.addImage(filename);
     var imageUrl = config.foldersJS.images + '/' + encodeURIComponent(filename);
@@ -569,7 +630,7 @@ var photoBooth = function () {
     mailSendForm.trigger('reset');
     mailMessageForm.empty();
   };
-  api.startCountdown = function (start, element, cb) {
+  api.startCountdown = function (start, element, cb, stopPreview = photoboothPreview.stopPreview) {
     var count = 0;
     var current = start;
     var stop = start > parseInt(config.preview.stop_time, 10) ? start - parseInt(config.preview.stop_time, 10) : start;
@@ -580,7 +641,7 @@ var photoBooth = function () {
       element.removeClass('tick');
       if (count === stop && config.preview.killcmd && !config.preview.camTakesPic) {
         photoboothTools.console.logDev('Preview: core: stopping preview at countdown.');
-        photoboothPreview.stopPreview();
+        stopPreview();
       }
       if (count < start) {
         window.setTimeout(function () {
@@ -597,15 +658,16 @@ var photoBooth = function () {
   };
   api.deleteImage = function (imageName, cb) {
     var errorMsg = photoboothTools.getTranslation('error') + '</br>' + photoboothTools.getTranslation('auto_reload');
-    $.ajax({
+    return $.ajax({
       url: 'api/deletePhoto.php',
       method: 'POST',
       data: {
         file: imageName
       },
       success: function success(data) {
+        if (!cb) return;
         if (data.success) {
-          var msg = data.file + ' ' + photoboothTools.getTranslation('deleted_successfully') + '</br>' + photoboothTools.getTranslation('auto_reload');
+          var msg = 'Đã xóa ảnh.';
           photoboothTools.console.log('Deleted ' + data.file);
           photoboothTools.modalMesg.showSuccess('#modal_mesg', msg);
         } else {
@@ -619,6 +681,7 @@ var photoBooth = function () {
         cb(data);
       },
       error: function error(jqXHR, textStatus) {
+        if (!cb) return;
         photoboothTools.console.log('Error while deleting image: ', textStatus);
         photoboothTools.modalMesg.showError('#modal_mesg', errorMsg);
         setTimeout(function () {
@@ -639,8 +702,17 @@ var photoBooth = function () {
   };
   $('.takePic, .newpic').on('click', function (e) {
     e.preventDefault();
+    if (this.classList.contains('newpic')) window.hmuFrameMode?.select('single');
     api.thrill(PhotoStyle.PHOTO);
     $(this).blur();
+  });
+  $('.hmu-multishot-repeat').on('click', function () {
+    if (!window.hmuFrameMode?.select('multi')) return;
+    api.reset();
+    startPage.show();
+    rotaryController.focusSet('#start');
+    window.hmuFrameMode.focusSelection();
+    api.resetTimeOut();
   });
   $('.gallery-button, .gallerybtn').on('click', function (e) {
     e.preventDefault();
@@ -731,6 +803,8 @@ var photoBooth = function () {
     photoboothTools.console.logDev('Taking picture already in progress!');
   };
   $(document).on('keyup', function (ev) {
+    const pickerControl = ev.target.closest?.('#hmu-capture-mode button, #hmuFramePicker button, #hmuMultiFramePicker :is(button, select)');
+    if (pickerControl && (ev.keyCode === 13 || ev.keyCode === 32 || ev.key === 'Enter' || ev.key === ' ')) return;
     if (api.isTimeOutPending()) {
       if (typeof onStandaloneGalleryView !== 'undefined' || startPage.is(':visible')) {
         clearTimeout(timeOut);
