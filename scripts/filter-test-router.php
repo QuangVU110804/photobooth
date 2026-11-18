@@ -32,7 +32,7 @@ if ($route === 'api/setFrame.php') {
 require_once $root . '/lib/config.php';
 $config['ui']['skip_welcome'] = true;
 $config['ui']['style'] = 'modern';
-$config['gallery']['enabled'] = true;
+if (($_COOKIE['galleryTest'] ?? '') !== 'default') $config['gallery']['enabled'] = true;
 $config['gallery']['allow_delete'] = true;
 if (($_COOKIE['filterTestMode'] ?? '') === 'classic') $config['ui']['style'] = 'classic';
 $config['ui']['notification_timeout'] = '.05';

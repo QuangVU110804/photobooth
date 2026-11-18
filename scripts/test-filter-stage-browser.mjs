@@ -172,6 +172,21 @@ try {
     check(!/PHP (?:Warning|Fatal error|Notice|Deprecated)/i.test(serverLog),'No beauty PHP diagnostics');
     console.log(`${checks} full beautifier GPU/camera/PHP checks passed`);return;
   }
+  await cdp.send('Network.enable');
+  await cdp.send('Network.setCookie', { name: 'galleryTest', value: 'default', url: base + '/' });
+  await load();
+  check(await cdp.evaluate("!document.querySelector('.gallery-button,.gallerybtn,#gallery')"), 'The default guest screen hides the gallery');
+  const standaloneGallery = await fetch(base + '/gallery.php');
+  check(standaloneGallery.ok && (await standaloneGallery.text()).includes('gallery__header'), 'The standalone gallery remains available directly');
+  await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+  await cdp.send('Page.navigate', { url: base + '/gallery.php' });
+  await waitFor(() => cdp.evaluate("document.readyState === 'complete' && !!document.querySelector('#gallery .hmu-color-mode:not([hidden])')"), 'standalone gallery color switch');
+  await cdp.evaluate("document.querySelector('#gallery .hmu-color-mode').click()");
+  check(await cdp.evaluate("document.documentElement.dataset.colorMode === 'dark' && getComputedStyle(document.querySelector('#gallery .gallery__header')).colorScheme === 'dark'"), 'The standalone gallery can switch to dark mode');
+  await cdp.send('Network.deleteCookies', { name: 'galleryTest', url: base + '/' });
+  await load();
+  check(await cdp.evaluate("document.querySelector('#start .hmu-color-mode').getAttribute('aria-checked') === 'true'"), 'The gallery color choice carries to the home screen');
+  await cdp.evaluate("document.querySelector('#start .hmu-color-mode').click(); localStorage.removeItem('hmu-color-mode')");
   const topics = await (await fetch(`${base}/api/getFrames.php?grouped=1`)).json();
   const previewFrame = topics.flatMap(topic => topic.frames).find(frame => path.posix.basename(frame) === 'Golden Atelier.png');
   check(previewFrame, 'Golden Atelier is available in the frame catalog');
